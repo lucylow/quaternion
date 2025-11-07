@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chroma Strategy Game - Client Example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: #fff;
+        }
+        h1 { color: #4CAF50; }
+        .controls {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover { background: #45a049; }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+        .game-info {
+            background: #2a2a2a;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .stat-card {
+            background: #333;
+            padding: 15px;
+            border-radius: 4px;
+        }
+        .stat-label {
+            color: #888;
+            font-size: 12px;
+            text-transform: uppercase;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+        #log {
+            background: #000;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 4px;
+            height: 300px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        .log-entry {
+            margin: 2px 0;
+        }
+        .error { color: #f44336; }
+        .success { color: #4CAF50; }
+        .info { color: #2196F3; }
+    </style>
+</head>
+<body>
+    <h1>🎮 Chroma Strategy Game - Client Example</h1>
+    
+    <div class="controls">
+        <h2>Game Controls</h2>
+        <button id="createGame">Create New Game</button>
+        <button id="startGame" disabled>Start Game</button>
+        <button id="stopGame" disabled>Stop Game</button>
+        <button id="deleteGame" disabled>Delete Game</button>
+        <br>
+        <label>AI Difficulty: 
+            <select id="difficulty">
+                <option value="easy">Easy</option>
+                <option value="medium" selected>Medium</option>
+                <option value="hard">Hard</option>
+            </select>
+        </label>
+    </div>
+
+    <div class="game-info">
+        <h2>Game State</h2>
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-label">Game ID</div>
+                <div class="stat-value" id="gameId">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Tick</div>
+                <div class="stat-value" id="tick">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Player 1 Units</div>
+                <div class="stat-value" id="p1Units">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Player 2 Units</div>
+                <div class="stat-value" id="p2Units">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Minerals</div>
+                <div class="stat-value" id="minerals">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Gas</div>
+                <div class="stat-value" id="gas">0</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="game-info">
+        <h2>Console Log</h2>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000/api';
+        let currentGameId = null;
+        let pollInterval = null;
+
+        // Logging
+        function log(message, type = 'info') {
+            const logEl = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logEl.appendChild(entry);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        // Update UI
+        function updateUI(state) {
+            if (!state) return;
+
+            document.getElementById('tick').textContent = state.tick || 0;
+            
+            const p1Units = state.units?.filter(u => u.playerId === 1).length || 0;
+            const p2Units = state.units?.filter(u => u.playerId === 2).length || 0;
+            
+            document.getElementById('p1Units').textContent = p1Units;
+            document.getElementById('p2Units').textContent = p2Units;
+            
+            if (state.players && state.players[1]) {
+                document.getElementById('minerals').textContent = state.players[1].minerals;
+                document.getElementById('gas').textContent = state.players[1].gas;
+            }
+
+            if (state.winner) {
+                log(`🏆 Game Over! Player ${state.winner} wins!`, 'success');
+                stopPolling();
+            }
+        }
+
+        // API Calls
+        async function createGame() {
+            try {
+                const difficulty = document.getElementById('difficulty').value;
+                const response = await fetch(`${API_URL}/game/create`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        mapWidth: 64,
+                        mapHeight: 64,
+                        aiDifficulty: difficulty
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    currentGameId = data.gameId;
+                    document.getElementById('gameId').textContent = currentGameId.substring(0, 12) + '...';
+                    log(`✅ Game created: ${currentGameId}`, 'success');
+                    updateUI(data.state);
+                    
+                    document.getElementById('startGame').disabled = false;
+                    document.getElementById('deleteGame').disabled = false;
+                    document.getElementById('createGame').disabled = true;
+                } else {
+                    log(`❌ Error: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Error creating game: ${error.message}`, 'error');
+            }
+        }
+
+        async function startGame() {
+            if (!currentGameId) return;
+
+            try {
+                const response = await fetch(`${API_URL}/game/${currentGameId}/start`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    log('▶️ Game started!', 'success');
+                    document.getElementById('startGame').disabled = true;
+                    document.getElementById('stopGame').disabled = false;
+                    startPolling();
+                } else {
+                    log(`❌ Error: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Error starting game: ${error.message}`, 'error');
+            }
+        }
+
+        async function stopGame() {
+            if (!currentGameId) return;
+
+            try {
+                const response = await fetch(`${API_URL}/game/${currentGameId}/stop`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    log('⏸️ Game stopped', 'info');
+                    document.getElementById('startGame').disabled = false;
+                    document.getElementById('stopGame').disabled = true;
+                    stopPolling();
+                } else {
+                    log(`❌ Error: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Error stopping game: ${error.message}`, 'error');
+            }
+        }
+
+        async function deleteGame() {
+            if (!currentGameId) return;
+
+            try {
+                const response = await fetch(`${API_URL}/game/${currentGameId}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    log('🗑️ Game deleted', 'info');
+                    currentGameId = null;
+                    document.getElementById('gameId').textContent = '-';
+                    document.getElementById('createGame').disabled = false;
+                    document.getElementById('startGame').disabled = true;
+                    document.getElementById('stopGame').disabled = true;
+                    document.getElementById('deleteGame').disabled = true;
+                    stopPolling();
+                } else {
+                    log(`❌ Error: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Error deleting game: ${error.message}`, 'error');
+            }
+        }
+
+        // Polling
+        function startPolling() {
+            stopPolling();
+            pollInterval = setInterval(async () => {
+                if (!currentGameId) return;
+
+                try {
+                    const response = await fetch(`${API_URL}/game/${currentGameId}/state`);
+                    const data = await response.json();
+                    if (data.success) {
+                        updateUI(data.state);
+                    }
+                } catch (error) {
+                    console.error('Polling error:', error);
+                }
+            }, 200);
+        }
+
+        function stopPolling() {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+        }
+
+        // Event Listeners
+        document.getElementById('createGame').addEventListener('click', createGame);
+        document.getElementById('startGame').addEventListener('click', startGame);
+        document.getElementById('stopGame').addEventListener('click', stopGame);
+        document.getElementById('deleteGame').addEventListener('click', deleteGame);
+
+        // Initial log
+        log('🚀 Client ready. Create a game to start!', 'success');
+    </script>
+</body>
+</html>
