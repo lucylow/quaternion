@@ -2,6 +2,16 @@ import express from 'express';
 import cors from 'cors';
 import { GameState } from './game/GameState.js';
 import { AIDifficulty } from './ai/AIController.js';
+import logger from './lib/logger.js';
+import {
+  validate,
+  createGameSchema,
+  moveCommandSchema,
+  attackCommandSchema,
+  gatherCommandSchema,
+  buildUnitSchema,
+  buildBuildingSchema
+} from './lib/validation.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -23,7 +33,7 @@ app.get('/health', (req, res) => {
 });
 
 // Create new game
-app.post('/api/game/create', (req, res) => {
+app.post('/api/game/create', validate(createGameSchema), (req, res) => {
   try {
     const { mapWidth, mapHeight, seed, aiDifficulty } = req.body;
     
@@ -37,12 +47,15 @@ app.post('/api/game/create', (req, res) => {
     const game = new GameState(config);
     games.set(game.id, game);
     
+    logger.info({ gameId: game.id, config }, 'Game created');
+    
     res.json({
       success: true,
       gameId: game.id,
       state: game.getState()
     });
   } catch (error) {
+    logger.error({ error: error.message }, 'Failed to create game');
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -142,7 +155,7 @@ app.post('/api/game/:id/command', (req, res) => {
 });
 
 // Move units
-app.post('/api/game/:id/move', (req, res) => {
+app.post('/api/game/:id/move', validate(moveCommandSchema), (req, res) => {
   try {
     const game = games.get(req.params.id);
     if (!game) {
@@ -152,17 +165,20 @@ app.post('/api/game/:id/move', (req, res) => {
     const { unitIds, x, y } = req.body;
     game.queueEvent({ type: 'move', unitIds, x, y });
     
+    logger.debug({ gameId: req.params.id, unitIds, x, y }, 'Move command queued');
+    
     res.json({
       success: true,
       message: 'Move command queued'
     });
   } catch (error) {
+    logger.error({ error: error.message, gameId: req.params.id }, 'Move command failed');
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
 // Attack command
-app.post('/api/game/:id/attack', (req, res) => {
+app.post('/api/game/:id/attack', validate(attackCommandSchema), (req, res) => {
   try {
     const game = games.get(req.params.id);
     if (!game) {
@@ -172,17 +188,20 @@ app.post('/api/game/:id/attack', (req, res) => {
     const { unitIds, targetId } = req.body;
     game.queueEvent({ type: 'attack', unitIds, targetId });
     
+    logger.debug({ gameId: req.params.id, unitIds, targetId }, 'Attack command queued');
+    
     res.json({
       success: true,
       message: 'Attack command queued'
     });
   } catch (error) {
+    logger.error({ error: error.message, gameId: req.params.id }, 'Attack command failed');
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
 // Gather command
-app.post('/api/game/:id/gather', (req, res) => {
+app.post('/api/game/:id/gather', validate(gatherCommandSchema), (req, res) => {
   try {
     const game = games.get(req.params.id);
     if (!game) {
@@ -192,17 +211,20 @@ app.post('/api/game/:id/gather', (req, res) => {
     const { unitIds, resourceId } = req.body;
     game.queueEvent({ type: 'gather', unitIds, resourceId });
     
+    logger.debug({ gameId: req.params.id, unitIds, resourceId }, 'Gather command queued');
+    
     res.json({
       success: true,
       message: 'Gather command queued'
     });
   } catch (error) {
+    logger.error({ error: error.message, gameId: req.params.id }, 'Gather command failed');
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
 // Build unit
-app.post('/api/game/:id/build-unit', (req, res) => {
+app.post('/api/game/:id/build-unit', validate(buildUnitSchema), (req, res) => {
   try {
     const game = games.get(req.params.id);
     if (!game) {
@@ -212,17 +234,20 @@ app.post('/api/game/:id/build-unit', (req, res) => {
     const { buildingId, unitType } = req.body;
     game.queueEvent({ type: 'build_unit', buildingId, unitType });
     
+    logger.debug({ gameId: req.params.id, buildingId, unitType }, 'Build unit command queued');
+    
     res.json({
       success: true,
       message: 'Build unit command queued'
     });
   } catch (error) {
+    logger.error({ error: error.message, gameId: req.params.id }, 'Build unit command failed');
     res.status(500).json({ success: false, error: error.message });
   }
 });
 
 // Build building
-app.post('/api/game/:id/build-building', (req, res) => {
+app.post('/api/game/:id/build-building', validate(buildBuildingSchema), (req, res) => {
   try {
     const game = games.get(req.params.id);
     if (!game) {
@@ -232,11 +257,14 @@ app.post('/api/game/:id/build-building', (req, res) => {
     const { playerId, buildingType, x, y } = req.body;
     game.queueEvent({ type: 'build_building', playerId, buildingType, x, y });
     
+    logger.debug({ gameId: req.params.id, playerId, buildingType, x, y }, 'Build building command queued');
+    
     res.json({
       success: true,
       message: 'Build building command queued'
     });
   } catch (error) {
+    logger.error({ error: error.message, gameId: req.params.id }, 'Build building command failed');
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -282,14 +310,14 @@ app.delete('/api/game/:id', (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`🎮 Chroma Strategy Game Server running on port ${PORT}`);
-  console.log(`📡 API available at http://localhost:${PORT}/api`);
-  console.log(`💚 Health check: http://localhost:${PORT}/health`);
+  logger.info({ port: PORT }, '🎮 Chroma Strategy Game Server running');
+  logger.info(`📡 API available at http://localhost:${PORT}/api`);
+  logger.info(`💚 Health check: http://localhost:${PORT}/health`);
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
-  console.log('SIGTERM received, shutting down gracefully...');
+  logger.info('SIGTERM received, shutting down gracefully...');
   games.forEach(game => game.stop());
   process.exit(0);
 });
