@@ -1,5 +1,8 @@
 import { UnitType } from '../units/Unit.js';
 import { BuildingType } from '../buildings/Building.js';
+import fs from 'fs';
+import path from 'path';
+import { logDecision } from './decision-logger.js';
 
 export const AIDifficulty = {
   EASY: 'easy',
@@ -7,35 +10,112 @@ export const AIDifficulty = {
   HARD: 'hard'
 };
 
+const CONFIG_PATH = path.resolve(process.cwd(), 'config', 'commanders.json');
+let COMMANDER_CONFIG = null;
+
+// Load commander config (safely)
+function loadCommanderConfig() {
+  try {
+    if (!COMMANDER_CONFIG) {
+      const raw = fs.readFileSync(CONFIG_PATH, 'utf8');
+      COMMANDER_CONFIG = JSON.parse(raw).commanders.reduce((acc, c) => {
+        acc[c.id] = c;
+        return acc;
+      }, {});
+    }
+  } catch (err) {
+    console.warn('Could not load commanders config at', CONFIG_PATH, err.message);
+    COMMANDER_CONFIG = COMMANDER_CONFIG || {};
+  }
+}
+
 /**
- * AI Controller for computer opponents
+ * Softmax sampling with numerical stability.
+ */
+function softmaxSample(actions, temp = 1.0) {
+  if (!actions || actions.length === 0) return null;
+  temp = Math.max(0.05, Math.min(2.0, temp));
+  const scores = actions.map(a => a.score);
+  const max = Math.max(...scores);
+  const exps = scores.map(s => Math.exp((s - max) / temp));
+  const sum = exps.reduce((a, b) => a + b, 0);
+  const r = Math.random() * sum;
+  let c = 0;
+  for (let i = 0; i < exps.length; i++) {
+    c += exps[i];
+    if (r <= c) return actions[i];
+  }
+  return actions[actions.length - 1];
+}
+
+/**
+ * Apply personality modulation to a base utility.
+ */
+function modulate(baseScore, personality, decisionType) {
+  if (!personality || !personality.traits) return baseScore;
+  const t = personality.traits;
+  switch (decisionType) {
+    case 'attack':
+      return baseScore * (1 + (t.aggressiveness - 0.5) * 0.6);
+    case 'defend':
+      return baseScore * (1 + (0.5 - t.aggressiveness) * 0.5) * (1 + (t.patience - 0.5) * 0.4);
+    case 'scout':
+      return baseScore * (1 + (t.explorationDrive - 0.5) * 0.9);
+    case 'expand':
+    case 'econ':
+      return baseScore * (1 + (t.patience - 0.5) * 0.6);
+    default:
+      return baseScore * (1 + (t.innovationDrive - 0.5) * 0.4);
+  }
+}
+
+/**
+ * Novelty multiplier based on recent action history
+ */
+function noveltyMultiplier(actionType, recentHistory = [], window = 6) {
+  if (!recentHistory || recentHistory.length === 0) return 1.0;
+  const slice = recentHistory.slice(-window);
+  const count = slice.filter(t => t === actionType).length;
+  return 1 / (1 + count);
+}
+
+/**
+ * AI Controller for computer opponents with personality system
  */
 export class AIController {
-  constructor(playerId, difficulty = AIDifficulty.MEDIUM) {
+  constructor(playerId, difficulty = AIDifficulty.MEDIUM, commanderId = 'tactician') {
     this.playerId = playerId;
     this.difficulty = difficulty;
+    this.commanderId = commanderId;
     this.lastDecisionTick = 0;
     this.decisionInterval = this.getDecisionInterval();
     this.strategy = this.initializeStrategy();
     this.buildOrder = this.getBuildOrder();
     this.buildOrderIndex = 0;
+    this.recentHistory = [];
+    
+    loadCommanderConfig();
+    this.personality = COMMANDER_CONFIG[commanderId] || null;
   }
 
   getDecisionInterval() {
     const intervals = {
-      [AIDifficulty.EASY]: 180,    // 3 seconds
-      [AIDifficulty.MEDIUM]: 90,   // 1.5 seconds
-      [AIDifficulty.HARD]: 30      // 0.5 seconds
+      [AIDifficulty.EASY]: 180,
+      [AIDifficulty.MEDIUM]: 90,
+      [AIDifficulty.HARD]: 30
     };
     return intervals[this.difficulty];
   }
 
   initializeStrategy() {
+    const baseAggression = this.difficulty === AIDifficulty.HARD ? 0.8 : 0.5;
+    const personalityAggression = this.personality?.traits?.aggressiveness || 0.5;
+    
     return {
       economyFocus: 0.5,
       militaryFocus: 0.3,
       expansionFocus: 0.2,
-      aggression: this.difficulty === AIDifficulty.HARD ? 0.8 : 0.5,
+      aggression: (baseAggression + personalityAggression) / 2,
       workerCount: 0,
       armySize: 0,
       baseCount: 1
@@ -43,7 +123,6 @@ export class AIController {
   }
 
   getBuildOrder() {
-    // Standard build order
     return [
       { action: 'build_unit', unitType: UnitType.WORKER },
       { action: 'build_unit', unitType: UnitType.WORKER },
@@ -81,7 +160,6 @@ export class AIController {
     this.strategy.armySize = myUnits.filter(u => u.type !== UnitType.WORKER).length;
     this.strategy.baseCount = myBuildings.filter(b => b.type === BuildingType.BASE).length;
 
-    // Adjust strategy based on game state
     const player = gameState.players[this.playerId];
     if (player.minerals > 500) {
       this.strategy.militaryFocus = 0.6;
@@ -94,7 +172,7 @@ export class AIController {
   }
 
   /**
-   * Make strategic decisions
+   * Make strategic decisions with personality-based action selection
    */
   makeDecisions(gameState) {
     const player = gameState.players[this.playerId];
@@ -108,15 +186,160 @@ export class AIController {
       return;
     }
 
-    // Mid/late game decisions
-    this.manageEconomy(gameState);
-    this.manageMilitary(gameState);
-    this.manageArmy(gameState);
+    // Generate candidate actions
+    const candidates = this.generateCandidateActions(gameState);
+    
+    if (candidates.length > 0) {
+      const chosen = this.evaluateAndChooseAction(gameState, candidates);
+      if (chosen) {
+        this.executeAction(gameState, chosen);
+      }
+    } else {
+      // Fallback to original behavior
+      this.manageEconomy(gameState);
+      this.manageMilitary(gameState);
+      this.manageArmy(gameState);
+    }
   }
 
   /**
-   * Execute build order step
+   * Generate candidate actions based on current game state
    */
+  generateCandidateActions(gameState) {
+    const candidates = [];
+    const player = gameState.players[this.playerId];
+
+    // Economy actions
+    if (this.strategy.workerCount < 12) {
+      candidates.push({ 
+        id: 'build_worker', 
+        type: 'econ', 
+        action: 'build_unit',
+        unitType: UnitType.WORKER,
+        baseScore: 0.6 
+      });
+    }
+
+    // Military actions
+    if (player.minerals >= 150 && player.gas >= 100) {
+      candidates.push({ 
+        id: 'build_tank', 
+        type: 'attack', 
+        action: 'build_unit',
+        unitType: UnitType.TANK,
+        baseScore: 0.7 
+      });
+    }
+    
+    if (player.minerals >= 100) {
+      candidates.push({ 
+        id: 'build_soldier', 
+        type: 'attack', 
+        action: 'build_unit',
+        unitType: UnitType.SOLDIER,
+        baseScore: 0.5 
+      });
+    }
+
+    // Army management actions
+    const myUnits = gameState.units.filter(u => 
+      u.playerId === this.playerId && u.type !== UnitType.WORKER
+    );
+    
+    if (myUnits.length >= 3) {
+      candidates.push({ 
+        id: 'attack_enemy', 
+        type: 'attack', 
+        action: 'army_attack',
+        baseScore: 0.8 
+      });
+    } else {
+      candidates.push({ 
+        id: 'defend_base', 
+        type: 'defend', 
+        action: 'army_defend',
+        baseScore: 0.6 
+      });
+    }
+
+    return candidates;
+  }
+
+  /**
+   * Evaluate and choose action using personality-driven utilities
+   */
+  evaluateAndChooseAction(gameState, candidates) {
+    if (!candidates || candidates.length === 0) return null;
+
+    const scored = candidates.map((c) => {
+      const base = c.baseScore || 0.5;
+      const type = c.type || 'generic';
+      const mod = modulate(base, this.personality, type);
+      const novelty = noveltyMultiplier(type, this.recentHistory, 8);
+      const final = mod * (1 + (1 - novelty) * 0.15) * novelty;
+      
+      return {
+        ...c,
+        finalScore: final,
+        debug: { base, mod, novelty }
+      };
+    });
+
+    const topN = scored.sort((a, b) => b.finalScore - a.finalScore).slice(0, 6);
+    
+    const innovationDrive = this.personality?.traits?.innovationDrive || 0.5;
+    const temp = 1 - innovationDrive * 0.85 + 0.15;
+    const clampedTemp = Math.max(0.05, Math.min(1.5, temp));
+
+    const samplePool = topN.map(a => ({ action: a, score: a.finalScore }));
+    const chosenWrapper = softmaxSample(samplePool, clampedTemp);
+    const chosen = chosenWrapper ? chosenWrapper.action : topN[0];
+
+    this.recentHistory.push(chosen.type || chosen.id);
+    if (this.recentHistory.length > 128) this.recentHistory.shift();
+
+    // Log decision
+    try {
+      const actionScores = {};
+      scored.forEach(s => {
+        actionScores[s.id] = {
+          base: s.debug.base,
+          modulated: s.debug.mod,
+          novelty: s.debug.novelty,
+          final: s.finalScore
+        };
+      });
+
+      logDecision(gameState.id || 'game', {
+        commanderId: this.commanderId,
+        tick: gameState.tick,
+        chosen: { id: chosen.id, type: chosen.type },
+        actionScores
+      });
+    } catch (err) {
+      console.error('AIController log error', err);
+    }
+
+    return chosen;
+  }
+
+  /**
+   * Execute chosen action
+   */
+  executeAction(gameState, action) {
+    switch (action.action) {
+      case 'build_unit':
+        this.tryBuildUnit(gameState, action.unitType);
+        break;
+      case 'army_attack':
+        this.manageArmy(gameState);
+        break;
+      case 'army_defend':
+        this.manageArmy(gameState);
+        break;
+    }
+  }
+
   executeBuildOrder(gameState, order) {
     const player = gameState.players[this.playerId];
 
@@ -129,16 +352,12 @@ export class AIController {
     return false;
   }
 
-  /**
-   * Try to build a unit
-   */
   tryBuildUnit(gameState, unitType) {
     const player = gameState.players[this.playerId];
     const myBuildings = gameState.buildings.filter(b => 
       b.playerId === this.playerId && b.isComplete
     );
 
-    // Find appropriate building
     let building = null;
     if (unitType === UnitType.WORKER) {
       building = myBuildings.find(b => b.type === BuildingType.BASE);
@@ -152,8 +371,7 @@ export class AIController {
 
     if (!building) return false;
 
-    // Check resources
-    const unit = gameState.createUnit(unitType, this.playerId, 0, 0, true); // dry run
+    const unit = gameState.createUnit(unitType, this.playerId, 0, 0, true);
     if (player.minerals >= unit.cost.minerals && player.gas >= unit.cost.gas) {
       player.minerals -= unit.cost.minerals;
       player.gas -= unit.cost.gas;
@@ -164,15 +382,11 @@ export class AIController {
     return false;
   }
 
-  /**
-   * Try to build a building
-   */
   tryBuildBuilding(gameState, buildingType) {
     const player = gameState.players[this.playerId];
-    const building = gameState.createBuilding(buildingType, this.playerId, 0, 0, true); // dry run
+    const building = gameState.createBuilding(buildingType, this.playerId, 0, 0, true);
 
     if (player.minerals >= building.cost.minerals && player.gas >= building.cost.gas) {
-      // Find build location near base
       const base = gameState.buildings.find(b => b.playerId === this.playerId && b.type === BuildingType.BASE);
       if (base) {
         const buildX = base.x + Math.floor(Math.random() * 10) - 5;
@@ -188,20 +402,15 @@ export class AIController {
     return false;
   }
 
-  /**
-   * Manage economy (workers and resources)
-   */
   manageEconomy(gameState) {
     const player = gameState.players[this.playerId];
     const myUnits = gameState.units.filter(u => u.playerId === this.playerId);
     const workers = myUnits.filter(u => u.type === UnitType.WORKER);
 
-    // Build more workers if needed
     if (workers.length < 12 && player.minerals >= 50) {
       this.tryBuildUnit(gameState, UnitType.WORKER);
     }
 
-    // Assign idle workers to gather
     const idleWorkers = workers.filter(u => u.state === 'idle' && !u.gatherTarget);
     idleWorkers.forEach(worker => {
       const nearestResource = this.findNearestResource(gameState, worker);
@@ -211,13 +420,9 @@ export class AIController {
     });
   }
 
-  /**
-   * Manage military production
-   */
   manageMilitary(gameState) {
     const player = gameState.players[this.playerId];
 
-    // Build army units based on available resources
     if (player.minerals >= 150 && player.gas >= 100) {
       this.tryBuildUnit(gameState, UnitType.TANK);
     } else if (player.minerals >= 100) {
@@ -225,9 +430,6 @@ export class AIController {
     }
   }
 
-  /**
-   * Manage army movement and attacks
-   */
   manageArmy(gameState) {
     const myUnits = gameState.units.filter(u => 
       u.playerId === this.playerId && u.type !== UnitType.WORKER
@@ -236,13 +438,11 @@ export class AIController {
     const enemyUnits = gameState.units.filter(u => u.playerId !== this.playerId);
     const enemyBuildings = gameState.buildings.filter(b => b.playerId !== this.playerId);
 
-    // Attack if we have enough units
     const attackThreshold = this.difficulty === AIDifficulty.HARD ? 3 : 5;
     
     if (myUnits.length >= attackThreshold) {
       myUnits.forEach(unit => {
         if (unit.state === 'idle' || unit.state === 'moving') {
-          // Find nearest enemy
           const nearestEnemy = this.findNearestEnemy(unit, enemyUnits, enemyBuildings);
           if (nearestEnemy) {
             if (nearestEnemy.type) {
@@ -254,7 +454,6 @@ export class AIController {
         }
       });
     } else {
-      // Defensive positioning
       const base = gameState.buildings.find(b => b.playerId === this.playerId && b.type === BuildingType.BASE);
       if (base) {
         myUnits.forEach(unit => {
@@ -271,9 +470,6 @@ export class AIController {
     }
   }
 
-  /**
-   * Find nearest resource for worker
-   */
   findNearestResource(gameState, worker) {
     const resources = gameState.map.resources.filter(r => r.amount > 0);
     if (resources.length === 0) return null;
@@ -285,9 +481,6 @@ export class AIController {
     });
   }
 
-  /**
-   * Find nearest enemy
-   */
   findNearestEnemy(unit, enemyUnits, enemyBuildings) {
     const enemies = [...enemyUnits, ...enemyBuildings];
     if (enemies.length === 0) return null;
@@ -299,3 +492,5 @@ export class AIController {
     }, null);
   }
 }
+
+export { loadCommanderConfig, softmaxSample, modulate, noveltyMultiplier };
