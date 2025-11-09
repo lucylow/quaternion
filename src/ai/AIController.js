@@ -3,6 +3,9 @@ import { BuildingType } from '../buildings/Building.js';
 import fs from 'fs';
 import path from 'path';
 import { logDecision } from './decision-logger.js';
+import { generateStrategy, safeParseJSON } from './modelClient.js';
+import { buildStrategyPrompt } from './promptTemplates.js';
+import { LRUCache, hashPrompt } from './cache.js';
 
 export const AIDifficulty = {
   EASY: 'easy',
@@ -12,6 +15,7 @@ export const AIDifficulty = {
 
 const CONFIG_PATH = path.resolve(process.cwd(), 'config', 'commanders.json');
 let COMMANDER_CONFIG = null;
+const strategyCache = new LRUCache(200);
 
 // Load commander config (safely)
 function loadCommanderConfig() {
@@ -137,16 +141,16 @@ export class AIController {
   }
 
   /**
-   * Main AI update loop
+   * Main AI update loop (async for model integration)
    */
-  update(gameState) {
+  async update(gameState) {
     if (gameState.tick - this.lastDecisionTick < this.decisionInterval) {
       return;
     }
 
     this.lastDecisionTick = gameState.tick;
     this.analyzeGameState(gameState);
-    this.makeDecisions(gameState);
+    await this.makeDecisions(gameState);
   }
 
   /**
@@ -172,9 +176,9 @@ export class AIController {
   }
 
   /**
-   * Make strategic decisions with personality-based action selection
+   * Make strategic decisions with personality-based action selection and optional AI model
    */
-  makeDecisions(gameState) {
+  async makeDecisions(gameState) {
     const player = gameState.players[this.playerId];
     
     // Follow build order early game
@@ -184,6 +188,15 @@ export class AIController {
         this.buildOrderIndex++;
       }
       return;
+    }
+
+    // Use AI model for strategic decisions at key moments (every 10 ticks on hard)
+    if (this.difficulty === 'hard' && gameState.tick % 10 === 0) {
+      const aiDecision = await this.getAIStrategy(gameState);
+      if (aiDecision) {
+        this.executeAIStrategy(gameState, aiDecision);
+        return;
+      }
     }
 
     // Generate candidate actions
@@ -199,6 +212,69 @@ export class AIController {
       this.manageEconomy(gameState);
       this.manageMilitary(gameState);
       this.manageArmy(gameState);
+    }
+  }
+
+  /**
+   * Get AI model strategy recommendation (cached)
+   */
+  async getAIStrategy(gameState) {
+    const prompt = buildStrategyPrompt(gameState, this.playerId);
+    const cacheKey = hashPrompt(prompt, this.playerId);
+
+    // Check cache
+    if (strategyCache.has(cacheKey)) {
+      const cached = strategyCache.get(cacheKey);
+      return { ...cached, cached: true };
+    }
+
+    try {
+      const response = await generateStrategy({ prompt, temperature: 0.6, maxTokens: 256 });
+      const parsed = safeParseJSON(response.text);
+      
+      if (parsed && parsed.action) {
+        strategyCache.set(cacheKey, parsed);
+        return parsed;
+      }
+    } catch (err) {
+      console.warn('AI strategy failed, using fallback:', err.message);
+    }
+
+    return null;
+  }
+
+  /**
+   * Execute AI model strategy
+   */
+  executeAIStrategy(gameState, strategy) {
+    const { action, priority } = strategy;
+    
+    switch (action) {
+      case 'build':
+        if (priority === 'high') {
+          this.tryBuildUnit(gameState, UnitType.WORKER);
+        }
+        break;
+      case 'attack':
+        this.manageArmy(gameState);
+        break;
+      case 'defend':
+        const base = gameState.buildings.find(b => b.playerId === this.playerId && b.type === BuildingType.BASE);
+        if (base) {
+          const myUnits = gameState.units.filter(u => u.playerId === this.playerId && u.type !== UnitType.WORKER);
+          myUnits.forEach(unit => {
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 15;
+            unit.moveToPosition(base.x + Math.cos(angle) * distance, base.y + Math.sin(angle) * distance);
+          });
+        }
+        break;
+      case 'expand':
+        this.tryBuildUnit(gameState, UnitType.WORKER);
+        this.tryBuildUnit(gameState, UnitType.WORKER);
+        break;
+      default:
+        this.manageEconomy(gameState);
     }
   }
 
