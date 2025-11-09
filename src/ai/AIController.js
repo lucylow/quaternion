@@ -6,6 +6,8 @@ import { logDecision } from './decision-logger.js';
 import { generateStrategy, safeParseJSON } from './modelClient.js';
 import { buildStrategyPrompt } from './promptTemplates.js';
 import { LRUCache, hashPrompt } from './cache.js';
+import MCTS from './planner/MCTS.js';
+import { logAIDecision, recordMetric } from './telemetry.js';
 
 export const AIDifficulty = {
   EASY: 'easy',
@@ -87,10 +89,11 @@ function noveltyMultiplier(actionType, recentHistory = [], window = 6) {
  * AI Controller for computer opponents with personality system
  */
 export class AIController {
-  constructor(playerId, difficulty = AIDifficulty.MEDIUM, commanderId = 'tactician') {
+  constructor(playerId, difficulty = AIDifficulty.MEDIUM, commanderId = 'tactician', gameId = 'local') {
     this.playerId = playerId;
     this.difficulty = difficulty;
     this.commanderId = commanderId;
+    this.gameId = gameId;
     this.lastDecisionTick = 0;
     this.decisionInterval = this.getDecisionInterval();
     this.strategy = this.initializeStrategy();
@@ -100,6 +103,10 @@ export class AIController {
     
     loadCommanderConfig();
     this.personality = COMMANDER_CONFIG[commanderId] || null;
+    
+    // Initialize MCTS planner
+    const rollouts = difficulty === AIDifficulty.HARD ? 500 : (difficulty === AIDifficulty.MEDIUM ? 200 : 100);
+    this.planner = new MCTS({ rollouts });
   }
 
   getDecisionInterval() {
@@ -216,28 +223,81 @@ export class AIController {
   }
 
   /**
-   * Get AI model strategy recommendation (cached)
+   * Get AI model strategy recommendation (cached, with telemetry)
    */
   async getAIStrategy(gameState) {
+    const startTime = Date.now();
     const prompt = buildStrategyPrompt(gameState, this.playerId);
     const cacheKey = hashPrompt(prompt, this.playerId);
 
     // Check cache
     if (strategyCache.has(cacheKey)) {
       const cached = strategyCache.get(cacheKey);
+      const latency = Date.now() - startTime;
+      
+      // Log cache hit
+      await logAIDecision({
+        gameId: this.gameId,
+        tick: gameState.tick,
+        playerId: this.playerId,
+        commanderId: this.commanderId,
+        promptHash: cacheKey,
+        prompt: prompt.substring(0, 500),
+        modelResponse: JSON.stringify(cached),
+        actionTaken: cached,
+        decisionLatencyMs: latency,
+        tokensUsed: 0,
+        cacheHit: true,
+        fallbackUsed: false
+      });
+      
       return { ...cached, cached: true };
     }
 
     try {
       const response = await generateStrategy({ prompt, temperature: 0.6, maxTokens: 256 });
       const parsed = safeParseJSON(response.text);
+      const latency = Date.now() - startTime;
       
       if (parsed && parsed.action) {
         strategyCache.set(cacheKey, parsed);
+        
+        // Log successful AI decision
+        await logAIDecision({
+          gameId: this.gameId,
+          tick: gameState.tick,
+          playerId: this.playerId,
+          commanderId: this.commanderId,
+          promptHash: cacheKey,
+          prompt: prompt.substring(0, 500),
+          modelResponse: response.text.substring(0, 1000),
+          actionTaken: parsed,
+          decisionLatencyMs: latency,
+          tokensUsed: response.usage?.total_tokens || 0,
+          cacheHit: false,
+          fallbackUsed: false
+        });
+        
+        await recordMetric({
+          gameId: this.gameId,
+          metricType: 'ai_decision_latency',
+          metricValue: latency,
+          metadata: { tick: gameState.tick, cached: false }
+        });
+        
         return parsed;
       }
     } catch (err) {
+      const latency = Date.now() - startTime;
       console.warn('AI strategy failed, using fallback:', err.message);
+      
+      // Log fallback usage
+      await recordMetric({
+        gameId: this.gameId,
+        metricType: 'ai_fallback_count',
+        metricValue: 1,
+        metadata: { tick: gameState.tick, error: err.message }
+      });
     }
 
     return null;

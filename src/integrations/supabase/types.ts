@@ -86,6 +86,84 @@ export type Database = {
           },
         ]
       }
+      ai_decisions: {
+        Row: {
+          action_taken: Json | null
+          cache_hit: boolean | null
+          commander_id: string | null
+          created_at: string
+          decision_latency_ms: number | null
+          fallback_used: boolean | null
+          game_id: string
+          id: string
+          model_response: string | null
+          player_id: number
+          prompt: string | null
+          prompt_hash: string | null
+          tick: number
+          tokens_used: number | null
+        }
+        Insert: {
+          action_taken?: Json | null
+          cache_hit?: boolean | null
+          commander_id?: string | null
+          created_at?: string
+          decision_latency_ms?: number | null
+          fallback_used?: boolean | null
+          game_id: string
+          id?: string
+          model_response?: string | null
+          player_id: number
+          prompt?: string | null
+          prompt_hash?: string | null
+          tick: number
+          tokens_used?: number | null
+        }
+        Update: {
+          action_taken?: Json | null
+          cache_hit?: boolean | null
+          commander_id?: string | null
+          created_at?: string
+          decision_latency_ms?: number | null
+          fallback_used?: boolean | null
+          game_id?: string
+          id?: string
+          model_response?: string | null
+          player_id?: number
+          prompt?: string | null
+          prompt_hash?: string | null
+          tick?: number
+          tokens_used?: number | null
+        }
+        Relationships: []
+      }
+      ai_metrics: {
+        Row: {
+          game_id: string
+          id: string
+          metadata: Json | null
+          metric_type: string
+          metric_value: number
+          recorded_at: string
+        }
+        Insert: {
+          game_id: string
+          id?: string
+          metadata?: Json | null
+          metric_type: string
+          metric_value: number
+          recorded_at?: string
+        }
+        Update: {
+          game_id?: string
+          id?: string
+          metadata?: Json | null
+          metric_type?: string
+          metric_value?: number
+          recorded_at?: string
+        }
+        Relationships: []
+      }
       commander_personalities: {
         Row: {
           aggressiveness: number
