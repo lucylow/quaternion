@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Move, Swords, Sparkles, Square, Target } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import Phaser from 'phaser';
 
 interface CommandPanelProps {
   selectedUnits: Phaser.Physics.Arcade.Sprite[];

@@ -12,9 +12,6 @@ import { UnitPanel } from '@/components/game/UnitPanel';
 import { CommandPanel } from '@/components/game/CommandPanel';
 import { Minimap } from '@/components/game/Minimap';
 import { GameLoop, PerformanceStats } from '@/game/GameLoop';
-import { useSelectionManager } from '@/hooks/useSelectionManager';
-import { useRTSCamera } from '@/hooks/useRTSCamera';
-import { useTouchControls } from '@/hooks/useTouchControls';
 
 interface GameResources {
   matter: number;
@@ -77,6 +74,20 @@ const QuaternionGame = () => {
 
   useEffect(() => {
     if (!gameRef.current || phaserGameRef.current) return;
+
+    // Store functions in variables accessible to the scene
+    const showToast = toast;
+    const sendAIMessage = (commander: string, message: string) => {
+      const id = Date.now();
+      setAiMessages(prev => [...prev, { commander, message, id }]);
+      showToast(message, {
+        description: `${COMMANDERS[commander].name} - ${COMMANDERS[commander].role}`,
+        duration: 5000
+      });
+      setTimeout(() => {
+        setAiMessages(prev => prev.filter(m => m.id !== id));
+      }, 10000);
+    };
 
     // Initialize game state with configuration
     gameStateRef.current = new QuaternionGameState({
@@ -574,7 +585,7 @@ const QuaternionGame = () => {
           const groupNum = parseInt(event.key);
           if (selectedUnits.length > 0) {
             controlGroups.set(groupNum, [...selectedUnits]);
-            toast.success(`Control group ${groupNum} created with ${selectedUnits.length} units`);
+            showToast.success(`Control group ${groupNum} created with ${selectedUnits.length} units`);
           }
         }
       });
@@ -884,7 +895,7 @@ const QuaternionGame = () => {
         aiUnitsRef.current = aiUnits;
         lastAiSpawn = time;
         
-        addAIMessage('LIRA', 'Enemy units detected! Prepare defenses!');
+        sendAIMessage('LIRA', 'Enemy units detected! Prepare defenses!');
       }
 
       // AI unit combat

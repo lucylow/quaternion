@@ -1,6 +1,7 @@
 import { Heart, Shield, Zap, Activity, Info } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import Phaser from 'phaser';
 
 interface UnitPanelProps {
   selectedUnits: Phaser.Physics.Arcade.Sprite[];
