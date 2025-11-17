@@ -387,6 +387,12 @@ export class TechTreeSolver {
     if (effect.type === 'resource_modifier' && effect.isMultiplicative) {
       return (effect.value - 1) * 20;
     }
+    if (effect.type === 'unit_stat' && effect.isMultiplicative) {
+      return (effect.value - 1) * 15;
+    }
+    if (effect.type === 'global_modifier' && effect.isMultiplicative) {
+      return (effect.value - 1) * 25;
+    }
     return effect.value * 5;
   }
 

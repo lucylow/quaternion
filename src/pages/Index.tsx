@@ -58,7 +58,7 @@ const Index = () => {
       <header className="fixed top-0 w-full z-50 bg-background/90 backdrop-blur-md border-b border-primary/30">
         <nav className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <a href="#" className="flex items-center gap-2 text-2xl font-bold text-primary">
+            <a href="/" onClick={(e) => { e.preventDefault(); navigate('/'); }} className="flex items-center gap-2 text-2xl font-bold text-primary hover:opacity-80 transition-opacity cursor-pointer">
               <Brain className="w-8 h-8" />
               <span>QUATERNION<span className="text-secondary">:</span>NF</span>
             </a>

@@ -123,6 +123,14 @@ const QuaternionGame = () => {
       roomId: roomId
     });
 
+    // Initialize Resource Puzzle Manager
+    if (gameStateRef.current && gameStateRef.current.resourceManager) {
+      puzzleManagerRef.current = new ResourcePuzzleManager(
+        gameStateRef.current.resourceManager
+      );
+      puzzleManagerRef.current.initialize(Date.now());
+    }
+
     const playerUnits: Phaser.Physics.Arcade.Sprite[] = [];
     const aiUnits: Phaser.Physics.Arcade.Sprite[] = [];
     const selectedUnits: Phaser.Physics.Arcade.Sprite[] = [];
@@ -801,6 +809,71 @@ const QuaternionGame = () => {
             }
           });
           setWinConditionProgress(progress);
+        }
+
+        // Update Resource Puzzle Systems
+        if (puzzleManagerRef.current && !gameOver) {
+          const currentTime = Date.now();
+          puzzleManagerRef.current.update(currentTime, {
+            resources: {
+              [ResourceType.ORE]: resources.ore,
+              [ResourceType.ENERGY]: resources.energy,
+              [ResourceType.BIOMASS]: resources.biomass,
+              [ResourceType.DATA]: resources.data
+            },
+            maxCapacities: {
+              [ResourceType.ORE]: 10000,
+              [ResourceType.ENERGY]: 5000,
+              [ResourceType.BIOMASS]: 3000,
+              [ResourceType.DATA]: 2000
+            },
+            generationRates: {},
+            activeEvents: activeEvents,
+            researchedTechs: Array.from(researchedTechs),
+            playerBehavior: []
+          });
+
+          // Update active events
+          setActiveEvents(puzzleManagerRef.current.getActiveEvents());
+
+          // Check for new puzzles
+          const puzzles = puzzleManagerRef.current.getActivePuzzles();
+          if (puzzles.length > 0 && !activePuzzle) {
+            setActivePuzzle(puzzles[0]);
+          }
+
+          // Update market offers
+          setMarketOffers(puzzleManagerRef.current.getMarketOffers());
+
+          // Check for advisor advice (every 30 seconds)
+          if (currentTime - lastAdvisorCheck > 30000) {
+            puzzleManagerRef.current.generateAdvisorAdvice(
+              'resource_management',
+              {
+                resources: {
+                  [ResourceType.ORE]: resources.ore,
+                  [ResourceType.ENERGY]: resources.energy,
+                  [ResourceType.BIOMASS]: resources.biomass,
+                  [ResourceType.DATA]: resources.data
+                },
+                maxCapacities: {
+                  [ResourceType.ORE]: 10000,
+                  [ResourceType.ENERGY]: 5000,
+                  [ResourceType.BIOMASS]: 3000,
+                  [ResourceType.DATA]: 2000
+                },
+                generationRates: {},
+                activeEvents: activeEvents,
+                recentDecisions: []
+              },
+              currentTime
+            ).then(advice => {
+              if (advice) {
+                setAdvisorAdvice(advice);
+                setLastAdvisorCheck(currentTime);
+              }
+            });
+          }
         }
       }
 
@@ -1808,6 +1881,96 @@ const QuaternionGame = () => {
               resources={resources}
               onResearch={handleResearchTech}
               onClose={() => setShowTechTree(false)}
+            />
+          )}
+
+          {/* Resource Event Display */}
+          <ResourceEventDisplay
+            events={activeEvents}
+            onDismiss={(eventId) => {
+              setActiveEvents(prev => prev.filter(e => e.eventId !== eventId));
+            }}
+          />
+
+          {/* Allocation Puzzle Modal */}
+          {activePuzzle && (
+            <AllocationPuzzleModal
+              puzzle={activePuzzle}
+              currentResources={{
+                [ResourceType.ORE]: resources.ore,
+                [ResourceType.ENERGY]: resources.energy,
+                [ResourceType.BIOMASS]: resources.biomass,
+                [ResourceType.DATA]: resources.data
+              }}
+              onSelect={(optionId) => {
+                if (puzzleManagerRef.current && activePuzzle) {
+                  const result = puzzleManagerRef.current.executeAllocationDecision(
+                    activePuzzle.puzzleId,
+                    optionId
+                  );
+                  if (result.success && result.option) {
+                    // Apply resource costs
+                    const costs = result.option.resourceCosts;
+                    setResources(prev => ({
+                      ore: prev.ore - (costs.ore || 0),
+                      energy: prev.energy - (costs.energy || 0),
+                      biomass: prev.biomass - (costs.biomass || 0),
+                      data: prev.data - (costs.data || 0)
+                    }));
+                    toast.success(`Selected: ${result.option.optionName}`, {
+                      description: result.option.strategicRationale
+                    });
+                  }
+                }
+                setActivePuzzle(null);
+              }}
+              onClose={() => setActivePuzzle(null)}
+            />
+          )}
+
+          {/* Black Market Panel */}
+          <BlackMarketPanel
+            offers={marketOffers}
+            currentResources={{
+              [ResourceType.ORE]: resources.ore,
+              [ResourceType.ENERGY]: resources.energy,
+              [ResourceType.BIOMASS]: resources.biomass,
+              [ResourceType.DATA]: resources.data
+            }}
+            onAccept={(offerId) => {
+              if (puzzleManagerRef.current) {
+                const result = puzzleManagerRef.current.acceptMarketOffer(offerId);
+                if (result.success && result.offer) {
+                  // Apply costs and rewards
+                  const costs = result.offer.resourceCosts;
+                  const rewards = result.offer.resourceRewards;
+                  setResources(prev => ({
+                    ore: prev.ore - (costs.ore || 0) + (rewards[ResourceType.ORE] || 0),
+                    energy: prev.energy - (costs.energy || 0) + (rewards[ResourceType.ENERGY] || 0),
+                    biomass: prev.biomass - (costs.biomass || 0) + (rewards[ResourceType.BIOMASS] || 0),
+                    data: prev.data - (costs.data || 0) + (rewards[ResourceType.DATA] || 0)
+                  }));
+
+                  if (result.riskTriggered && result.penalties) {
+                    toast.error('Hidden risk triggered!', {
+                      description: result.penalties.effects?.join(', ') || 'Unexpected consequences'
+                    });
+                  } else {
+                    toast.success('Market offer accepted', {
+                      description: result.offer.description
+                    });
+                  }
+                }
+              }
+            }}
+          />
+
+          {/* Resource Advisor Panel */}
+          {advisorAdvice && puzzleManagerRef.current && (
+            <ResourceAdvisorPanel
+              advisor={puzzleManagerRef.current.getAdvisor().getCurrentAdvisor()}
+              advice={advisorAdvice}
+              onDismiss={() => setAdvisorAdvice(null)}
             />
           )}
         </>
