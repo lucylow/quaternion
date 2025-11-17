@@ -20,7 +20,11 @@ const HowToPlay = () => {
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Home
             </Button>
-            <a href="/" className="flex items-center gap-2 text-2xl font-bold text-primary">
+            <a 
+              href="/" 
+              onClick={(e) => { e.preventDefault(); navigate('/'); }} 
+              className="flex items-center gap-2 text-2xl font-bold text-primary hover:opacity-80 transition-opacity cursor-pointer"
+            >
               <Gamepad2 className="w-8 h-8" />
               <span>QUATERNION<span className="text-secondary">:</span>NF</span>
             </a>
@@ -115,12 +119,12 @@ const HowToPlay = () => {
                   <p className="text-muted-foreground mb-4">
                     The Quaternion Instability meter tracks how balanced your resources are. Keep it low for optimal gameplay.
                   </p>
-                  <ul className="space-y-2 text-muted-foreground ml-4">
-                    <li>• Instability increases when resources are imbalanced</li>
-                    <li>• High instability (>150%) causes negative effects</li>
-                    <li>• Maintain balance by distributing resources evenly</li>
-                    <li>• Some strategies intentionally create temporary imbalance for tactical advantage</li>
-                  </ul>
+                    <ul className="space-y-2 text-muted-foreground ml-4">
+                      <li>• Instability increases when resources are imbalanced</li>
+                      <li>• High instability (&gt;150%) causes negative effects</li>
+                      <li>• Maintain balance by distributing resources evenly</li>
+                      <li>• Some strategies intentionally create temporary imbalance for tactical advantage</li>
+                    </ul>
                 </CardContent>
               </Card>
 

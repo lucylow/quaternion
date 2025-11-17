@@ -296,3 +296,18 @@ expect(decision).toHaveProperty('reason');
 - Utility AI: [Game AI Pro](http://www.gameaipro.com/)
 - Behavior Trees: [Chris Simpson](https://www.gamedeveloper.com/programming/behavior-trees-for-ai-how-they-work)
 - MCTS: [DeepMind AlphaGo](https://deepmind.com/research/publications/mastering-game-go-deep-neural-networks-tree-search)
+
+## Additional Documentation
+
+For comprehensive backend AI architecture documentation, see:
+
+- **[Backend AI README](./docs/BACKEND_AI_README.md)** - Complete architecture guide covering behavior trees, personality system, utility AI scoring, pathfinding, and deployment
+- **[Backend AI Quick Start](./docs/BACKEND_AI_QUICK_START.md)** - Fast reference guide for developers with code examples and integration checklist
+
+These documents provide production-grade technical documentation for judges and developers, including:
+- Complete behavior tree implementation
+- Personality-driven decision making
+- Strategic intent system
+- Utility AI scoring framework
+- Performance optimization strategies
+- Debugging and testing guides

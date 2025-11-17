@@ -136,7 +136,7 @@ const QuaternionGame = () => {
     const selectedUnits: Phaser.Physics.Arcade.Sprite[] = [];
     let selectionGraphics: Phaser.GameObjects.Graphics;
     let isSelecting = false;
-    const selectionStart = { x: 0, y: 0 };
+    let selectionStart = { x: 0, y: 0 };
     const resourceNodes: Phaser.GameObjects.Sprite[] = [];
     const buildings: Phaser.GameObjects.Sprite[] = [];
     let playerBase: Phaser.GameObjects.Rectangle;

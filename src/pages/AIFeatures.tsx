@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Brain, Bot, Sparkles, Cpu, Network, Zap, Gift, Trophy, Mic, Video, Music, Image, Code, Palette, Layers, Play } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import AIPipelineVisualization from "@/components/AIPipelineVisualization";
 
 const AIFeatures = () => {
   const navigate = useNavigate();
@@ -192,6 +193,11 @@ const AIFeatures = () => {
               A procedural AI-driven RTS where neural commanders and human strategists contest procedurally-generated quantum battlefields. AI generates maps, unit behaviors, cinematic narration, and adaptive music for a living demo loop.
             </p>
           </div>
+
+          {/* AI Pipeline Visualization */}
+          <section className="mb-16">
+            <AIPipelineVisualization />
+          </section>
 
           {/* Development Pipeline */}
           <section className="mb-16">
@@ -418,27 +424,127 @@ chokepoints 3, objective_locations 2.`}
             <div className="grid md:grid-cols-2 gap-6">
               <Card className="bg-card/70 border-primary/30">
                 <CardContent className="p-6">
-                  <h3 className="text-xl font-bold text-primary mb-3">LLM Commander Decision</h3>
+                  <h3 className="text-xl font-bold text-primary mb-3">AI Integration Manager</h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    High-level strategic decisions use LLM with deterministic fallback:
+                    Central coordinator for all AI systems:
                   </p>
                   <div className="bg-muted/50 p-4 rounded border border-primary/20">
                     <code className="text-xs text-muted-foreground whitespace-pre-wrap">
-{`STATE: {
-  "resources": 300,
-  "myUnits": {"tank":3,"drone":2},
-  "enemyVisible": {"air":2,"infantry":5}
-}
-INSTRUCTION: Provide exactly one 
-tactical order in JSON format:
-{"orderType": "build/push/defend",
- "target": "north",
- "unit": "tank",
- "qty": 3}`}
+{`import { createDefaultAIManager } from './ai/AIIntegrationManager';
+
+const aiManager = createDefaultAIManager();
+
+// Generate procedural map with AI
+const mapResult = await aiManager.generateMap(
+  12345,  // seed
+  40,     // width
+  30,     // height
+  'crystalline_plains'
+);
+
+// Create AI commander
+const commander = await aiManager.createCommander(
+  'aggressive',
+  seed,
+  'medium'
+);`}
                     </code>
                   </div>
                   <p className="text-xs text-muted-foreground mt-3">
-                    Output validation ensures safe execution. Falls back to heuristic AI on failure.
+                    Unified interface for all AI services with automatic fallback handling.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card/70 border-primary/30">
+                <CardContent className="p-6">
+                  <h3 className="text-xl font-bold text-primary mb-3">LLM Map Theme Generation</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    AI generates thematic descriptions for procedural maps:
+                  </p>
+                  <div className="bg-muted/50 p-4 rounded border border-primary/20">
+                    <code className="text-xs text-muted-foreground whitespace-pre-wrap">
+{`async generateMapTheme(seed, mapType) {
+  const prompt = \`Generate a map theme for 
+  seed: \${seed}, type: \${mapType}
+  
+  Return JSON with:
+  - description: thematic narrative
+  - strategicPersonality: tactical style
+  - terrainFeatures: unique elements\`;
+  
+  const response = await this.callLLM(prompt);
+  return this.parseJSONResponse(response);
+}`}
+                    </code>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    LLM provides narrative context, deterministic generator creates the map.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card/70 border-primary/30">
+                <CardContent className="p-6">
+                  <h3 className="text-xl font-bold text-primary mb-3">Commander Personality Generation</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    AI creates unique commander personalities with gameplay traits:
+                  </p>
+                  <div className="bg-muted/50 p-4 rounded border border-primary/20">
+                    <code className="text-xs text-muted-foreground whitespace-pre-wrap">
+{`async generateCommanderPersonality(archetype, seed) {
+  const prompt = \`Generate commander for: \${archetype}
+  
+  Traits (0-1): strategicFocus, patience,
+  riskTolerance, aggression
+  
+  Gameplay: preferredStrategy, 
+  unitComposition, techPriority\`;
+  
+  const personality = await this.callLLM(prompt);
+  return this.validateAndCache(personality);
+}`}
+                    </code>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    Each commander has unique AI-generated personality affecting gameplay decisions.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card/70 border-primary/30">
+                <CardContent className="p-6">
+                  <h3 className="text-xl font-bold text-primary mb-3">ElevenLabs Voice Integration</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Real-time TTS with voice profiles and SSML:
+                  </p>
+                  <div className="bg-muted/50 p-4 rounded border border-primary/20">
+                    <code className="text-xs text-muted-foreground whitespace-pre-wrap">
+{`async generateVoice(text, voiceId, options) {
+  const response = await fetch(
+    \`\${this.baseUrl}/text-to-speech/\${voiceId}\`,
+    {
+      method: 'POST',
+      headers: {
+        'xi-api-key': this.apiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        text,
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: {
+          stability: options.stability || 0.5,
+          similarity_boost: options.similarity || 0.75
+        }
+      })
+    }
+  );
+  return await response.arrayBuffer();
+}`}
+                    </code>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    Supports multiple voices, SSML control, and voice cloning for commanders.
                   </p>
                 </CardContent>
               </Card>
@@ -451,13 +557,23 @@ tactical order in JSON format:
                   </p>
                   <div className="bg-muted/50 p-4 rounded border border-primary/20">
                     <code className="text-xs text-muted-foreground whitespace-pre-wrap">
-{`ScoreAttack(agent, target):
-  distScore = max(0, 1 - distance/range)
-  hpScore = (target.maxHP - target.HP) / maxHP
-  threatScore = target.threatLevel
-  return distScore*0.4 + hpScore*0.4 + threatScore*0.2
+{`scoreAttack(agent, target) {
+  const distScore = Math.max(0, 1 - 
+    distance(agent, target) / agent.range);
+  const hpScore = (target.maxHP - target.HP) / 
+    target.maxHP;
+  const threatScore = target.threatLevel / 10;
+  
+  return distScore * 0.4 + 
+         hpScore * 0.4 + 
+         threatScore * 0.2;
+}
 
-Execute best action: MaxBy(actions, Score)`}
+// Execute best action
+const bestAction = actions.reduce((best, action) => 
+  scoreAction(action) > scoreAction(best) 
+    ? action : best
+);`}
                     </code>
                   </div>
                   <p className="text-xs text-muted-foreground mt-3">
@@ -468,49 +584,30 @@ Execute best action: MaxBy(actions, Score)`}
 
               <Card className="bg-card/70 border-primary/30">
                 <CardContent className="p-6">
-                  <h3 className="text-xl font-bold text-primary mb-3">Procedural Map Generator</h3>
+                  <h3 className="text-xl font-bold text-primary mb-3">Dynamic Event System</h3>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Deterministic generation from LLM-generated seed:
+                    AI-generated events with narrative context:
                   </p>
                   <div className="bg-muted/50 p-4 rounded border border-primary/20">
                     <code className="text-xs text-muted-foreground whitespace-pre-wrap">
-{`GenerateFromSeed(seed):
-  rng = new Random(seed)
-  heightmap = PerlinNoise(seed)
-  resourceNodes = PlaceNodes(rng, 6)
-  chokepoints = CalculateChokepoints(heightmap)
-  return Map(heightmap, nodes, chokepoints)`}
+{`async generateEvent(mapTheme, gameTime) {
+  const prompt = \`Generate event for: \${mapTheme}
+  Game time: \${gameTime} seconds
+  
+  Return JSON: {
+    type: 'terrain' | 'combat' | 'resource',
+    text: narrative description,
+    impact: 'low' | 'medium' | 'high',
+    effects: {...}
+  }\`;
+  
+  const event = await this.llm.generate(prompt);
+  return this.validateEvent(event);
+}`}
                     </code>
                   </div>
                   <p className="text-xs text-muted-foreground mt-3">
-                    LLM provides JSON seed → deterministic generator creates reproducible maps.
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-card/70 border-primary/30">
-                <CardContent className="p-6">
-                  <h3 className="text-xl font-bold text-primary mb-3">ElevenLabs TTS Integration</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Real-time voice generation with SSML control:
-                  </p>
-                  <div className="bg-muted/50 p-4 rounded border border-primary/20">
-                    <code className="text-xs text-muted-foreground whitespace-pre-wrap">
-{`PlayLine(text, voice="Alloy"):
-  payload = {text, voice}
-  audioBytes = POST(ElevenLabsAPI, payload)
-  audioClip = WavToAudioClip(audioBytes)
-  AudioSource.Play(audioClip)
-
-SSML Example:
-<speak><voice name="Alloy">
-  Commander, <break time="400ms"/>
-  enemy forces converging on sector three.
-</voice></speak>`}
-                    </code>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-3">
-                    Note: API keys proxied through server for security. Pre-generate for demos.
+                    Events trigger every 3-5 minutes with AI-generated narratives.
                   </p>
                 </CardContent>
               </Card>
