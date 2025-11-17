@@ -1,3 +1,8 @@
+/**
+ * Route: / (Home Page)
+ * This is the main landing page of the application.
+ * Edit this file to modify the home page content.
+ */
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Brain, Box, Zap, Leaf, Trophy, ChevronDown, Gamepad2, Clock, Bot, Grid3x3, Palette, Mic, Music, Mountain, GitBranch, Dices, Menu, X } from "lucide-react";

@@ -56,3 +56,79 @@ function findNearestThreat(base, enemyUnits) {
   }, Infinity);
   return nearest === Infinity ? 'none' : Math.round(nearest);
 }
+
+/**
+ * Narrative Micro Event Generator
+ * Generates compact narrative events for campaign system
+ */
+export const NARRATIVE_MICRO_EVENT = {
+  system: `You are a concise in-game event generator. Input: {state}. Output JSON only:
+{"event":"", "flavor":"", "effect":{}}.
+Flavor max 25 words.
+No graphic descriptions. Keep tone somber/poetic.`,
+
+  buildPrompt: (input) => {
+    return `${NARRATIVE_MICRO_EVENT.system}
+
+INPUT:
+${JSON.stringify(input, null, 2)}
+
+OUTPUT:`
+  }
+};
+
+/**
+ * Epilogue Generator
+ * Generates campaign ending epilogues based on player choices
+ */
+export const EPILOGUE_GENERATOR = {
+  system: `You are a concise game epilogue writer. Given player choices and outcomes, produce a 25-40 word epilogue.
+Tone should match the moral axis: somber for exploitation, hopeful for conservation, mixed for balanced.
+Output JSON: {"epilogue": "text", "tone": "somber|hopeful|mixed"}`,
+
+  buildPrompt: (choices, outcomes) => {
+    return `${EPILOGUE_GENERATOR.system}
+
+CHOICES: ${JSON.stringify(choices)}
+OUTCOMES: ${JSON.stringify(outcomes)}
+
+OUTPUT:`
+  }
+};
+
+/**
+ * Character Dialogue Generator
+ * Generates character dialogue based on context
+ */
+export const CHARACTER_DIALOGUE = {
+  system: `You are a game dialogue writer. Generate 1-2 sentence character dialogue (max 20 words) that:
+- Matches the character's personality
+- Responds to the current situation
+- Feels natural and immersive`,
+
+  buildPrompt: (character, context) => {
+    return `${CHARACTER_DIALOGUE.system}
+
+CHARACTER: ${character.name} - ${character.personality}
+CONTEXT: ${JSON.stringify(context)}
+
+OUTPUT:`
+  }
+};
+
+/**
+ * Faction Edict Generator
+ * Generates faction doctrine based on reputation
+ */
+export const FACTION_EDICT = {
+  system: `Given faction reputation scores, produce a 1-2 sentence faction edict explaining strategy and attitude toward the player.
+Keep it concise (max 30 words).`,
+
+  buildPrompt: (factionReputation) => {
+    return `${FACTION_EDICT.system}
+
+REPUTATION: ${JSON.stringify(factionReputation)}
+
+OUTPUT:`
+  }
+};

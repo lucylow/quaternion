@@ -1,3 +1,8 @@
+/**
+ * Route: /game
+ * Main game page with Phaser game engine.
+ * Edit this file to modify the game page.
+ */
 import { useEffect, useRef, useState } from 'react';
 import Phaser from 'phaser';
 import { Button } from '@/components/ui/button';

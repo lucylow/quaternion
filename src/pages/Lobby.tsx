@@ -1,3 +1,8 @@
+/**
+ * Route: /lobby
+ * Game lobby page for matchmaking and room management.
+ * Edit this file to modify the lobby page.
+ */
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';

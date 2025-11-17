@@ -1,0 +1,117 @@
+[
+  {
+    "event": "Bio-Seed Stir",
+    "trigger": "harvest_attempt",
+    "flavor": "A low hum rises beneath your boots; the ground answers your greed.",
+    "effect": {
+      "wildlifeAggression": 0.15,
+      "localYieldBoost": 0.30,
+      "narrativeTag": "unease"
+    }
+  },
+  {
+    "event": "Immediate Gain, Lingering Cost",
+    "trigger": "harvest_confirmed",
+    "flavor": "Ore pours into the crates — and something beneath grows quiet.",
+    "effect": {
+      "resourceGain": 60,
+      "bioSeedHealthDelta": -25,
+      "futureHazardProb": 0.30
+    }
+  },
+  {
+    "event": "Conserve Investment",
+    "trigger": "preserve_action",
+    "flavor": "You seal the excavation and bind the roots in light.",
+    "effect": {
+      "bioSeedHealthDelta": 12,
+      "longTermYieldMultiplier": 0.20,
+      "narrativeTag": "hope"
+    }
+  },
+  {
+    "event": "Scout Report",
+    "trigger": "scout_find",
+    "flavor": "Scout-12 found old millings and a faint heartbeat under stone.",
+    "effect": {
+      "revealResourceNode": true,
+      "localHazard": false,
+      "addsChoice": "investigate_or_ignore"
+    }
+  },
+  {
+    "event": "Bio-Seed Sigh",
+    "trigger": "bio_seed_sigh",
+    "flavor": "A damp breath passes through the roots; the air tastes of memory.",
+    "effect": {
+      "wildlifeAggression": 0.10,
+      "ambientTension": 0.2
+    }
+  },
+  {
+    "event": "Merchant Ledger",
+    "trigger": "trader_offer",
+    "flavor": "A trader offers quick tech, eyes flicking to your empty crates.",
+    "effect": {
+      "temptationIndex": 0.6,
+      "tradeDealAvailable": true,
+      "reputationChangeIfAccepted": -0.15
+    }
+  },
+  {
+    "event": "Mine Low",
+    "trigger": "resource_depletion",
+    "flavor": "The veins thin; miners pause, fingers searching empty seams.",
+    "effect": {
+      "resourceNodeYieldDecay": 0.45,
+      "pushToExplore": true
+    }
+  },
+  {
+    "event": "Mara Lament",
+    "trigger": "moral_aftershock",
+    "flavor": "Dr. Mara: 'We promised to heal, not to carve it up.'",
+    "effect": {
+      "npcTrustMara": -0.25,
+      "playerGuiltTag": true
+    }
+  },
+  {
+    "event": "Found Relic",
+    "trigger": "artifact_discovered",
+    "flavor": "A glass orb hums with old code — half-song, half-warning.",
+    "effect": {
+      "artifactCollected": "glass_orb",
+      "loreSeed": "orb_song_01"
+    }
+  },
+  {
+    "event": "Acid Bloom",
+    "trigger": "storm_trigger",
+    "flavor": "Rain tastes metallic; the ground steams with soft heat.",
+    "effect": {
+      "areaDamage": 0.18,
+      "temporaryVisibility": -0.4,
+      "evacNeeded": true
+    }
+  },
+  {
+    "event": "Ridgeward Dispatch",
+    "trigger": "faction_message",
+    "flavor": "'Protect the Ridge'—the broadcast smells of old distrust.",
+    "effect": {
+      "enemyAggressionBias": 0.12,
+      "tradeOffersLocked": false
+    }
+  },
+  {
+    "event": "Quiet Growth",
+    "trigger": "epilogue_tease",
+    "flavor": "Tiny green filaments push through the ruin; a whisper of tomorrow.",
+    "effect": {
+      "postRunBuff": "regrowth_nexus",
+      "narrativeTag": "resilience"
+    }
+  }
+]
+
