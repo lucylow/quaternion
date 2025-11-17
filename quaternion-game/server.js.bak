@@ -1,0 +1,57 @@
+
+/**
+
+ * Simple Express static server for deployment / local testing
+
+ * - serves files from ./public
+
+ * - SPA fallback to /index.html
+
+ * - uses process.env.PORT or 3000
+
+ */
+
+const express = require('express');
+
+const path = require('path');
+
+const app = express();
+
+const PORT = process.env.PORT || 3000;
+
+const PUBLIC_DIR = path.join(__dirname, 'public');
+
+// Security headers (basic)
+
+app.use((req, res, next) => {
+
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+
+  res.setHeader('Referrer-Policy', 'no-referrer-when-downgrade');
+
+  next();
+
+});
+
+// Serve static
+
+app.use(express.static(PUBLIC_DIR, {
+
+  extensions: ['html']
+
+}));
+
+// SPA fallback for single page apps - return index.html for unknown routes
+
+app.get('*', (req, res) => {
+
+  res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
+
+});
+
+app.listen(PORT, () => {
+
+  console.log(`quaternion-game static server listening on http://localhost:${PORT} (PORT=${PORT})`);
+
+});
+
