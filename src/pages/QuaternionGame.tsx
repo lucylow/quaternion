@@ -43,6 +43,9 @@ const QuaternionGame = () => {
   const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
   const [selectedUnits, setSelectedUnits] = useState<Phaser.Physics.Arcade.Sprite[]>([]);
   const cameraRef = useRef<Phaser.Cameras.Scene2D.Camera | null>(null);
+  const playerUnitsRef = useRef<Phaser.Physics.Arcade.Sprite[]>([]);
+  const aiUnitsRef = useRef<Phaser.Physics.Arcade.Sprite[]>([]);
+  const buildingsRef = useRef<Phaser.GameObjects.Sprite[]>([]);
   const [showTechTree, setShowTechTree] = useState(false);
   const [showBuildMenu, setShowBuildMenu] = useState(false);
   const [buildQueue, setBuildQueue] = useState<Array<{ id: string; building: string; progress: number; totalTime: number }>>([]);
@@ -324,6 +327,7 @@ const QuaternionGame = () => {
       playerBase.setData('health', 1000);
       playerBase.setData('maxHealth', 1000);
       buildings.push(playerBase as Phaser.GameObjects.Sprite);
+      buildingsRef.current = buildings;
       
       // Base glow effect
       const baseGlow = this.add.circle(150, 350, 50, 0x00ffea, 0.2);
@@ -390,6 +394,7 @@ const QuaternionGame = () => {
 
         playerUnits.push(unit);
       }
+      playerUnitsRef.current = playerUnits;
 
       // Create AI base
       aiBase = this.add.rectangle(1050, 350, 80, 80, 0xff4444, 0.9);
@@ -399,6 +404,7 @@ const QuaternionGame = () => {
       aiBase.setData('health', 1000);
       aiBase.setData('maxHealth', 1000);
       buildings.push(aiBase as Phaser.GameObjects.Sprite);
+      buildingsRef.current = buildings;
       
       const aiBaseGlow = this.add.circle(1050, 350, 50, 0xff4444, 0.2);
       this.tweens.add({
@@ -558,6 +564,65 @@ const QuaternionGame = () => {
           }
         }
       });
+
+      // Control groups (1-9) for unit selection
+      const controlGroups: Map<number, Phaser.Physics.Arcade.Sprite[]> = new Map();
+      
+      // Create control group (Ctrl + number)
+      this.input.keyboard?.on('keydown', (event: KeyboardEvent) => {
+        if ((event.ctrlKey || event.metaKey) && event.key >= '1' && event.key <= '9') {
+          const groupNum = parseInt(event.key);
+          if (selectedUnits.length > 0) {
+            controlGroups.set(groupNum, [...selectedUnits]);
+            toast.success(`Control group ${groupNum} created with ${selectedUnits.length} units`);
+          }
+        }
+      });
+
+      // Select control group (number key)
+      for (let i = 1; i <= 9; i++) {
+        const key = this.input.keyboard?.addKey(`${i}`);
+        key?.on('down', () => {
+          if (!this.input.keyboard?.isDown('CTRL') && !this.input.keyboard?.isDown('META')) {
+            const group = controlGroups.get(i);
+            if (group && group.length > 0) {
+              // Clear current selection
+              selectedUnits.forEach(u => {
+                const ring = u.getData('selectionRing') as Phaser.GameObjects.Ellipse | undefined;
+                if (ring) ring.setVisible(false);
+              });
+              selectedUnits.length = 0;
+
+              // Select group units (filter out inactive)
+              group.forEach(unit => {
+                if (unit.active) {
+                  selectedUnits.push(unit);
+                  let ring = unit.getData('selectionRing') as Phaser.GameObjects.Ellipse | undefined;
+                  if (!ring) {
+                    ring = this.add.graphics();
+                    ring.lineStyle(3, 0x00ffea, 1);
+                    ring.strokeCircle(unit.x, unit.y, 18);
+                    ring.setData('unit', unit);
+                    unit.setData('selectionRing', ring);
+                  }
+                  ring.setVisible(true);
+                }
+              });
+
+              // Update group with active units only
+              controlGroups.set(i, selectedUnits.filter(u => u.active));
+
+              // Update React state
+              setSelectedUnits([...selectedUnits]);
+              if (selectedUnits.length === 1) {
+                setSelectedUnit(selectedUnits[0].getData('type'));
+              } else {
+                setSelectedUnit(null);
+              }
+            }
+          }
+        });
+      }
 
       this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
         if (isSelecting) {
@@ -816,6 +881,7 @@ const QuaternionGame = () => {
         // Move towards player base
         this.physics.moveToObject(aiUnit, playerBase, 100);
         aiUnits.push(aiUnit);
+        aiUnitsRef.current = aiUnits;
         lastAiSpawn = time;
         
         addAIMessage('LIRA', 'Enemy units detected! Prepare defenses!');
@@ -1398,28 +1464,43 @@ const QuaternionGame = () => {
           {/* Game Canvas */}
           <div ref={gameRef} className="w-full h-full" />
 
-          {/* Bottom Controls */}
-          <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-gray-900 to-transparent p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Button
-                  onClick={() => setShowBuildMenu(!showBuildMenu)}
-                  className="bg-cyan-600 hover:bg-cyan-700"
-                >
-                  <Building className="w-4 h-4 mr-2" />
-                  Build
-                </Button>
-                <Button
-                  onClick={() => setShowTechTree(!showTechTree)}
-                  className="bg-purple-600 hover:bg-purple-700"
-                >
-                  <Brain className="w-4 h-4 mr-2" />
-                  Tech Tree
-                </Button>
+          {/* Enhanced RTS Bottom Panel */}
+          <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-gray-900/95 via-gray-900/90 to-transparent p-4 pointer-events-none">
+            <div className="flex items-end justify-between gap-4 max-w-[1800px] mx-auto">
+              {/* Left: Unit Panel */}
+              <div className="pointer-events-auto">
+                <UnitPanel selectedUnits={selectedUnits} onCommand={handleUnitCommand} />
               </div>
-              <div className="text-xs text-gray-400 flex items-center gap-2">
-                <Trophy className="w-3 h-3" />
-                <span>Chroma Awards 2025 - Puzzle/Strategy | Tools: ElevenLabs, OpenArt, Gemini, Fuser, Luma AI</span>
+
+              {/* Center: Command Panel */}
+              <div className="pointer-events-auto">
+                <CommandPanel selectedUnits={selectedUnits} onCommand={handleUnitCommand} />
+              </div>
+
+              {/* Right: Build Menu & Tech Tree */}
+              <div className="flex flex-col items-end gap-2 pointer-events-auto">
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={() => setShowBuildMenu(!showBuildMenu)}
+                    className="bg-cyan-600 hover:bg-cyan-700"
+                    size="sm"
+                  >
+                    <Building className="w-4 h-4 mr-2" />
+                    Build
+                  </Button>
+                  <Button
+                    onClick={() => setShowTechTree(!showTechTree)}
+                    className="bg-purple-600 hover:bg-purple-700"
+                    size="sm"
+                  >
+                    <Brain className="w-4 h-4 mr-2" />
+                    Tech
+                  </Button>
+                </div>
+                <div className="text-xs text-gray-400 flex items-center gap-2">
+                  <Trophy className="w-3 h-3" />
+                  <span>Chroma Awards 2025 - Puzzle/Strategy | Tools: ElevenLabs, OpenArt, Gemini, Fuser, Luma AI</span>
+                </div>
               </div>
             </div>
           </div>
@@ -1529,6 +1610,21 @@ const QuaternionGame = () => {
                 ))}
               </div>
             </div>
+          </div>
+
+          {/* Minimap */}
+          <div className="absolute bottom-20 right-4 z-20">
+            <Minimap
+              gameWidth={1200}
+              gameHeight={700}
+              worldWidth={2400}
+              worldHeight={1400}
+              playerUnits={playerUnitsRef.current}
+              enemyUnits={aiUnitsRef.current}
+              buildings={buildingsRef.current}
+              camera={cameraRef.current}
+              onMinimapClick={handleMinimapClick}
+            />
           </div>
 
           {/* AI Messages */}

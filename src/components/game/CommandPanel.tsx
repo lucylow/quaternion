@@ -55,7 +55,7 @@ export const CommandPanel = ({ selectedUnits, onCommand }: CommandPanelProps) =>
 
   return (
     <TooltipProvider>
-      <div className="bg-game-panel/95 backdrop-blur-md border border-game-panel-border/50 rounded-lg p-3">
+      <div className="bg-gray-800/95 backdrop-blur-md border border-cyan-400/50 rounded-lg p-3">
         <div className="flex items-center gap-2">
           {commands.map((cmd) => {
             const Icon = cmd.icon;

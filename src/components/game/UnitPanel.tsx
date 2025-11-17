@@ -10,7 +10,7 @@ interface UnitPanelProps {
 export const UnitPanel = ({ selectedUnits, onCommand }: UnitPanelProps) => {
   if (!selectedUnits || selectedUnits.length === 0) {
     return (
-      <div className="bg-game-panel/95 backdrop-blur-md border border-game-panel-border/50 rounded-lg p-4 w-80 h-32 flex items-center justify-center">
+      <div className="bg-gray-800/95 backdrop-blur-md border border-cyan-400/50 rounded-lg p-4 w-80 h-32 flex items-center justify-center">
         <p className="text-gray-400 text-sm">No units selected</p>
       </div>
     );
@@ -31,7 +31,7 @@ export const UnitPanel = ({ selectedUnits, onCommand }: UnitPanelProps) => {
   const avgHealthPercent = (totalHealth / totalMaxHealth) * 100;
 
   return (
-    <div className="bg-game-panel/95 backdrop-blur-md border border-game-panel-border/50 rounded-lg p-4 w-80 space-y-3">
+    <div className="bg-gray-800/95 backdrop-blur-md border border-cyan-400/50 rounded-lg p-4 w-80 space-y-3">
       {/* Unit Portrait/Icon */}
       <div className="flex items-start gap-3">
         <div className="w-16 h-16 bg-gradient-to-br from-cyan-500/20 to-purple-500/20 rounded-lg border border-cyan-400/30 flex items-center justify-center">
