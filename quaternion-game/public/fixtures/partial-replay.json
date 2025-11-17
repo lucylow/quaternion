@@ -1,0 +1,43 @@
+{
+  "replayId": "partial-demo-replay-002",
+  "url": "https://example.com/replays/partial-demo-replay-002.json.gz",
+  "summary": "A partial replay demonstrating non-deterministic game flow. The player commanded VIREL forces, establishing aggressive early expansion. Mid-game encountered computational divergence requiring summarization. Final outcome shows strategic advantage through energy dominance despite incomplete tick-by-tick data.",
+  "aiHighlights": [
+    {
+      "t": 32,
+      "actor": "VIREL",
+      "action": "Early Reactor Rush",
+      "reason": "Aggressive reactor placement near contested zones created immediate energy advantage, though non-deterministic unit pathfinding introduced variance in exact positioning outcomes."
+    },
+    {
+      "t": 95,
+      "actor": "Player",
+      "action": "Mass Expansion Wave",
+      "reason": "Coordinated expansion to multiple resource nodes exploited opponent's defensive gap. Exact unit movements summarized due to computational complexity, but strategic outcome preserved."
+    },
+    {
+      "t": 167,
+      "actor": "LIRA",
+      "action": "Adaptive Defense Pattern",
+      "reason": "AI defensive behavior triggered non-deterministic branching in unit AI state machine. Core strategic choices preserved, micro-level actions summarized for replay artifact."
+    }
+  ],
+  "meta": {
+    "engineCommit": "def456abc789012fedcba0123456789abcdef01",
+    "partial": true,
+    "contentHash": "sha256:a3c2e44398fc2c249bfcf5c9996fb93527be42f5759c045db596002c8963c966",
+    "nonDeterminism": {
+      "reason": "Game tick 95-145 encountered non-deterministic pathfinding behavior due to concurrent unit movement resolution. These ticks have been summarized to preserve strategic outcomes while maintaining artifact size constraints."
+    }
+  },
+  "actions": [
+    { "timestamp": 3, "type": "WORKER_SPAWN", "data": { "unitId": "w1", "x": 280, "y": 280 } },
+    { "timestamp": 6, "type": "WORKER_SPAWN", "data": { "unitId": "w2", "x": 320, "y": 280 } },
+    { "timestamp": 10, "type": "RESOURCE_GATHER", "data": { "type": "energy", "amount": 30 } },
+    { "timestamp": 32, "type": "BUILDING_CONSTRUCT", "data": { "type": "Energy Reactor", "x": 450, "y": 450 } },
+    { "timestamp": 52, "type": "TECH_RESEARCH", "data": { "tech": "energy_harnessing" } },
+    { "timestamp": 78, "type": "UNIT_SPAWN", "data": { "type": "infantry", "count": 4 } },
+    { "timestamp": 95, "type": "ATTACK_COMMAND", "data": { "target": { "x": 1500, "y": 1100 }, "units": 12 } },
+    { "timestamp": 167, "type": "BUILDING_CONSTRUCT", "data": { "type": "Bio Converter", "x": 600, "y": 550 } }
+  ]
+}
