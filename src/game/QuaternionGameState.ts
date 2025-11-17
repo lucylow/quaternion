@@ -10,6 +10,8 @@ import { TechTreeManager } from './TechTreeManager';
 import { MapManager, Faction, NodeType } from './MapManager';
 import { EndgameManager, EndgameScenario } from './EndgameManager';
 import { VictoryDefeatSystem, VictoryType, DefeatType } from './VictoryDefeatSystem';
+import { StrategicDecisionEngine } from './strategic/StrategicDecisionEngine';
+import { PersonalityType } from './strategic/AIPersonality';
 import { getPuzzle, type PuzzleConstraint } from '@/data/puzzles';
 import { ArenaSeedManager, ArenaConfig } from './ArenaSeedManager';
 import { AdvisorTensionSystem, StrategicDecision } from './AdvisorTensionSystem';
@@ -95,6 +97,7 @@ export class QuaternionGameState {
   public techTreeManager: TechTreeManager;
   public mapManager: MapManager;
   public victoryDefeatSystem: VictoryDefeatSystem;
+  public strategicDecisionEngine: StrategicDecisionEngine;
   
   constructor(config: GameConfig) {
     this.id = this.generateId();
@@ -108,6 +111,18 @@ export class QuaternionGameState {
     this.techTreeManager = new TechTreeManager(this.resourceManager, this.unitManager);
     this.mapManager = new MapManager(config.mapWidth || 9, config.mapHeight || 9);
     this.victoryDefeatSystem = new VictoryDefeatSystem();
+    
+    // Initialize strategic decision engine
+    const commanderPersonality = this.getPersonalityFromCommander(config.commanderId || 'AUREN');
+    this.strategicDecisionEngine = new StrategicDecisionEngine(
+      {
+        ore: 250,
+        energy: 40,
+        biomass: 0,
+        data: 10
+      },
+      commanderPersonality
+    );
     
     // Initialize fun experience systems
     this.arenaSeedManager = new ArenaSeedManager();
@@ -134,6 +149,21 @@ export class QuaternionGameState {
     
     // Set up resource change callbacks
     this.setupResourceCallbacks();
+  }
+  
+  /**
+   * Get personality type from commander ID
+   */
+  private getPersonalityFromCommander(commanderId: string): PersonalityType {
+    // Map commanders to personalities
+    const commanderPersonalityMap: Record<string, PersonalityType> = {
+      'AUREN': PersonalityType.BALANCER,
+      'VIREL': PersonalityType.TECHNOCRAT,
+      'LIRA': PersonalityType.ECOSYMBIOTE,
+      'KORVUS': PersonalityType.INDUSTRIALIST
+    };
+    
+    return commanderPersonalityMap[commanderId] || PersonalityType.BALANCER;
   }
   
   private setupResourceCallbacks(): void {
@@ -315,8 +345,38 @@ export class QuaternionGameState {
     // Process research
     this.techTreeManager.processResearchTick();
     
-    // Sync researched techs
+    // Update strategic decision engine with current resources
     const player = this.players.get(1);
+    if (player && this.strategicDecisionEngine) {
+      this.strategicDecisionEngine.updateStateFromGameResources({
+        ore: player.resources.ore,
+        energy: player.resources.energy,
+        biomass: player.resources.biomass,
+        data: player.resources.data
+      });
+      
+      // Process decision cycle periodically (every 2 seconds = 120 ticks)
+      if (this.tick % 120 === 0) {
+        const gameContext = {
+          isUnderAttack: this.checkIfUnderAttack(),
+          hasEnemyWeakness: this.checkEnemyWeakness(),
+          aiTradeOffer: this.checkAITradeOffer()
+        };
+        
+        const recommendedDecisions = this.strategicDecisionEngine.processDecisionCycle(gameContext);
+        // Store recommended decisions for AI suggestions
+        this.aiState = {
+          recommendedDecisions: recommendedDecisions.map(d => ({
+            id: d.decisionID,
+            type: d.type,
+            description: d.description,
+            utilityScore: d.utilityScore
+          }))
+        };
+      }
+    }
+    
+    // Sync researched techs
     if (player) {
       this.techTreeManager.getAllTechNodes().forEach(node => {
         if (node.isResearched && !player.researchedTechs.has(node.nodeId)) {
@@ -928,332 +988,3 @@ export class QuaternionGameState {
   }
 }
 
-      this.gameTime
-    );
-    
-    if (victoryType !== VictoryType.NONE) {
-      const analysis = this.victoryDefeatSystem.generatePostGameAnalysis(
-        victoryType,
-        DefeatType.NONE,
-        this.seed,
-        player.resources,
-        player.researchedTechs,
-        1 - enemyNodeControl
-      );
-      
-      this.endGame(1, this.getVictoryReason(victoryType), undefined, analysis);
-      return;
-    }
-    
-    // Update win condition progress for UI
-    this.updateWinConditionProgress();
-  }
-  
-  /**
-   * Check if central node is under attack
-   */
-  private checkCentralNodeUnderAttack(): boolean {
-    // Simplified: check if enemy units are near central node
-    // In full implementation, this would check actual unit positions
-    const enemyNodes = this.mapManager.getNodesByFaction(Faction.ENEMY);
-    return enemyNodes.length > 0; // Simplified check
-  }
-  
-  /**
-   * Update win condition progress for UI display
-   */
-  private updateWinConditionProgress(): void {
-    const victoryProgress = this.victoryDefeatSystem.getVictoryProgress();
-    
-    victoryProgress.forEach((condition, type) => {
-      const winCondition = this.winConditions.get(this.getWinConditionKey(type));
-      if (winCondition) {
-        winCondition.progress = condition.progress;
-      }
-    });
-  }
-  
-  private getWinConditionKey(victoryType: VictoryType): string {
-    switch (victoryType) {
-      case VictoryType.EQUILIBRIUM: return 'equilibrium';
-      case VictoryType.TECHNOLOGICAL: return 'technological';
-      case VictoryType.TERRITORIAL: return 'territorial';
-      case VictoryType.MORAL: return 'moral';
-      default: return 'equilibrium';
-    }
-  }
-  
-  private getVictoryReason(victoryType: VictoryType): string {
-    switch (victoryType) {
-      case VictoryType.EQUILIBRIUM: return 'equilibrium_victory';
-      case VictoryType.TECHNOLOGICAL: return 'technological_victory';
-      case VictoryType.TERRITORIAL: return 'territorial_victory';
-      case VictoryType.MORAL: return 'moral_victory';
-      default: return 'victory';
-    }
-  }
-  
-  /**
-   * Detect win scenarios (excludes collapse)
-   */
-  private detectWinScenario(
-    resources: Resources,
-    researchedTechs: Set<string>,
-    gameTime: number
-  ): EndgameScenario | null {
-    const { matter, energy, life, knowledge } = resources;
-    const avg = (matter + energy + life + knowledge) / 4;
-    const maxDeviation = Math.max(
-      Math.abs(matter - avg),
-      Math.abs(energy - avg),
-      Math.abs(life - avg),
-      Math.abs(knowledge - avg)
-    );
-    
-    // Check for perfect balance (Ultimate Balance - Fifth Ending)
-    const perfectBalanceThreshold = avg * 0.02; // 2% deviation
-    if (maxDeviation <= perfectBalanceThreshold && avg > 200) {
-      return 'ultimate_balance';
-    }
-    
-    // Check for equilibrium/harmony (within ±15%)
-    const harmonyThreshold = avg * 0.15; // 15% deviation
-    if (maxDeviation <= harmonyThreshold && avg > 150) {
-      return 'harmony';
-    }
-    
-    // Check for Ascendancy (Knowledge/Technology victory)
-    if (researchedTechs.has('quantum_ascendancy') || 
-        knowledge > avg * 1.5 && knowledge > 500) {
-      return 'ascendancy';
-    }
-    
-    // Check for Reclamation (Life focus)
-    if (life > avg * 1.5 && life > 500 && 
-        life > matter * 1.3 && life > energy * 1.3 && life > knowledge * 1.3) {
-      return 'reclamation';
-    }
-    
-    // Check for Overclock (Energy maximized)
-    if (energy > avg * 1.5 && energy > 500 &&
-        energy > matter * 1.3 && energy > life * 1.3 && energy > knowledge * 1.3) {
-      return 'overclock';
-    }
-    
-    return null;
-  }
-  
-  /**
-   * Check lose conditions using VictoryDefeatSystem
-   */
-  private checkLoseConditions(): void {
-    const player = this.players.get(1);
-    if (!player) return;
-    
-    const deltaTime = 1 / this.tickRate; // Time per tick
-    
-    const centralNodeControlled = this.mapManager.isCentralNodeControlledByPlayer();
-    
-    const enemyNodeCount = this.mapManager.getNodesByFaction(Faction.ENEMY).length;
-    const totalNodeCount = this.mapManager.getAllNodes().length;
-    const enemyNodeControl = totalNodeCount > 0 ? enemyNodeCount / totalNodeCount : 0;
-    
-    // Baseline resources (starting values)
-    const baselineResources = {
-      ore: 250,
-      energy: 40,
-      biomass: 0,
-      data: 10
-    };
-    
-    // Check defeat conditions
-    const defeatType = this.victoryDefeatSystem.checkDefeatConditions(
-      player.resources,
-      this.instability,
-      this.maxInstability,
-      centralNodeControlled,
-      enemyNodeControl,
-      baselineResources,
-      deltaTime
-    );
-    
-    if (defeatType !== DefeatType.NONE) {
-      const analysis = this.victoryDefeatSystem.generatePostGameAnalysis(
-        VictoryType.NONE,
-        defeatType,
-        this.seed,
-        player.resources,
-        player.researchedTechs,
-        1 - enemyNodeControl
-      );
-      
-      this.endGame(2, this.getDefeatReason(defeatType), undefined, analysis);
-      return;
-    }
-  }
-  
-  private getDefeatReason(defeatType: DefeatType): string {
-    switch (defeatType) {
-      case DefeatType.RESOURCE_COLLAPSE: return 'resource_collapse';
-      case DefeatType.INSTABILITY_OVERFLOW: return 'instability_overflow';
-      case DefeatType.CORE_NODE_LOST: return 'core_node_lost';
-      case DefeatType.MORALITY_COLLAPSE: return 'morality_collapse';
-      case DefeatType.AI_OVERRUN: return 'ai_overrun';
-      default: return 'defeat';
-    }
-  }
-  
-  /**
-   * End the game
-   */
-  private endGame(winnerId: number, reason: string, scenario?: EndgameScenario, analysis?: any): void {
-    this.gameOver = true;
-    this.winner = winnerId;
-    this.isRunning = false;
-    this.endgameScenario = scenario || null;
-    
-    const endData: any = { winner: winnerId, reason, scenario, tick: this.tick };
-    if (analysis) {
-      endData.analysis = analysis;
-      endData.replayCode = analysis.replayCode;
-    }
-    
-    this.logAction('game_end', endData);
-  }
-  
-  /**
-   * Get post-game analysis
-   */
-  public getPostGameAnalysis(): any {
-    const player = this.players.get(1);
-    if (!player) return null;
-    
-    const victoryType = this.winner === 1 ? 
-      (this.endgameScenario === 'harmony' ? VictoryType.EQUILIBRIUM :
-       this.endgameScenario === 'ascendancy' ? VictoryType.TECHNOLOGICAL :
-       this.endgameScenario === 'reclamation' ? VictoryType.MORAL :
-       VictoryType.NONE) : VictoryType.NONE;
-    
-    const defeatType = this.winner === 2 ?
-      (this.endgameScenario === 'collapse' ? DefeatType.RESOURCE_COLLAPSE :
-       DefeatType.NONE) : DefeatType.NONE;
-    
-    const enemyNodeCount = this.mapManager.getNodesByFaction(Faction.ENEMY).length;
-    const totalNodeCount = this.mapManager.getAllNodes().length;
-    const nodeControl = totalNodeCount > 0 ? 1 - (enemyNodeCount / totalNodeCount) : 0;
-    
-    return this.victoryDefeatSystem.generatePostGameAnalysis(
-      victoryType,
-      defeatType,
-      this.seed,
-      player.resources,
-      player.researchedTechs,
-      nodeControl
-    );
-  }
-  
-  /**
-   * Log an action for replay
-   */
-  public logAction(type: string, data: any): void {
-    this.actionLog.push({
-      tick: this.tick,
-      time: this.gameTime,
-      type,
-      data
-    });
-  }
-  
-  /**
-   * Build a unit
-   */
-  public buildUnit(unitType: string, playerId: number): boolean {
-    const player = this.players.get(playerId);
-    if (!player) return false;
-    
-    // Check costs and build
-    this.logAction('build_unit', { unitType, playerId, tick: this.tick });
-    return true;
-  }
-  
-  /**
-   * Research technology
-   */
-  public researchTech(techId: string, playerId: number): boolean {
-    const player = this.players.get(playerId);
-    if (!player) return false;
-    
-    // Use TechTreeManager to start research
-    const success = this.techTreeManager.startResearch(techId);
-    if (success) {
-      this.logAction('research_tech', { techId, playerId, tick: this.tick });
-    }
-    return success;
-  }
-  
-  /**
-   * Queue unit production
-   */
-  public queueUnitProduction(
-    unitType: UnitType,
-    spawnPosition: { x: number; y: number },
-    playerId: number
-  ): boolean {
-    const success = this.unitManager.queueUnitProduction(unitType, spawnPosition, playerId);
-    if (success) {
-      this.logAction('queue_unit', { unitType, playerId, tick: this.tick });
-    }
-    return success;
-  }
-  
-  /**
-   * Start node capture
-   */
-  public startNodeCapture(nodeId: string, faction: Faction = Faction.PLAYER): boolean {
-    return this.mapManager.startNodeCapture(nodeId, faction);
-  }
-  
-  /**
-   * Process node capture
-   */
-  public processNodeCapture(nodeId: string, faction: Faction = Faction.PLAYER): boolean {
-    return this.mapManager.processNodeCapture(nodeId, faction);
-  }
-  
-  /**
-   * Get current game state for UI
-   */
-  public getState() {
-    return {
-      id: this.id,
-      tick: this.tick,
-      gameTime: this.gameTime,
-      isRunning: this.isRunning,
-      gameOver: this.gameOver,
-      winner: this.winner,
-      endgameScenario: this.endgameScenario,
-      players: Array.from(this.players.values()),
-      instability: this.instability,
-      winConditions: Array.from(this.winConditions.values()),
-      units: this.units,
-      buildings: this.buildings,
-      resourceNodes: this.resourceNodes
-    };
-  }
-  
-  /**
-   * Serialize for replay
-   */
-  public serialize() {
-    return {
-      id: this.id,
-      config: this.config,
-      seed: this.seed,
-      finalTick: this.tick,
-      gameTime: this.gameTime,
-      winner: this.winner,
-      actionLog: this.actionLog,
-      events: this.events
-    };
-  }
-}
