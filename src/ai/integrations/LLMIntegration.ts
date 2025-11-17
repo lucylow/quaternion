@@ -222,6 +222,18 @@ Generate a brief commander comment (max 15 words) that:
   }
 
   /**
+   * Public method to call LLM (for use by other systems)
+   */
+  async generateText(prompt: string): Promise<string> {
+    try {
+      return await this.callLLM(prompt);
+    } catch (error) {
+      console.warn('LLM generation failed', error);
+      throw error;
+    }
+  }
+
+  /**
    * Call LLM API (provider-specific)
    */
   private async callLLM(prompt: string): Promise<string> {

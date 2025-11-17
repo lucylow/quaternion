@@ -40,6 +40,9 @@ export class ResourceManager {
   // Conversion efficiency
   private conversionEfficiency: Map<string, number> = new Map();
 
+  // Event modifiers (from ResourceEventGenerator)
+  private eventModifiers: Map<ResourceType, number> = new Map();
+
   constructor() {
     this.resources = new Map();
     this.baseGenerationPerNode = new Map();
@@ -125,16 +128,22 @@ export class ResourceManager {
     controlledNodes: Map<ResourceType, number> = new Map(),
     buildingProduction: Map<ResourceType, number> = new Map()
   ): void {
-    // Calculate generation from controlled nodes
+    // Calculate generation from controlled nodes (with event modifiers)
     controlledNodes.forEach((nodeCount, type) => {
       const baseRate = this.baseGenerationPerNode.get(type) || 0;
-      const generation = nodeCount * baseRate;
+      let generation = nodeCount * baseRate;
+      
+      // Apply event modifiers
+      const modifier = this.eventModifiers.get(type) || 1.0;
+      generation *= modifier;
+      
       this.addResource(type, generation);
     });
 
-    // Add building production
+    // Add building production (with event modifiers)
     buildingProduction.forEach((amount, type) => {
-      this.addResource(type, amount);
+      const modifier = this.eventModifiers.get(type) || 1.0;
+      this.addResource(type, amount * modifier);
     });
 
     // Apply decay
@@ -341,6 +350,34 @@ export class ResourceManager {
     if (resource) {
       resource.decayRate = Math.max(0, resource.decayRate - reduction);
     }
+  }
+
+  /**
+   * Set event modifier for a resource type (from ResourceEventGenerator)
+   */
+  public setEventModifier(type: ResourceType, modifier: number): void {
+    this.eventModifiers.set(type, modifier);
+  }
+
+  /**
+   * Clear event modifier for a resource type
+   */
+  public clearEventModifier(type: ResourceType): void {
+    this.eventModifiers.delete(type);
+  }
+
+  /**
+   * Clear all event modifiers
+   */
+  public clearAllEventModifiers(): void {
+    this.eventModifiers.clear();
+  }
+
+  /**
+   * Get event modifier for a resource type
+   */
+  public getEventModifier(type: ResourceType): number {
+    return this.eventModifiers.get(type) || 1.0;
   }
 }
 

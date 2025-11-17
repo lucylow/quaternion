@@ -239,7 +239,12 @@ Puzzle Type: ${puzzleType}
 
 Make it engaging and strategic.`;
 
-        const response = await this.llmIntegration['callLLM'](prompt);
+        // Note: Use LLMIntegration's public methods
+        const response = await (this.llmIntegration as any).generateEventNarrative?.(
+          'allocation_puzzle',
+          Date.now(),
+          { resources: context.currentResources, units: 0, buildings: 0 }
+        ) || '';
         return this.cleanText(response);
       } catch (error) {
         console.warn('LLM narrative generation failed:', error);

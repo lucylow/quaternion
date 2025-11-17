@@ -15,6 +15,16 @@ import { GameLoop, PerformanceStats } from '@/game/GameLoop';
 import { EndgameScene } from '@/components/game/EndgameScene';
 import { EndgameManager, EndgameScenario } from '@/game/EndgameManager';
 import { ImageAssetLoader } from '@/game/ImageAssetLoader';
+import { ResourcePuzzleManager } from '@/game/puzzles/ResourcePuzzleManager';
+import { ResourceEvent } from '@/game/puzzles/ResourceEventGenerator';
+import { AllocationPuzzle } from '@/game/puzzles/AllocationPuzzleManager';
+import { MarketOffer } from '@/game/puzzles/BlackMarketSystem';
+import { AdvisorResponse } from '@/game/puzzles/ResourceAdvisor';
+import { ResourceEventDisplay } from '@/components/game/ResourceEventDisplay';
+import { AllocationPuzzleModal } from '@/components/game/AllocationPuzzleModal';
+import { BlackMarketPanel } from '@/components/game/BlackMarketPanel';
+import { ResourceAdvisorPanel } from '@/components/game/ResourceAdvisorPanel';
+import { ResourceType } from '@/game/ResourceManager';
 
 interface GameResources {
   ore: number;
@@ -58,6 +68,14 @@ const QuaternionGame = () => {
   const [winConditionProgress, setWinConditionProgress] = useState<Record<string, { progress: number; max: number; label: string }>>({});
   const [showTutorial, setShowTutorial] = useState(true);
   const gameLoopRef = useRef<GameLoop | null>(null);
+  
+  // Resource Puzzle Systems
+  const puzzleManagerRef = useRef<ResourcePuzzleManager | null>(null);
+  const [activeEvents, setActiveEvents] = useState<ResourceEvent[]>([]);
+  const [activePuzzle, setActivePuzzle] = useState<AllocationPuzzle | null>(null);
+  const [marketOffers, setMarketOffers] = useState<MarketOffer[]>([]);
+  const [advisorAdvice, setAdvisorAdvice] = useState<AdvisorResponse | null>(null);
+  const [lastAdvisorCheck, setLastAdvisorCheck] = useState(0);
   
   // Get game configuration from route state or use defaults
   const location = useLocation();

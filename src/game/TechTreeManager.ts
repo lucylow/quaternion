@@ -42,7 +42,10 @@ export interface TechNode {
   buildingUnlocks: string[];
   synergyNodes: string[]; // Nodes that work well together
   strategicWeight: number; // For AI decision making
+  urgencyFactor: number; // 0-1, where 0=long-term, 1=immediate need
   isHidden: boolean;
+  discoveryConditions?: string[]; // Conditions for revealing hidden nodes
+  counterTech?: string[]; // Techs that counter this one
   // Runtime state
   isResearched: boolean;
   isAvailable: boolean;
@@ -94,6 +97,7 @@ export class TechTreeManager {
       buildingUnlocks: [],
       synergyNodes: ['reactor_overclock'],
       strategicWeight: 1.2,
+      urgencyFactor: 0.3,
       isHidden: false,
       isResearched: false,
       isAvailable: false,
@@ -114,6 +118,8 @@ export class TechTreeManager {
       buildingUnlocks: [],
       synergyNodes: [],
       strategicWeight: 1.5,
+      urgencyFactor: 0.9,
+      counterTech: ['stealth_tech'],
       isHidden: false,
       isResearched: false,
       isAvailable: false,
@@ -141,6 +147,7 @@ export class TechTreeManager {
       buildingUnlocks: [],
       synergyNodes: ['basic_refinery'],
       strategicWeight: 1.8,
+      urgencyFactor: 0.6,
       isHidden: false,
       isResearched: false,
       isAvailable: false,
@@ -168,6 +175,8 @@ export class TechTreeManager {
       buildingUnlocks: [],
       synergyNodes: [],
       strategicWeight: 2.0,
+      urgencyFactor: 0.4,
+      discoveryConditions: ['biomass_threshold'],
       isHidden: true,
       isResearched: false,
       isAvailable: false,
@@ -188,6 +197,136 @@ export class TechTreeManager {
       buildingUnlocks: [],
       synergyNodes: [],
       strategicWeight: 3.0,
+      urgencyFactor: 0.2,
+      isHidden: false,
+      isResearched: false,
+      isAvailable: false,
+      researchProgress: 0
+    });
+
+    // Add more puzzle-focused tech nodes
+
+    // Fast Anti-Air - Demo Puzzle A example
+    this.addTechNode({
+      nodeId: 'fast_anti_air',
+      nodeName: 'Rapid Anti-Air Systems',
+      description: 'Quick-deployment anti-air defenses',
+      category: TechCategory.MILITARY,
+      cost: { ore: 200, data: 50 },
+      researchTime: 20,
+      prerequisiteNodes: [],
+      effects: [],
+      unitUnlocks: ['anti_air_turret'],
+      buildingUnlocks: [],
+      synergyNodes: ['energy_shielding'],
+      strategicWeight: 1.5,
+      urgencyFactor: 0.9,
+      counterTech: ['stealth_tech', 'armored_air'],
+      isHidden: false,
+      isResearched: false,
+      isAvailable: false,
+      researchProgress: 0
+    });
+
+    // Energy Shielding - Synergy with anti-air
+    this.addTechNode({
+      nodeId: 'energy_shielding',
+      nodeName: 'Energy Shielding',
+      description: 'Protective energy barriers for units',
+      category: TechCategory.INFRASTRUCTURE,
+      cost: { ore: 150, energy: 100, data: 40 },
+      researchTime: 35,
+      prerequisiteNodes: [],
+      effects: [
+        {
+          type: EffectType.UNIT_STAT,
+          target: 'unit_health',
+          value: 1.2,
+          isMultiplicative: true
+        }
+      ],
+      unitUnlocks: [],
+      buildingUnlocks: [],
+      synergyNodes: ['fast_anti_air', 'reactor_overclock'],
+      strategicWeight: 1.3,
+      urgencyFactor: 0.5,
+      isHidden: false,
+      isResearched: false,
+      isAvailable: false,
+      researchProgress: 0
+    });
+
+    // Drone Bay - Synergy cluster example
+    this.addTechNode({
+      nodeId: 'drone_bay',
+      nodeName: 'Drone Bay',
+      description: 'Enables basic drone production',
+      category: TechCategory.MILITARY,
+      cost: { ore: 150, data: 30 },
+      researchTime: 15,
+      prerequisiteNodes: [],
+      effects: [],
+      unitUnlocks: ['scout_drone'],
+      buildingUnlocks: [],
+      synergyNodes: ['drone_ai', 'reactive_swarm'],
+      strategicWeight: 1.0,
+      urgencyFactor: 0.4,
+      isHidden: false,
+      isResearched: false,
+      isAvailable: false,
+      researchProgress: 0
+    });
+
+    // Drone AI - Part of synergy cluster
+    this.addTechNode({
+      nodeId: 'drone_ai',
+      nodeName: 'Drone AI Systems',
+      description: 'Advanced AI for drone coordination',
+      category: TechCategory.RESEARCH,
+      cost: { ore: 200, data: 100 },
+      researchTime: 30,
+      prerequisiteNodes: ['drone_bay'],
+      effects: [
+        {
+          type: EffectType.UNIT_STAT,
+          target: 'unit_speed',
+          value: 1.3,
+          isMultiplicative: true
+        }
+      ],
+      unitUnlocks: [],
+      buildingUnlocks: [],
+      synergyNodes: ['drone_bay', 'reactive_swarm'],
+      strategicWeight: 1.2,
+      urgencyFactor: 0.5,
+      isHidden: false,
+      isResearched: false,
+      isAvailable: false,
+      researchProgress: 0
+    });
+
+    // Reactive Swarm - Synergy cluster payoff
+    this.addTechNode({
+      nodeId: 'reactive_swarm',
+      nodeName: 'Reactive Swarm Protocol',
+      description: 'Exponential swarm bonus when combined with drone tech',
+      category: TechCategory.SPECIAL,
+      cost: { ore: 300, energy: 150, data: 150 },
+      researchTime: 45,
+      prerequisiteNodes: ['drone_bay', 'drone_ai'],
+      effects: [
+        {
+          type: EffectType.GLOBAL_MODIFIER,
+          target: 'swarm_multiplier',
+          value: 2.0,
+          isMultiplicative: true
+        }
+      ],
+      unitUnlocks: [],
+      buildingUnlocks: [],
+      synergyNodes: ['drone_bay', 'drone_ai'],
+      strategicWeight: 2.5,
+      urgencyFactor: 0.3,
       isHidden: false,
       isResearched: false,
       isAvailable: false,
@@ -472,6 +611,49 @@ export class TechTreeManager {
    */
   public setUnitManager(unitManager: UnitManager): void {
     this.unitManager = unitManager;
+  }
+
+  /**
+   * Get affordable tech nodes (for opportunity cost calculation)
+   */
+  public getAffordableTechs(resourceManager: ResourceManager): TechNode[] {
+    return this.getAvailableTechNodes().filter(node => {
+      if (node.isResearched) return false;
+      return resourceManager.canAfford(node.cost);
+    });
+  }
+
+  /**
+   * Get tech nodes by category
+   */
+  public getTechNodesByCategory(category: TechCategory): TechNode[] {
+    return Array.from(this.allTechNodes.values()).filter(node => node.category === category);
+  }
+
+  /**
+   * Get synergy cluster for a node
+   */
+  public getSynergyCluster(nodeId: string): TechNode[] {
+    const node = this.allTechNodes.get(nodeId);
+    if (!node) return [];
+
+    const cluster: TechNode[] = [node];
+    const processed = new Set<string>([nodeId]);
+    const toCheck = [...node.synergyNodes];
+
+    while (toCheck.length > 0) {
+      const synergyId = toCheck.pop()!;
+      if (processed.has(synergyId)) continue;
+
+      const synergyNode = this.allTechNodes.get(synergyId);
+      if (synergyNode) {
+        cluster.push(synergyNode);
+        processed.add(synergyId);
+        toCheck.push(...synergyNode.synergyNodes);
+      }
+    }
+
+    return cluster;
   }
 }
 

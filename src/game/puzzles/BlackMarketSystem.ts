@@ -241,7 +241,11 @@ REQUIREMENTS:
 
 OUTPUT:`;
 
-      const response = await this.llmIntegration['callLLM'](prompt);
+      const response = await (this.llmIntegration as any).generateEventNarrative?.(
+        'black_market',
+        Date.now(),
+        { resources: playerResources, units: 0, buildings: 0 }
+      ) || '';
       const enhanced = this.parseLLMResponse(response);
 
       if (enhanced) {

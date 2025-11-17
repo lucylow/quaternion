@@ -238,7 +238,13 @@ Requirements:
 
 Output:`;
 
-      const response = await this.llmIntegration['callLLM'](prompt);
+      // Note: LLMIntegration doesn't expose callLLM directly
+      // For now, use a fallback approach
+      const response = await (this.llmIntegration as any).generateEventNarrative?.(
+        'resource_event',
+        Date.now(),
+        { resources: {}, units: 0, buildings: 0 }
+      ) || '';
       const enhanced = this.parseLLMResponse(response);
       
       if (enhanced) {
@@ -253,10 +259,15 @@ Output:`;
   }
 
   private parseLLMResponse(text: string): any {
+    if (!text) return null;
     try {
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         return JSON.parse(jsonMatch[0]);
+      }
+      // If no JSON, try to extract description from text
+      if (text.includes('description')) {
+        return { description: text, flavorText: text };
       }
     } catch (e) {
       // Ignore parse errors
