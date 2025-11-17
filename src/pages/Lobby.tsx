@@ -7,16 +7,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Users, User, Gamepad2, Plus, Search, ArrowLeft, Loader2, Target, BookOpen, Puzzle, Film, Zap, Leaf, Brain, Box } from 'lucide-react';
+import { Users, User, Gamepad2, Plus, Search, ArrowLeft, Loader2, Target, BookOpen, Puzzle, Film, Zap, Leaf, Brain, Box, Map } from 'lucide-react';
 import { COMMANDERS } from '@/data/quaternionData';
 import { PUZZLES, getAvailablePuzzles, getPuzzle, type Puzzle } from '@/data/puzzles';
 import { toast } from 'sonner';
+import { MapSelector } from '@/components/game/MapSelector';
+import { MapConfig } from '@/types/map';
 
 interface GameConfig {
   mode: 'single' | 'multiplayer' | 'campaign' | 'puzzle' | 'theater';
   commanderId: string;
   difficulty?: 'easy' | 'medium' | 'hard';
   mapType?: string;
+  mapId?: string; // New: ID of the selected map image
   mapWidth?: number;
   mapHeight?: number;
   seed?: number;
@@ -101,6 +104,10 @@ const Lobby = () => {
   // Selected puzzle
   const [selectedPuzzle, setSelectedPuzzle] = useState<string | null>(null);
 
+  // Map selection
+  const [selectedMap, setSelectedMap] = useState<MapConfig | null>(null);
+  const [showMapSelector, setShowMapSelector] = useState(false);
+
   // Room management
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loadingRooms, setLoadingRooms] = useState(false);
@@ -136,6 +143,14 @@ const Lobby = () => {
   const handleStartSinglePlayer = () => {
     const config = { ...singlePlayerConfig };
     
+    // Add selected map ID if available
+    if (selectedMap) {
+      config.mapId = selectedMap.id;
+      // Use map's grid size if not overridden
+      if (!config.mapWidth) config.mapWidth = selectedMap.gridSize.width;
+      if (!config.mapHeight) config.mapHeight = selectedMap.gridSize.height;
+    }
+    
     // Handle different game modes
     if (singlePlayerMode === 'campaign') {
       config.mode = 'campaign';
@@ -164,6 +179,16 @@ const Lobby = () => {
       state: {
         config
       }
+    });
+  };
+
+  const handleMapSelect = (mapConfig: MapConfig) => {
+    setSelectedMap(mapConfig);
+    setShowMapSelector(false);
+    // Update map type in config
+    setSinglePlayerConfig({ ...singlePlayerConfig, mapType: mapConfig.id });
+    toast.success(`Selected map: ${mapConfig.name}`, {
+      description: mapConfig.description
     });
   };
 
@@ -530,6 +555,68 @@ const Lobby = () => {
               </Card>
             )}
 
+            {/* Map Selection */}
+            {singlePlayerMode !== 'puzzle' && (
+              <Card className="bg-card/70 border-primary/30 mb-6">
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Map className="w-5 h-5 text-primary" />
+                        Select Map
+                      </CardTitle>
+                      <CardDescription>
+                        Choose from 12 AI-generated map images
+                      </CardDescription>
+                    </div>
+                    {selectedMap && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowMapSelector(!showMapSelector)}
+                      >
+                        {showMapSelector ? 'Hide Maps' : 'Change Map'}
+                      </Button>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {showMapSelector || !selectedMap ? (
+                    <div className="max-h-[600px] overflow-y-auto">
+                      <MapSelector
+                        onMapSelect={handleMapSelect}
+                        selectedMapId={selectedMap?.id}
+                      />
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-background/50 rounded-lg border border-primary/20">
+                      <div className="flex items-center gap-4">
+                        {selectedMap.imagePath && (
+                          <img
+                            src={selectedMap.imagePath}
+                            alt={selectedMap.name}
+                            className="w-32 h-32 object-cover rounded-lg"
+                          />
+                        )}
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-lg mb-1">{selectedMap.name}</h4>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            {selectedMap.description}
+                          </p>
+                          <div className="flex gap-2">
+                            <Badge className={selectedMap.difficulty === 'easy' ? 'bg-green-500' : selectedMap.difficulty === 'medium' ? 'bg-yellow-500' : 'bg-red-500'}>
+                              {selectedMap.difficulty.toUpperCase()}
+                            </Badge>
+                            <Badge variant="outline">{selectedMap.theme}</Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             <Card className="bg-card/70 border-primary/30">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -599,9 +686,9 @@ const Lobby = () => {
                     </Select>
                   </div>
 
-                  {/* Map Type */}
+                  {/* Map Type - Keep for backward compatibility */}
                   <div className="space-y-2">
-                    <Label htmlFor="mapType">Map Type</Label>
+                    <Label htmlFor="mapType">Map Type (Legacy)</Label>
                     <Select
                       value={singlePlayerConfig.mapType}
                       onValueChange={(value) =>
@@ -620,9 +707,9 @@ const Lobby = () => {
                     </Select>
                   </div>
 
-                  {/* Map Size */}
+                  {/* Map Size - Override grid size if map selected */}
                   <div className="space-y-2">
-                    <Label htmlFor="mapSize">Map Size</Label>
+                    <Label htmlFor="mapSize">Map Size {selectedMap && '(Override)'}</Label>
                     <Select
                       value={`${singlePlayerConfig.mapWidth}x${singlePlayerConfig.mapHeight}`}
                       onValueChange={(value) => {
@@ -642,6 +729,11 @@ const Lobby = () => {
                         <SelectItem value="40x30">Medium (40x30)</SelectItem>
                         <SelectItem value="50x40">Large (50x40)</SelectItem>
                         <SelectItem value="60x50">Extra Large (60x50)</SelectItem>
+                        {selectedMap && (
+                          <SelectItem value={`${selectedMap.gridSize.width}x${selectedMap.gridSize.height}`}>
+                            Map Default ({selectedMap.gridSize.width}×{selectedMap.gridSize.height})
+                          </SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>

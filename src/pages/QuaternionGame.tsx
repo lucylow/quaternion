@@ -15,6 +15,7 @@ import { GameLoop, PerformanceStats } from '@/game/GameLoop';
 import { EndgameScene } from '@/components/game/EndgameScene';
 import { EndgameManager, EndgameScenario } from '@/game/EndgameManager';
 import { ImageAssetLoader } from '@/game/ImageAssetLoader';
+import { mapLoader } from '@/services/MapLoader';
 import { ResourcePuzzleManager } from '@/game/puzzles/ResourcePuzzleManager';
 import { ResourceEvent } from '@/game/puzzles/ResourceEventGenerator';
 import { AllocationPuzzle } from '@/game/puzzles/AllocationPuzzleManager';
@@ -319,13 +320,39 @@ const QuaternionGame = () => {
       const { width, height } = this.cameras.main;
 
       // Use a map image as background if available, otherwise fall back to gradient
-      const mapKeys = ImageAssetLoader.getMapKeys();
       let backgroundImage: Phaser.GameObjects.Image | Phaser.GameObjects.Graphics | null = null;
 
-      if (mapKeys.length > 0 && this.textures.exists(mapKeys[0])) {
-        // Use a random map as background
-        const selectedMap = mapKeys[Math.floor(Math.random() * mapKeys.length)];
-        backgroundImage = this.add.image(width, height, selectedMap);
+      // Try to use selected map first, then fall back to random map or gradient
+      const selectedMapId = routeConfig?.mapId;
+      let mapKey: string | null = null;
+
+      if (selectedMapId) {
+        // Try to load the selected map using the mapping helper
+        mapKey = ImageAssetLoader.getMapKeyByMapId(selectedMapId);
+        
+        // Fallback: try to find by path if direct mapping fails
+        if (!mapKey) {
+          const mapConfig = mapLoader.getMapById(selectedMapId);
+          if (mapConfig) {
+            const asset = ImageAssetLoader.getMapAssetByPath(mapConfig.imagePath);
+            if (asset) {
+              mapKey = asset.key;
+            }
+          }
+        }
+      }
+
+      // If no specific map found, use random map or fallback
+      if (!mapKey) {
+        const mapKeys = ImageAssetLoader.getMapKeys();
+        if (mapKeys.length > 0 && this.textures.exists(mapKeys[0])) {
+          mapKey = mapKeys[Math.floor(Math.random() * mapKeys.length)];
+        }
+      }
+
+      if (mapKey && this.textures.exists(mapKey)) {
+        // Use selected or random map as background
+        backgroundImage = this.add.image(width, height, mapKey);
         backgroundImage.setDisplaySize(width * 2, height * 2);
         backgroundImage.setAlpha(0.4); // Semi-transparent so game elements are visible
         backgroundImage.setTint(0x001122); // Darken the map slightly

@@ -1,0 +1,210 @@
+{
+  "maps": [
+    {
+      "id": "twilight_biome",
+      "name": "Twilight Biome",
+      "theme": "alien",
+      "difficulty": "medium",
+      "imagePath": "/assets/maps/DALL·E 2024-11-20 16.22.21 - Create a unique 2D and 3D map design for a twilight biome for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowing a.webp",
+      "description": "A mystical alien world with glowing structures and purple-cyan colors",
+      "gridSize": { "width": 64, "height": 64 },
+      "spawnPoints": [
+        { "x": 10, "y": 10, "player": 1 },
+        { "x": 54, "y": 54, "player": 2 }
+      ],
+      "recommendedResources": [
+        { "x": 32, "y": 20, "type": "minerals" },
+        { "x": 32, "y": 44, "type": "gas" }
+      ]
+    },
+    {
+      "id": "urban_battlefield",
+      "name": "Urban Battlefield",
+      "theme": "urban",
+      "difficulty": "hard",
+      "imagePath": "/assets/maps/DALL·E 2024-11-20 16.22.24 - Create a unique 2D and 3D map design for an urban battlefield for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature dense.webp",
+      "description": "Dense cityscape combat zones with tight corridors",
+      "gridSize": { "width": 64, "height": 64 },
+      "spawnPoints": [
+        { "x": 8, "y": 32, "player": 1 },
+        { "x": 56, "y": 32, "player": 2 }
+      ],
+      "recommendedResources": [
+        { "x": 20, "y": 20, "type": "minerals" },
+        { "x": 44, "y": 44, "type": "minerals" },
+        { "x": 32, "y": 32, "type": "gas" }
+      ]
+    },
+    {
+      "id": "underwater_biome",
+      "name": "Underwater Biome",
+      "theme": "aquatic",
+      "difficulty": "medium",
+      "imagePath": "/assets/maps/DALL·E 2024-11-20 16.22.28 - Create a unique 2D and 3D map design for an underwater biome for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowin.webp",
+      "description": "Glowing aquatic environment with mysterious depths",
+      "gridSize": { "width": 64, "height": 64 },
+      "spawnPoints": [
+        { "x": 12, "y": 12, "player": 1 },
+        { "x": 52, "y": 52, "player": 2 }
+      ],
+      "recommendedResources": [
+        { "x": 32, "y": 16, "type": "minerals" },
+        { "x": 32, "y": 48, "type": "gas" }
+      ]
+    },
+    {
+      "id": "mountainous_terrain",
+      "name": "Mountainous Terrain",
+      "theme": "mountain",
+      "difficulty": "hard",
+      "imagePath": "/assets/maps/DALL·E 2024-11-20 16.22.32 - Create a unique 2D and 3D map design for a mountainous terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature laye.webp",
+      "description": "Layered elevation gameplay with strategic high ground",
+      "gridSize": { "width": 64, "height": 64 },
+      "spawnPoints": [
+        { "x": 10, "y": 48, "player": 1 },
+        { "x": 54, "y": 16, "player": 2 }
+      ],
+      "recommendedResources": [
+        { "x": 24, "y": 32, "type": "minerals" },
+        { "x": 40, "y": 32, "type": "gas" }
+      ]
+    },
+    {
+      "id": "desert_terrain",
+      "name": "Desert Terrain",
+      "theme": "desert",
+      "difficulty": "easy",
+      "imagePath": "/assets/maps/DALL·E 2024-11-20 16.22.35 - Create a unique 2D and 3D map design for a desert terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature shifting .webp",
+      "description": "Shifting sands environment with open sightlines",
+      "gridSize": { "width": 64, "height": 64 },
+      "spawnPoints": [
+        { "x": 10, "y": 32, "player": 1 },
+        { "x": 54, "y": 32, "player": 2 }
+      ],
+      "recommendedResources": [
+        { "x": 32, "y": 20, "type": "minerals" },
+        { "x": 32, "y": 44, "type": "gas" }
+      ]
+    },
+    {
+      "id": "icy_wasteland",
+      "name": "Icy Wasteland",
+      "theme": "ice",
+      "difficulty": "medium",
+      "imagePath": "/assets/maps/DALL·E 2024-11-20 16.22.38 - Create a unique 2D and 3D map design for an icy wasteland for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature slippery .webp",
+      "description": "Slippery frozen terrain with treacherous ice fields",
+      "gridSize": { "width": 64, "height": 64 },
+      "spawnPoints": [
+        { "x": 12, "y": 50, "player": 1 },
+        { "x": 52, "y": 14, "player": 2 }
+      ],
+      "recommendedResources": [
+        { "x": 28, "y": 32, "type": "minerals" },
+        { "x": 36, "y": 32, "type": "gas" }
+      ]
+    },
+    {
+      "id": "volcanic_terrain",
+      "name": "Volcanic Terrain",
+      "theme": "volcanic",
+      "difficulty": "hard",
+      "imagePath": "/assets/maps/DALL·E 2024-11-20 16.22.41 - Create a unique 2D and 3D map design for a volcanic terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowing.webp",
+      "description": "Glowing lava hazards and intense heat zones",
+      "gridSize": { "width": 64, "height": 64 },
+      "spawnPoints": [
+        { "x": 10, "y": 54, "player": 1 },
+        { "x": 54, "y": 10, "player": 2 }
+      ],
+      "recommendedResources": [
+        { "x": 24, "y": 24, "type": "minerals" },
+        { "x": 40, "y": 40, "type": "gas" }
+      ]
+    },
+    {
+      "id": "alien_jungle",
+      "name": "Alien Jungle",
+      "theme": "jungle",
+      "difficulty": "medium",
+      "imagePath": "/assets/maps/DALL·E 2024-11-20 16.22.45 - Create a unique 2D and 3D map design for a lush alien jungle for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowin.webp",
+      "description": "Lush vegetation with glowing plants and dense cover",
+      "gridSize": { "width": 64, "height": 64 },
+      "spawnPoints": [
+        { "x": 10, "y": 10, "player": 1 },
+        { "x": 54, "y": 54, "player": 2 }
+      ],
+      "recommendedResources": [
+        { "x": 32, "y": 18, "type": "minerals" },
+        { "x": 32, "y": 46, "type": "gas" }
+      ]
+    },
+    {
+      "id": "varied_terrains",
+      "name": "Varied Terrains",
+      "theme": "mixed",
+      "difficulty": "medium",
+      "imagePath": "/assets/maps/DALL·E 2024-11-20 16.22.47 - Create 8 unique 2D and 3D map designs for a StarCraft-inspired mobile game titled 'Eclipse Down,' each representing varied terrains and gameplay chall.webp",
+      "description": "Collection of varied terrains and gameplay challenges",
+      "gridSize": { "width": 64, "height": 64 },
+      "spawnPoints": [
+        { "x": 12, "y": 12, "player": 1 },
+        { "x": 52, "y": 52, "player": 2 }
+      ],
+      "recommendedResources": [
+        { "x": 30, "y": 22, "type": "minerals" },
+        { "x": 34, "y": 42, "type": "gas" }
+      ]
+    },
+    {
+      "id": "easy_map",
+      "name": "Easy Terrain",
+      "theme": "open",
+      "difficulty": "easy",
+      "imagePath": "/assets/maps/DALL·E 2024-11-20 16.22.49 - Create a 2D and 3D map for an __Easy difficulty__ level in the StarCraft-inspired game 'Eclipse Down.' The map should feature open terrain with minima.webp",
+      "description": "Open terrain with minimal obstacles for new players",
+      "gridSize": { "width": 64, "height": 64 },
+      "spawnPoints": [
+        { "x": 10, "y": 32, "player": 1 },
+        { "x": 54, "y": 32, "player": 2 }
+      ],
+      "recommendedResources": [
+        { "x": 32, "y": 20, "type": "minerals" },
+        { "x": 32, "y": 44, "type": "gas" }
+      ]
+    },
+    {
+      "id": "difficulty_series",
+      "name": "Difficulty Series",
+      "theme": "tactical",
+      "difficulty": "medium",
+      "imagePath": "/assets/maps/DALL·E 2024-11-20 16.22.51 - Design a series of 2D and 3D maps for the StarCraft-inspired game 'Eclipse Down,' each reflecting different difficulty levels. Include_ 1) __Easy Map_.webp",
+      "description": "Multi-difficulty map with varied strategic challenges",
+      "gridSize": { "width": 64, "height": 64 },
+      "spawnPoints": [
+        { "x": 12, "y": 32, "player": 1 },
+        { "x": 52, "y": 32, "player": 2 }
+      ],
+      "recommendedResources": [
+        { "x": 28, "y": 24, "type": "minerals" },
+        { "x": 36, "y": 40, "type": "gas" }
+      ]
+    },
+    {
+      "id": "hybrid_2d_3d",
+      "name": "Hybrid 2D/3D",
+      "theme": "tactical",
+      "difficulty": "hard",
+      "imagePath": "/assets/maps/DALL·E 2024-11-20 16.22.56 - Design both 2D and 3D maps for a StarCraft-inspired game titled 'Eclipse Down.' The 2D map should display a tactical, top-down interface with detailed.webp",
+      "description": "Tactical top-down view with 3D depth elements",
+      "gridSize": { "width": 64, "height": 64 },
+      "spawnPoints": [
+        { "x": 10, "y": 32, "player": 1 },
+        { "x": 54, "y": 32, "player": 2 }
+      ],
+      "recommendedResources": [
+        { "x": 32, "y": 24, "type": "minerals" },
+        { "x": 32, "y": 40, "type": "gas" }
+      ]
+    }
+  ]
+}
+

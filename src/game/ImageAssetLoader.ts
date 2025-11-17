@@ -20,7 +20,7 @@ export class ImageAssetLoader {
    * Using simplified keys and paths that match the actual file structure
    */
   static initializeAssets(): void {
-    // Map assets - using simplified keys for easier reference
+    // Map assets - using simplified keys for easier reference (all 12 maps)
     this.mapAssets = [
       { key: 'map-twilight', path: '/assets/maps/DALL·E 2024-11-20 16.22.21 - Create a unique 2D and 3D map design for a twilight biome for a StarCraft-inspired mobile game titled \'Eclipse Down.\' The map should feature glowing a.webp', category: 'map' },
       { key: 'map-urban', path: '/assets/maps/DALL·E 2024-11-20 16.22.24 - Create a unique 2D and 3D map design for an urban battlefield for a StarCraft-inspired mobile game titled \'Eclipse Down.\' The map should feature dense.webp', category: 'map' },
@@ -30,6 +30,10 @@ export class ImageAssetLoader {
       { key: 'map-icy', path: '/assets/maps/DALL·E 2024-11-20 16.22.38 - Create a unique 2D and 3D map design for an icy wasteland for a StarCraft-inspired mobile game titled \'Eclipse Down.\' The map should feature slippery .webp', category: 'map' },
       { key: 'map-volcanic', path: '/assets/maps/DALL·E 2024-11-20 16.22.41 - Create a unique 2D and 3D map design for a volcanic terrain for a StarCraft-inspired mobile game titled \'Eclipse Down.\' The map should feature glowing.webp', category: 'map' },
       { key: 'map-jungle', path: '/assets/maps/DALL·E 2024-11-20 16.22.45 - Create a unique 2D and 3D map design for a lush alien jungle for a StarCraft-inspired mobile game titled \'Eclipse Down.\' The map should feature glowin.webp', category: 'map' },
+      { key: 'map-varied', path: '/assets/maps/DALL·E 2024-11-20 16.22.47 - Create 8 unique 2D and 3D map designs for a StarCraft-inspired mobile game titled \'Eclipse Down,\' each representing varied terrains and gameplay chall.webp', category: 'map' },
+      { key: 'map-easy', path: '/assets/maps/DALL·E 2024-11-20 16.22.49 - Create a 2D and 3D map for an __Easy difficulty__ level in the StarCraft-inspired game \'Eclipse Down.\' The map should feature open terrain with minima.webp', category: 'map' },
+      { key: 'map-difficulty-series', path: '/assets/maps/DALL·E 2024-11-20 16.22.51 - Design a series of 2D and 3D maps for the StarCraft-inspired game \'Eclipse Down,\' each reflecting different difficulty levels. Include_ 1) __Easy Map_.webp', category: 'map' },
+      { key: 'map-hybrid', path: '/assets/maps/DALL·E 2024-11-20 16.22.56 - Design both 2D and 3D maps for a StarCraft-inspired game titled \'Eclipse Down.\' The 2D map should display a tactical, top-down interface with detailed.webp', category: 'map' },
     ];
 
     // Monster assets - key monsters for the game
@@ -138,6 +142,35 @@ export class ImageAssetLoader {
    */
   static getCountryKeys(): string[] {
     return this.countryAssets.map(asset => asset.key);
+  }
+
+  /**
+   * Get Phaser key for a map ID (from maps.json)
+   * Maps map IDs to Phaser asset keys
+   */
+  static getMapKeyByMapId(mapId: string): string | null {
+    const mapIdToKeyMap: Record<string, string> = {
+      'twilight_biome': 'map-twilight',
+      'urban_battlefield': 'map-urban',
+      'underwater_biome': 'map-underwater',
+      'mountainous_terrain': 'map-mountain',
+      'desert_terrain': 'map-desert',
+      'icy_wasteland': 'map-icy',
+      'volcanic_terrain': 'map-volcanic',
+      'alien_jungle': 'map-jungle',
+      'varied_terrains': 'map-varied',
+      'easy_map': 'map-easy',
+      'difficulty_series': 'map-difficulty-series',
+      'hybrid_2d_3d': 'map-hybrid'
+    };
+    return mapIdToKeyMap[mapId] || null;
+  }
+
+  /**
+   * Get map asset by path
+   */
+  static getMapAssetByPath(imagePath: string): ImageAsset | undefined {
+    return this.mapAssets.find(asset => asset.path === imagePath);
   }
 }
 
