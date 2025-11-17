@@ -137,8 +137,10 @@ export async function generateReplay(options) {
     commanderId
   );
 
-  // Get git commit (if available)
-  const engineCommit = process.env.GIT_COMMIT || 'development';
+  // Get git commit (if available via Vite env)
+  // In Vite, use import.meta.env.VITE_GIT_COMMIT or fallback to 'development'
+  // Note: import.meta.env is available in Vite builds
+  const engineCommit = import.meta?.env?.VITE_GIT_COMMIT || 'development';
 
   // Build replay data
   const replayData = {

@@ -1,13 +1,12 @@
 import { UnitType } from '../units/Unit.js';
 import { BuildingType } from '../buildings/Building.js';
-import fs from 'fs';
-import path from 'path';
 import { logDecision } from './decision-logger.js';
 import { generateStrategy, safeParseJSON } from './modelClient.js';
 import { buildStrategyPrompt } from './promptTemplates.js';
 import { LRUCache, hashPrompt } from './cache.js';
 import MCTS from './planner/MCTS.js';
 import { logAIDecision, recordMetric } from './telemetry.js';
+import commanderConfigData from '../config/commanders.json';
 
 export const AIDifficulty = {
   EASY: 'easy',
@@ -15,7 +14,7 @@ export const AIDifficulty = {
   HARD: 'hard'
 };
 
-const CONFIG_PATH = path.resolve(process.cwd(), 'config', 'commanders.json');
+// Load commander config from imported JSON
 let COMMANDER_CONFIG = null;
 const strategyCache = new LRUCache(200);
 
@@ -23,14 +22,13 @@ const strategyCache = new LRUCache(200);
 function loadCommanderConfig() {
   try {
     if (!COMMANDER_CONFIG) {
-      const raw = fs.readFileSync(CONFIG_PATH, 'utf8');
-      COMMANDER_CONFIG = JSON.parse(raw).commanders.reduce((acc, c) => {
+      COMMANDER_CONFIG = commanderConfigData.commanders.reduce((acc, c) => {
         acc[c.id] = c;
         return acc;
       }, {});
     }
   } catch (err) {
-    console.warn('Could not load commanders config at', CONFIG_PATH, err.message);
+    console.warn('Could not load commanders config', err.message);
     COMMANDER_CONFIG = COMMANDER_CONFIG || {};
   }
 }
