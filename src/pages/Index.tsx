@@ -121,7 +121,11 @@ const Index = () => {
             
             <div className="inline-flex items-center gap-2 bg-gradient-to-r from-secondary to-primary text-primary-foreground px-4 py-2 rounded-md font-bold">
               <Trophy className="w-5 h-5" />
-              Chroma Awards 2025 Submission
+              Chroma Awards 2025 Submission - Puzzle/Strategy Category
+            </div>
+            <div className="text-sm text-muted-foreground mt-2">
+              <p>Tools Used: ElevenLabs, OpenArt, LTX Studio, Fuser, Luma AI, SAGA, Google Gemini 2.5 Flash</p>
+              <p className="mt-1">Visit <a href="https://www.ChromaAwards.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">www.ChromaAwards.com</a> for more information</p>
             </div>
           </div>
           

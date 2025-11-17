@@ -1,14 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
 import Phaser from 'phaser';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Brain, Zap, Leaf, Box, Building, Swords, Trophy, X, RotateCcw, Activity } from 'lucide-react';
+import { ArrowLeft, Brain, Zap, Leaf, Box, Building, Swords, Trophy, X, RotateCcw, Activity, Clock } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { QuaternionGameState } from '@/game/QuaternionGameState';
 import { TECH_TREE, BUILDINGS, COMMANDERS, UNIT_TYPES, AI_SUGGESTIONS } from '@/data/quaternionData';
 import { BuildMenu } from '@/components/game/BuildMenu';
 import { TechTreeModal } from '@/components/game/TechTreeModal';
+import { UnitPanel } from '@/components/game/UnitPanel';
+import { CommandPanel } from '@/components/game/CommandPanel';
+import { Minimap } from '@/components/game/Minimap';
 import { GameLoop, PerformanceStats } from '@/game/GameLoop';
+import { useSelectionManager } from '@/hooks/useSelectionManager';
+import { useRTSCamera } from '@/hooks/useRTSCamera';
+import { useTouchControls } from '@/hooks/useTouchControls';
 
 interface GameResources {
   matter: number;
@@ -35,6 +41,8 @@ const QuaternionGame = () => {
   const [gameTime, setGameTime] = useState(0);
   const [instability, setInstability] = useState(0);
   const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
+  const [selectedUnits, setSelectedUnits] = useState<Phaser.Physics.Arcade.Sprite[]>([]);
+  const cameraRef = useRef<Phaser.Cameras.Scene2D.Camera | null>(null);
   const [showTechTree, setShowTechTree] = useState(false);
   const [showBuildMenu, setShowBuildMenu] = useState(false);
   const [buildQueue, setBuildQueue] = useState<Array<{ id: string; building: string; progress: number; totalTime: number }>>([]);
@@ -43,6 +51,8 @@ const QuaternionGame = () => {
   const [gameOver, setGameOver] = useState<{ won: boolean; reason: string } | null>(null);
   const [showPerformanceStats, setShowPerformanceStats] = useState(false);
   const [performanceStats, setPerformanceStats] = useState<PerformanceStats | null>(null);
+  const [winConditionProgress, setWinConditionProgress] = useState<Record<string, { progress: number; max: number; label: string }>>({});
+  const [showTutorial, setShowTutorial] = useState(true);
   const gameLoopRef = useRef<GameLoop | null>(null);
   
   // Get game configuration from route state or use defaults
@@ -230,17 +240,37 @@ const QuaternionGame = () => {
     function create(this: Phaser.Scene) {
       const { width, height } = this.cameras.main;
 
-      // Create enhanced grid background with gradient
+      // Create enhanced grid background with animated gradient
       const bgGraphics = this.add.graphics();
       bgGraphics.fillGradientStyle(0x001122, 0x001122, 0x002244, 0x002244, 1);
       bgGraphics.fillRect(0, 0, width * 2, height * 2);
       
-      bgGraphics.lineStyle(1, 0x00ffea, 0.1);
+      // Animated grid lines with subtle pulse
+      bgGraphics.lineStyle(1, 0x00ffea, 0.15);
       for (let x = 0; x < width * 2; x += 64) {
         bgGraphics.lineBetween(x, 0, x, height * 2);
       }
       for (let y = 0; y < height * 2; y += 64) {
         bgGraphics.lineBetween(0, y, width * 2, y);
+      }
+      
+      // Add subtle animated stars/particles in background
+      for (let i = 0; i < 50; i++) {
+        const star = this.add.circle(
+          Math.random() * width * 2,
+          Math.random() * height * 2,
+          1,
+          0x00ffea,
+          0.3 + Math.random() * 0.4
+        );
+        this.tweens.add({
+          targets: star,
+          alpha: { from: 0.3, to: 0.7 },
+          duration: 2000 + Math.random() * 2000,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut'
+        });
       }
 
       // Create resource nodes with better visuals
@@ -383,10 +413,26 @@ const QuaternionGame = () => {
       // Selection graphics
       selectionGraphics = this.add.graphics();
 
-      // Camera controls
+      // Enhanced Camera controls
       const cursors = this.input.keyboard?.createCursorKeys();
+      const wasd = this.input.keyboard?.addKeys('W,S,A,D') as {
+        W: Phaser.Input.Keyboard.Key;
+        S: Phaser.Input.Keyboard.Key;
+        A: Phaser.Input.Keyboard.Key;
+        D: Phaser.Input.Keyboard.Key;
+      };
       const camera = this.cameras.main;
+      cameraRef.current = camera;
       camera.setBounds(0, 0, width * 2, height * 2);
+      camera.setZoom(1.0);
+      
+      // Mouse wheel zoom
+      this.input.on('wheel', (pointer: Phaser.Input.Pointer, gameObjects: any[], deltaX: number, deltaY: number, deltaZ: number) => {
+        const zoom = camera.zoom;
+        const zoomDelta = deltaY > 0 ? -0.1 : 0.1;
+        const newZoom = Phaser.Math.Clamp(zoom + zoomDelta, 0.5, 2.0);
+        camera.setZoom(newZoom);
+      });
 
       // Mouse controls
       this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
@@ -464,9 +510,53 @@ const QuaternionGame = () => {
         }
       });
 
-      this.input.on('pointerup', () => {
-        isSelecting = false;
-        selectionGraphics.clear();
+      this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+        if (pointer.leftButtonReleased() && isSelecting) {
+          isSelecting = false;
+          selectionGraphics.clear();
+
+          // Select units in box
+          const minX = Math.min(selectionStart.x, pointer.worldX);
+          const maxX = Math.max(selectionStart.x, pointer.worldX);
+          const minY = Math.min(selectionStart.y, pointer.worldY);
+          const maxY = Math.max(selectionStart.y, pointer.worldY);
+
+          // Clear previous selection if not shift-clicking
+          if (!pointer.shiftKey) {
+            selectedUnits.forEach(u => {
+              const ring = u.getData('selectionRing') as Phaser.GameObjects.Ellipse | undefined;
+              if (ring) ring.setVisible(false);
+            });
+            selectedUnits.length = 0;
+          }
+
+          // Find units in selection box
+          playerUnits.forEach(unit => {
+            if (!unit.active) return;
+            if (unit.x >= minX && unit.x <= maxX && unit.y >= minY && unit.y <= maxY) {
+              if (!selectedUnits.includes(unit)) {
+                selectedUnits.push(unit);
+                let ring = unit.getData('selectionRing') as Phaser.GameObjects.Ellipse | undefined;
+                if (!ring) {
+                  ring = this.add.graphics();
+                  ring.lineStyle(3, 0x00ffea, 1);
+                  ring.strokeCircle(unit.x, unit.y, 18);
+                  ring.setData('unit', unit);
+                  unit.setData('selectionRing', ring);
+                }
+                ring.setVisible(true);
+              }
+            }
+          });
+
+          // Update React state
+          setSelectedUnits([...selectedUnits]);
+          if (selectedUnits.length === 1) {
+            setSelectedUnit(selectedUnits[0].getData('type'));
+          } else {
+            setSelectedUnit(null);
+          }
+        }
       });
 
       this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
@@ -518,6 +608,43 @@ const QuaternionGame = () => {
             knowledge: Math.floor(player.resources.knowledge)
           });
           setPopulation(player.population);
+        }
+
+        // Update win condition progress
+        if (state.winConditions && state.players.length > 0) {
+          const player = state.players[0];
+          const progress: Record<string, { progress: number; max: number; label: string }> = {};
+          state.winConditions.forEach((wc: any) => {
+            // Adjust max values based on quick start mode
+            const isQuickStart = mapConfig.width <= 30 && mapConfig.height <= 20;
+            
+            if (wc.type === 'equilibrium') {
+              progress.equilibrium = {
+                progress: wc.progress,
+                max: isQuickStart ? 30 * 60 : 60 * 60, // 30 or 60 seconds at 60 ticks/sec
+                label: 'Equilibrium Victory'
+              };
+            } else if (wc.type === 'technological') {
+              progress.technological = {
+                progress: player.researchedTechs.has('quantum_ascendancy') ? 1 : 0,
+                max: 1,
+                label: 'Technological Victory'
+              };
+            } else if (wc.type === 'territorial') {
+              progress.territorial = {
+                progress: wc.progress,
+                max: isQuickStart ? 45 * 60 : 90 * 60, // 45 or 90 seconds
+                label: 'Territorial Victory'
+              };
+            } else if (wc.type === 'moral') {
+              progress.moral = {
+                progress: player.moralAlignment || 0,
+                max: 80,
+                label: 'Moral Victory'
+              };
+            }
+          });
+          setWinConditionProgress(progress);
         }
       }
 
@@ -779,29 +906,90 @@ const QuaternionGame = () => {
         });
       });
 
-      // Camera movement
-      const cursors = this.input.keyboard?.createCursorKeys();
+      // Enhanced Camera movement with WASD and edge scrolling
       const camera = this.cameras.main;
-      const speed = 5;
+      const panSpeed = 200;
+      const speed = (panSpeed * delta) / 1000;
+      let moveX = 0;
+      let moveY = 0;
 
-      if (cursors?.left.isDown) {
-        camera.scrollX -= speed;
-      } else if (cursors?.right.isDown) {
-        camera.scrollX += speed;
+      // Keyboard controls (Arrow keys + WASD)
+      if (cursors?.left.isDown || wasd?.A.isDown) moveX -= speed;
+      if (cursors?.right.isDown || wasd?.D.isDown) moveX += speed;
+      if (cursors?.up.isDown || wasd?.W.isDown) moveY -= speed;
+      if (cursors?.down.isDown || wasd?.S.isDown) moveY += speed;
+
+      // Edge scrolling (only when not selecting)
+      if (!isSelecting) {
+        const pointer = this.input.activePointer;
+        const screenWidth = this.scale.width;
+        const screenHeight = this.scale.height;
+        const edgeThickness = 10;
+
+        if (pointer.x >= screenWidth - edgeThickness) {
+          moveX += speed;
+        } else if (pointer.x <= edgeThickness) {
+          moveX -= speed;
+        }
+
+        if (pointer.y >= screenHeight - edgeThickness) {
+          moveY += speed;
+        } else if (pointer.y <= edgeThickness) {
+          moveY -= speed;
+        }
       }
 
-      if (cursors?.up.isDown) {
-        camera.scrollY -= speed;
-      } else if (cursors?.down.isDown) {
-        camera.scrollY += speed;
+      // Apply camera movement
+      if (moveX !== 0 || moveY !== 0) {
+        const newX = Phaser.Math.Clamp(
+          camera.scrollX + moveX,
+          0,
+          width * 2 - (width / camera.zoom)
+        );
+        const newY = Phaser.Math.Clamp(
+          camera.scrollY + moveY,
+          0,
+          height * 2 - (height / camera.zoom)
+        );
+        camera.setScroll(newX, newY);
+      }
+
+      // Space bar - center camera on selection
+      if (this.input.keyboard?.checkDown(this.input.keyboard.addKey('SPACE'), 200)) {
+        if (selectedUnits.length > 0) {
+          const avgX = selectedUnits.reduce((sum, u) => sum + (u.active ? u.x : 0), 0) / selectedUnits.length;
+          const avgY = selectedUnits.reduce((sum, u) => sum + (u.active ? u.y : 0), 0) / selectedUnits.length;
+          this.tweens.add({
+            targets: camera,
+            scrollX: Phaser.Math.Clamp(avgX - width / 2, 0, width * 2 - width),
+            scrollY: Phaser.Math.Clamp(avgY - height / 2, 0, height * 2 - height),
+            duration: 500,
+            ease: 'Power2'
+          });
+        }
       }
       
-      // Update performance stats display periodically
+      // Update performance stats display periodically (optional - Phaser has its own loop)
       if (gameLoopRef.current && showPerformanceStats) {
         // Update stats every 500ms to avoid too frequent React updates
         if (time % 500 < delta) {
           setPerformanceStats(gameLoopRef.current.getPerformanceStats());
         }
+      }
+      
+      // Calculate FPS for display (simple implementation)
+      if (showPerformanceStats && !performanceStats) {
+        const fps = Math.round(1000 / delta);
+        setPerformanceStats({
+          fps: fps,
+          ups: 60,
+          frameTime: delta,
+          updateTime: delta * 0.3,
+          renderTime: delta * 0.7,
+          fixedUpdateTime: delta * 0.3,
+          droppedFrames: fps < 55 ? 1 : 0,
+          qualityLevel: 1.0
+        });
       }
     }
 
@@ -809,18 +997,24 @@ const QuaternionGame = () => {
 
     return () => {
       // Cleanup: stop game loop first, then cleanup game state, then Phaser
-      gameLoopRef.current?.cleanup().then(() => {
+      if (gameLoopRef.current) {
+        gameLoopRef.current.cleanup().then(() => {
+          gameStateRef.current?.stop();
+          phaserGameRef.current?.destroy(true);
+          phaserGameRef.current = null;
+          gameLoopRef.current = null;
+        }).catch((error) => {
+          console.error('Error during cleanup:', error);
+          gameStateRef.current?.stop();
+          phaserGameRef.current?.destroy(true);
+          phaserGameRef.current = null;
+          gameLoopRef.current = null;
+        });
+      } else {
         gameStateRef.current?.stop();
         phaserGameRef.current?.destroy(true);
         phaserGameRef.current = null;
-        gameLoopRef.current = null;
-      }).catch((error) => {
-        console.error('Error during cleanup:', error);
-        gameStateRef.current?.stop();
-        phaserGameRef.current?.destroy(true);
-        phaserGameRef.current = null;
-        gameLoopRef.current = null;
-      });
+      }
     };
   }, [gameSeed, commanderId]);
 
@@ -965,6 +1159,60 @@ const QuaternionGame = () => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Handle unit commands from CommandPanel
+  const handleUnitCommand = (command: string, data?: any) => {
+    if (!phaserGameRef.current || selectedUnits.length === 0) return;
+
+    const scene = phaserGameRef.current.scene.scenes[0];
+    if (!scene) return;
+
+    switch (command) {
+      case 'move':
+        // Move command is handled by right-click, but we can trigger it here too
+        scene.events.emit('command-move', { units: selectedUnits, target: data });
+        break;
+      case 'attack':
+        scene.events.emit('command-attack', { units: selectedUnits, target: data });
+        break;
+      case 'patrol':
+        scene.events.emit('command-patrol', { units: selectedUnits, points: data });
+        break;
+      case 'special':
+        scene.events.emit('command-special', { units: selectedUnits });
+        break;
+      case 'stop':
+        selectedUnits.forEach(unit => {
+          if (unit.active) {
+            unit.setData('target', null);
+            unit.setData('state', 'idle');
+            scene.physics.moveTo(unit, unit.x, unit.y, 0);
+          }
+        });
+        break;
+    }
+  };
+
+  // Handle minimap click
+  const handleMinimapClick = (worldX: number, worldY: number) => {
+    if (!phaserGameRef.current || !cameraRef.current) return;
+
+    const scene = phaserGameRef.current.scene.scenes[0];
+    if (!scene) return;
+
+    // Center camera on clicked position
+    const camera = cameraRef.current;
+    const width = scene.scale.width;
+    const height = scene.scale.height;
+
+    scene.tweens.add({
+      targets: camera,
+      scrollX: Phaser.Math.Clamp(worldX - width / 2, 0, width * 2 - width),
+      scrollY: Phaser.Math.Clamp(worldY - height / 2, 0, height * 2 - height),
+      duration: 500,
+      ease: 'Power2'
+    });
+  };
+
   return (
     <div className="relative w-full h-screen bg-gray-900 overflow-hidden">
       {/* Loading Screen */}
@@ -983,6 +1231,57 @@ const QuaternionGame = () => {
         </div>
       )}
 
+      {/* Tutorial Overlay */}
+      {showTutorial && !loading && !gameOver && (
+        <div className="absolute inset-0 z-40 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="bg-gray-800 border-2 border-cyan-400 rounded-lg p-8 max-w-2xl mx-4">
+            <h2 className="text-3xl font-bold text-cyan-400 mb-4">Welcome to Quaternion</h2>
+            <div className="space-y-4 text-gray-300 mb-6">
+              <div>
+                <h3 className="text-xl font-bold text-white mb-2">Objective</h3>
+                <p>Balance four resources (Matter, Energy, Life, Knowledge) and achieve victory through one of four paths:</p>
+                <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
+                  <li><strong className="text-cyan-400">Equilibrium:</strong> Keep all resources balanced for 30-60 seconds</li>
+                  <li><strong className="text-cyan-400">Technological:</strong> Research Quantum Ascendancy</li>
+                  <li><strong className="text-cyan-400">Territorial:</strong> Control the central node</li>
+                  <li><strong className="text-cyan-400">Moral:</strong> Make ethical choices (+80 alignment)</li>
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-white mb-2">Controls</h3>
+                <ul className="list-disc list-inside space-y-1 text-sm">
+                  <li><strong>Left Click:</strong> Select units</li>
+                  <li><strong>Right Click:</strong> Move/Attack/Gather</li>
+                  <li><strong>B:</strong> Build Menu</li>
+                  <li><strong>T:</strong> Tech Tree</li>
+                  <li><strong>Arrow Keys:</strong> Pan camera</li>
+                </ul>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-white mb-2">AI Features</h3>
+                <p className="text-sm mb-2">This game uses AI tools including:</p>
+                <ul className="list-disc list-inside space-y-1 text-sm ml-2">
+                  <li><strong className="text-cyan-400">ElevenLabs:</strong> AI voice generation for commanders</li>
+                  <li><strong className="text-cyan-400">OpenArt:</strong> AI-generated visual assets</li>
+                  <li><strong className="text-cyan-400">Google Gemini 2.5 Flash:</strong> Strategic AI decision-making</li>
+                  <li><strong className="text-cyan-400">Fuser:</strong> Adaptive music generation</li>
+                  <li><strong className="text-cyan-400">Luma AI:</strong> 3D environment generation</li>
+                </ul>
+                <p className="text-xs text-gray-400 mt-2">Your AI commanders will provide strategic advice throughout the game.</p>
+              </div>
+            </div>
+            <div className="flex gap-4 justify-end">
+              <Button
+                onClick={() => setShowTutorial(false)}
+                className="bg-cyan-600 hover:bg-cyan-700"
+              >
+                Start Playing
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Game Over Screen */}
       {gameOver && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm">
@@ -993,6 +1292,11 @@ const QuaternionGame = () => {
                 <h2 className="text-3xl font-bold text-green-400 mb-2">VICTORY!</h2>
                 <p className="text-gray-300 mb-4">{gameOver.reason}</p>
                 <p className="text-gray-400 mb-6">Time: {formatTime(gameTime)}</p>
+                {gameTime < 1800 && (
+                  <p className="text-green-400 text-sm mb-4">
+                    ✓ Completed in under 30 minutes - Perfect for Chroma Awards judging!
+                  </p>
+                )}
               </>
             ) : (
               <>
@@ -1017,6 +1321,11 @@ const QuaternionGame = () => {
               >
                 Main Menu
               </Button>
+            </div>
+            <div className="mt-6 pt-4 border-t border-gray-700">
+              <p className="text-xs text-gray-500">
+                Chroma Awards 2025 Submission | www.ChromaAwards.com
+              </p>
             </div>
           </div>
         </div>
@@ -1058,8 +1367,14 @@ const QuaternionGame = () => {
               </div>
 
               <div className="flex items-center gap-4">
-                <div className="text-white font-mono">
-                  Time: {formatTime(gameTime)}
+                <div className="text-white font-mono flex items-center gap-1">
+                  <Clock className="w-4 h-4" />
+                  {formatTime(gameTime)}
+                  {gameTime > 0 && gameTime < 1800 && (
+                    <span className="text-xs text-green-400 ml-1">
+                      ({Math.floor((gameTime / 1800) * 100)}% of 30min)
+                    </span>
+                  )}
                 </div>
                 <div className="text-white font-mono">
                   Pop: {population.current}/{population.max}
@@ -1085,21 +1400,27 @@ const QuaternionGame = () => {
 
           {/* Bottom Controls */}
           <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-gray-900 to-transparent p-4">
-            <div className="flex items-center justify-center gap-4">
-              <Button
-                onClick={() => setShowBuildMenu(!showBuildMenu)}
-                className="bg-cyan-600 hover:bg-cyan-700"
-              >
-                <Building className="w-4 h-4 mr-2" />
-                Build
-              </Button>
-              <Button
-                onClick={() => setShowTechTree(!showTechTree)}
-                className="bg-purple-600 hover:bg-purple-700"
-              >
-                <Brain className="w-4 h-4 mr-2" />
-                Tech Tree
-              </Button>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Button
+                  onClick={() => setShowBuildMenu(!showBuildMenu)}
+                  className="bg-cyan-600 hover:bg-cyan-700"
+                >
+                  <Building className="w-4 h-4 mr-2" />
+                  Build
+                </Button>
+                <Button
+                  onClick={() => setShowTechTree(!showTechTree)}
+                  className="bg-purple-600 hover:bg-purple-700"
+                >
+                  <Brain className="w-4 h-4 mr-2" />
+                  Tech Tree
+                </Button>
+              </div>
+              <div className="text-xs text-gray-400 flex items-center gap-2">
+                <Trophy className="w-3 h-3" />
+                <span>Chroma Awards 2025 - Puzzle/Strategy | Tools: ElevenLabs, OpenArt, Gemini, Fuser, Luma AI</span>
+              </div>
             </div>
           </div>
 
@@ -1181,6 +1502,34 @@ const QuaternionGame = () => {
               </div>
             </div>
           )}
+
+          {/* Win Condition Progress */}
+          <div className="absolute top-20 left-4 z-20 space-y-2 max-w-xs">
+            <div className="bg-gray-800/90 border border-cyan-400/30 rounded-lg p-4">
+              <h3 className="text-cyan-400 text-sm font-bold mb-3 flex items-center gap-2">
+                <Trophy className="w-4 h-4" />
+                Victory Conditions
+              </h3>
+              <div className="space-y-3">
+                {Object.entries(winConditionProgress).map(([key, condition]) => (
+                  <div key={key} className="space-y-1">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-300">{condition.label}</span>
+                      <span className="text-cyan-400">
+                        {Math.floor((condition.progress / condition.max) * 100)}%
+                      </span>
+                    </div>
+                    <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-cyan-400 to-cyan-600 transition-all duration-300"
+                        style={{ width: `${Math.min((condition.progress / condition.max) * 100, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
 
           {/* AI Messages */}
           <div className="absolute top-20 right-4 z-20 space-y-2 max-w-sm">

@@ -19,5 +19,14 @@ export default defineConfig(({ mode }) => ({
     outDir: "dist",
     assetsDir: "assets",
     sourcemap: false,
+    minify: "esbuild", // Use esbuild (Vite default) for faster builds
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'phaser': ['phaser'],
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+        },
+      },
+    },
   },
 }));

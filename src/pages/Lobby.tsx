@@ -48,6 +48,17 @@ const Lobby = () => {
     seed: Math.floor(Math.random() * 1000000)
   });
 
+  // Quick start config for Chroma Awards (optimized for 15-20 min sessions)
+  const [quickStartConfig] = useState<GameConfig>({
+    mode: 'single',
+    commanderId: 'AUREN',
+    difficulty: 'easy',
+    mapType: 'crystalline_plains',
+    mapWidth: 30,
+    mapHeight: 20,
+    seed: Math.floor(Math.random() * 1000000)
+  });
+
   // Multiplayer config
   const [multiplayerConfig, setMultiplayerConfig] = useState<GameConfig>({
     mode: 'multiplayer',
@@ -211,6 +222,44 @@ const Lobby = () => {
 
           {/* Single Player Tab */}
           <TabsContent value="single">
+            {/* Quick Start for Chroma Awards */}
+            <Card className="bg-card/70 border-primary/30 mb-6 border-2 border-yellow-400/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Gamepad2 className="w-5 h-5 text-yellow-400" />
+                  Quick Start (Chroma Awards Demo)
+                </CardTitle>
+                <CardDescription>
+                  Optimized for 15-20 minute play sessions. Perfect for judges to experience the full game quickly.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">
+                      • Smaller map for faster gameplay
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      • Easier difficulty for smoother experience
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      • All core mechanics included
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => navigate('/quaternion', {
+                      state: { config: quickStartConfig }
+                    })}
+                    size="lg"
+                    className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white hover:shadow-lg"
+                  >
+                    <Gamepad2 className="w-5 h-5 mr-2" />
+                    Quick Start
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
             <Card className="bg-card/70 border-primary/30">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

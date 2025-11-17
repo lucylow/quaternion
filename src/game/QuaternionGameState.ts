@@ -93,17 +93,18 @@ export class QuaternionGameState {
   }
   
   private initializePlayers(): void {
+    // Adjust starting resources based on map size (smaller maps = faster games)
+    const isQuickStart = this.config.mapWidth <= 30 && this.config.mapHeight <= 20;
+    const startingResources = isQuickStart 
+      ? { matter: 600, energy: 300, life: 150, knowledge: 75 } // More resources for quick start
+      : { matter: 500, energy: 250, life: 100, knowledge: 50 };
+    
     // Player 1 (Human)
     this.players.set(1, {
       id: 1,
       name: 'Player',
       isAI: false,
-      resources: {
-        matter: 500,
-        energy: 250,
-        life: 100,
-        knowledge: 50
-      },
+      resources: startingResources,
       population: { current: 8, max: 50 },
       researchedTechs: new Set(),
       moralAlignment: 0
@@ -114,12 +115,7 @@ export class QuaternionGameState {
       id: 2,
       name: 'AI Opponent',
       isAI: true,
-      resources: {
-        matter: 500,
-        energy: 250,
-        life: 100,
-        knowledge: 50
-      },
+      resources: startingResources,
       population: { current: 8, max: 50 },
       researchedTechs: new Set(),
       moralAlignment: 0
@@ -235,7 +231,7 @@ export class QuaternionGameState {
     const player = this.players.get(1);
     if (!player) return;
     
-    // Equilibrium Victory: All resources within ±15% for 60 seconds
+    // Equilibrium Victory: All resources within ±15% for 60 seconds (30 seconds for quick start)
     const equilibrium = this.winConditions.get('equilibrium')!;
     const { matter, energy, life, knowledge } = player.resources;
     const avg = (matter + energy + life + knowledge) / 4;
@@ -246,9 +242,13 @@ export class QuaternionGameState {
       Math.abs(knowledge - avg)
     );
     
+    // Adjust time requirement for quick start mode
+    const isQuickStart = this.config.mapWidth <= 30 && this.config.mapHeight <= 20;
+    const requiredTime = isQuickStart ? 30 * this.tickRate : 60 * this.tickRate;
+    
     if (maxDeviation / avg <= 0.15) {
       equilibrium.progress += 1;
-      if (equilibrium.progress >= 60 * this.tickRate) {
+      if (equilibrium.progress >= requiredTime) {
         equilibrium.achieved = true;
         this.endGame(1, 'equilibrium');
       }
@@ -263,9 +263,18 @@ export class QuaternionGameState {
       this.endGame(1, 'technological');
     }
     
-    // Territorial Victory: Hold central node for 90 seconds
+    // Territorial Victory: Hold central node for 90 seconds (45 seconds for quick start)
     const territorial = this.winConditions.get('territorial')!;
+    const isQuickStart = this.config.mapWidth <= 30 && this.config.mapHeight <= 20;
     // This would check if player controls the central node
+    // For now, we'll track progress but not implement full territorial control
+    if (territorial.progress > 0) {
+      const requiredTime = isQuickStart ? 45 * this.tickRate : 90 * this.tickRate;
+      if (territorial.progress >= requiredTime) {
+        territorial.achieved = true;
+        this.endGame(1, 'territorial');
+      }
+    }
     
     // Moral Victory: Make ethical choices over 4 key events
     const moral = this.winConditions.get('moral')!;

@@ -1,19 +1,129 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Brain, Bot, Sparkles, Cpu, Network, Zap, Gift, Trophy } from "lucide-react";
+import { ArrowLeft, Brain, Bot, Sparkles, Cpu, Network, Zap, Gift, Trophy, Mic, Video, Music, Image, Code, Palette, Layers, Play } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const AIFeatures = () => {
   const navigate = useNavigate();
 
   const aiTools = [
-    { name: "ElevenLabs", description: "AI voice generation for commander dialogue and narration", icon: "🎙️" },
-    { name: "OpenArt", description: "AI-generated visual assets and artwork", icon: "🎨" },
-    { name: "LTX Studio", description: "AI-powered cinematic generation", icon: "🎬" },
-    { name: "Fuser", description: "Adaptive music and soundscape generation", icon: "🎵" },
-    { name: "Luma AI", description: "3D asset and environment generation", icon: "🌐" },
-    { name: "SAGA", description: "Narrative design and story generation", icon: "📖" },
-    { name: "Google Gemini 2.5 Flash", description: "Strategic AI decision-making for commanders", icon: "🤖" },
+    { 
+      name: "ElevenLabs", 
+      description: "AI voice generation for commander dialogue and narration",
+      icon: "🎙️",
+      useCases: [
+        "In-game advisor voice for strategic recommendations",
+        "Dynamic narration that adapts to game events",
+        "Trailer voiceover with emotional SSML controls",
+        "Commander personality voices with distinct tones"
+      ],
+      category: "Voice & Audio",
+      integration: "Real-time TTS API integration with Unity WebGL"
+    },
+    { 
+      name: "OpenArt", 
+      description: "AI-generated visual assets and artwork",
+      icon: "🎨",
+      useCases: [
+        "Concept art for kaiju and units",
+        "UI backgrounds and menu screens",
+        "2D sprites and icons at multiple resolutions",
+        "Style transfer for consistent visual identity"
+      ],
+      category: "Visual Assets",
+      integration: "Asset pipeline: generation → optimization → Unity import"
+    },
+    { 
+      name: "LTX Studio", 
+      description: "AI-powered cinematic generation",
+      icon: "🎬",
+      useCases: [
+        "Script-to-cutscene generation for mission intros",
+        "60-second trailer with gameplay cuts",
+        "Storyboarding and narrative visualization",
+        "Dynamic mission briefings"
+      ],
+      category: "Cinematics",
+      integration: "Video generation → compression → embedded playback"
+    },
+    { 
+      name: "Fuser", 
+      description: "Adaptive music and soundscape generation",
+      icon: "🎵",
+      useCases: [
+        "2-minute escalating orchestral combat tracks",
+        "Dynamic music that responds to battle intensity",
+        "Ambient soundscapes for different biomes",
+        "Triumphant motifs for victory sequences"
+      ],
+      category: "Audio",
+      integration: "Stem-based audio system with real-time mixing"
+    },
+    { 
+      name: "Luma AI", 
+      description: "3D asset and environment generation",
+      icon: "🌐",
+      useCases: [
+        "Base 3D meshes for units and buildings",
+        "Environment variants for procedural maps",
+        "Photogrammetry-like assets for realism",
+        "3D model variations for visual diversity"
+      ],
+      category: "3D Assets",
+      integration: "3D generation → Blender retopo → Unity FBX import"
+    },
+    { 
+      name: "Dreamina AI", 
+      description: "2D avatar and lip-sync animation",
+      icon: "💬",
+      useCases: [
+        "Lip-synced character animations for cutscenes",
+        "Talking heads for commander introductions",
+        "Avatar-based narrative sequences",
+        "Short video clips for UI elements"
+      ],
+      category: "Animation",
+      integration: "Video generation → frame extraction → sprite sequences"
+    },
+    { 
+      name: "Google Gemini 2.5 Flash", 
+      description: "Strategic AI decision-making for commanders",
+      icon: "🤖",
+      useCases: [
+        "LLM-powered high-level strategic decisions",
+        "Procedural map seed generation via JSON prompts",
+        "Unit and faction flavor text generation",
+        "Adaptive tactical recommendations"
+      ],
+      category: "AI Decision Making",
+      integration: "API integration with rate limiting and fallback heuristics"
+    },
+    {
+      name: "Mago Studio",
+      description: "Style transfer and image enhancement",
+      icon: "✨",
+      useCases: [
+        "Style transfer for consistent visual aesthetic",
+        "Image upscaling for high-res assets",
+        "Artistic filters for unique visual identity",
+        "Asset variation generation"
+      ],
+      category: "Visual Enhancement",
+      integration: "Batch processing pipeline for asset optimization"
+    },
+    {
+      name: "CapCut / Veed",
+      description: "Video editing and post-production",
+      icon: "✂️",
+      useCases: [
+        "Trailer editing and assembly",
+        "Subtitle generation and synchronization",
+        "Effects and transitions for cinematics",
+        "Final polish and compression"
+      ],
+      category: "Post-Production",
+      integration: "Export pipeline for WebGL-embedded videos"
+    }
   ];
 
   const chromaAwardsOffers = [
@@ -75,10 +185,68 @@ const AIFeatures = () => {
             <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent mb-6">
               AI Features
             </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Quaternion showcases cutting-edge AI integration throughout the entire game experience
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-4">
+              Quaternion showcases cutting-edge AI integration throughout the entire game experience, from design to deployment
+            </p>
+            <p className="text-sm text-muted-foreground max-w-3xl mx-auto">
+              A procedural AI-driven RTS where neural commanders and human strategists contest procedurally-generated quantum battlefields. AI generates maps, unit behaviors, cinematic narration, and adaptive music for a living demo loop.
             </p>
           </div>
+
+          {/* Development Pipeline */}
+          <section className="mb-16">
+            <h2 className="text-3xl font-bold text-primary mb-6 flex items-center gap-3">
+              <Layers className="w-8 h-8" />
+              AI-Powered Development Pipeline
+            </h2>
+            <div className="grid md:grid-cols-5 gap-4 mb-8">
+              <Card className="bg-card/70 border-primary/30 hover:border-primary transition-colors">
+                <CardContent className="p-4 text-center">
+                  <div className="text-3xl mb-2">🎯</div>
+                  <h3 className="font-bold text-primary mb-2">Design & Scope</h3>
+                  <p className="text-xs text-muted-foreground">
+                    LLM-generated game design docs, faction concepts, and mission seeds
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="bg-card/70 border-primary/30 hover:border-primary transition-colors">
+                <CardContent className="p-4 text-center">
+                  <div className="text-3xl mb-2">⚙️</div>
+                  <h3 className="font-bold text-primary mb-2">Prototype</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Minimal playable version with core mechanics and AI decision systems
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="bg-card/70 border-primary/30 hover:border-primary transition-colors">
+                <CardContent className="p-4 text-center">
+                  <div className="text-3xl mb-2">🎨</div>
+                  <h3 className="font-bold text-primary mb-2">AI Content</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Art, audio, dialog, procedural maps, and agent behavior generation
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="bg-card/70 border-primary/30 hover:border-primary transition-colors">
+                <CardContent className="p-4 text-center">
+                  <div className="text-3xl mb-2">✨</div>
+                  <h3 className="font-bold text-primary mb-2">Polish & Media</h3>
+                  <p className="text-xs text-muted-foreground">
+                    AI-generated trailer, voiceover, music, subtitles, and effects
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="bg-card/70 border-primary/30 hover:border-primary transition-colors">
+                <CardContent className="p-4 text-center">
+                  <div className="text-3xl mb-2">🚀</div>
+                  <h3 className="font-bold text-primary mb-2">Host & Submit</h3>
+                  <p className="text-xs text-muted-foreground">
+                    WebGL build on Itch.io with Chroma Awards submission
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </section>
 
           {/* Core AI Systems */}
           <section className="mb-16">
@@ -149,15 +317,26 @@ const AIFeatures = () => {
                     <h3 className="text-2xl font-bold text-primary">Procedural Generation</h3>
                   </div>
                   <p className="text-muted-foreground mb-4">
-                    Quaternion-based deterministic map generation:
+                    LLM-driven procedural map generation with deterministic execution:
                   </p>
                   <ul className="space-y-2 text-sm text-muted-foreground ml-4">
-                    <li>• Seeded random number generation for replayability</li>
+                    <li>• LLM generates JSON seeds for map parameters</li>
+                    <li>• Deterministic pseudo-random from seed for replayability</li>
                     <li>• Perlin-like noise for terrain variation</li>
+                    <li>• Resource node placement and chokepoint generation</li>
                     <li>• Symmetric start positions for fair gameplay</li>
                     <li>• Multiple map types with configurable parameters</li>
                     <li>• Infinite replayability with unique maps</li>
                   </ul>
+                  <div className="mt-4 p-3 bg-primary/10 rounded border border-primary/20">
+                    <p className="text-xs font-semibold text-primary mb-1">LLM Prompt Example:</p>
+                    <code className="text-xs text-muted-foreground block whitespace-pre-wrap">
+                      {`Generate a seed JSON for a sci-fi RTS map.
+Constraints: map_size 1024, num_resource_nodes 6,
+terrain_types [plains, crater, lava, forest],
+chokepoints 3, objective_locations 2.`}
+                    </code>
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -171,18 +350,170 @@ const AIFeatures = () => {
             </h2>
             <p className="text-muted-foreground mb-8 text-center max-w-3xl mx-auto">
               Quaternion integrates multiple AI tools throughout development and gameplay, showcasing
-              the power of AI-assisted game creation.
+              the power of AI-assisted game creation. Each tool serves specific functions in our pipeline.
             </p>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {aiTools.map((tool) => (
-                <Card key={tool.name} className="bg-card/70 border-primary/30 hover:border-primary transition-colors">
-                  <CardContent className="p-6 text-center">
-                    <div className="text-4xl mb-3">{tool.icon}</div>
-                    <h3 className="text-lg font-bold text-primary mb-2">{tool.name}</h3>
-                    <p className="text-sm text-muted-foreground">{tool.description}</p>
-                  </CardContent>
-                </Card>
-              ))}
+            
+            {/* Group by Category */}
+            {["Voice & Audio", "Visual Assets", "Cinematics", "Audio", "3D Assets", "Animation", "AI Decision Making", "Visual Enhancement", "Post-Production"].map((category) => {
+              const categoryTools = aiTools.filter(tool => tool.category === category);
+              if (categoryTools.length === 0) return null;
+              
+              return (
+                <div key={category} className="mb-12">
+                  <h3 className="text-xl font-bold text-secondary mb-4 flex items-center gap-2">
+                    {category === "Voice & Audio" && <Mic className="w-5 h-5" />}
+                    {category === "Visual Assets" && <Image className="w-5 h-5" />}
+                    {category === "Cinematics" && <Video className="w-5 h-5" />}
+                    {category === "Audio" && <Music className="w-5 h-5" />}
+                    {category === "3D Assets" && <Layers className="w-5 h-5" />}
+                    {category === "Animation" && <Play className="w-5 h-5" />}
+                    {category === "AI Decision Making" && <Bot className="w-5 h-5" />}
+                    {category === "Visual Enhancement" && <Palette className="w-5 h-5" />}
+                    {category === "Post-Production" && <Video className="w-5 h-5" />}
+                    {category}
+                  </h3>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    {categoryTools.map((tool) => (
+                      <Card key={tool.name} className="bg-card/70 border-primary/30 hover:border-primary transition-all hover:shadow-lg hover:shadow-primary/20">
+                        <CardContent className="p-6">
+                          <div className="flex items-start gap-3 mb-3">
+                            <div className="text-3xl">{tool.icon}</div>
+                            <div className="flex-1">
+                              <h4 className="text-lg font-bold text-primary mb-1">{tool.name}</h4>
+                              <p className="text-sm text-muted-foreground mb-3">{tool.description}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="mb-3">
+                            <p className="text-xs font-semibold text-primary mb-2">Use Cases:</p>
+                            <ul className="space-y-1">
+                              {tool.useCases.map((useCase, idx) => (
+                                <li key={idx} className="text-xs text-muted-foreground flex items-start gap-2">
+                                  <span className="text-secondary mt-0.5">•</span>
+                                  <span>{useCase}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          
+                          <div className="pt-3 border-t border-primary/20">
+                            <p className="text-xs font-semibold text-primary mb-1">Integration:</p>
+                            <p className="text-xs text-muted-foreground">{tool.integration}</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </section>
+
+          {/* Implementation Examples */}
+          <section className="mb-16">
+            <h2 className="text-3xl font-bold text-primary mb-6 flex items-center gap-3">
+              <Code className="w-8 h-8" />
+              Implementation Examples
+            </h2>
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card className="bg-card/70 border-primary/30">
+                <CardContent className="p-6">
+                  <h3 className="text-xl font-bold text-primary mb-3">LLM Commander Decision</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    High-level strategic decisions use LLM with deterministic fallback:
+                  </p>
+                  <div className="bg-muted/50 p-4 rounded border border-primary/20">
+                    <code className="text-xs text-muted-foreground whitespace-pre-wrap">
+{`STATE: {
+  "resources": 300,
+  "myUnits": {"tank":3,"drone":2},
+  "enemyVisible": {"air":2,"infantry":5}
+}
+INSTRUCTION: Provide exactly one 
+tactical order in JSON format:
+{"orderType": "build/push/defend",
+ "target": "north",
+ "unit": "tank",
+ "qty": 3}`}
+                    </code>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    Output validation ensures safe execution. Falls back to heuristic AI on failure.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card/70 border-primary/30">
+                <CardContent className="p-6">
+                  <h3 className="text-xl font-bold text-primary mb-3">Utility-Based Unit AI</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Fast, deterministic scoring system for unit actions:
+                  </p>
+                  <div className="bg-muted/50 p-4 rounded border border-primary/20">
+                    <code className="text-xs text-muted-foreground whitespace-pre-wrap">
+{`ScoreAttack(agent, target):
+  distScore = max(0, 1 - distance/range)
+  hpScore = (target.maxHP - target.HP) / maxHP
+  threatScore = target.threatLevel
+  return distScore*0.4 + hpScore*0.4 + threatScore*0.2
+
+Execute best action: MaxBy(actions, Score)`}
+                    </code>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    &lt;1ms per unit per tick. Deterministic for replay compatibility.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card/70 border-primary/30">
+                <CardContent className="p-6">
+                  <h3 className="text-xl font-bold text-primary mb-3">Procedural Map Generator</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Deterministic generation from LLM-generated seed:
+                  </p>
+                  <div className="bg-muted/50 p-4 rounded border border-primary/20">
+                    <code className="text-xs text-muted-foreground whitespace-pre-wrap">
+{`GenerateFromSeed(seed):
+  rng = new Random(seed)
+  heightmap = PerlinNoise(seed)
+  resourceNodes = PlaceNodes(rng, 6)
+  chokepoints = CalculateChokepoints(heightmap)
+  return Map(heightmap, nodes, chokepoints)`}
+                    </code>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    LLM provides JSON seed → deterministic generator creates reproducible maps.
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card/70 border-primary/30">
+                <CardContent className="p-6">
+                  <h3 className="text-xl font-bold text-primary mb-3">ElevenLabs TTS Integration</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Real-time voice generation with SSML control:
+                  </p>
+                  <div className="bg-muted/50 p-4 rounded border border-primary/20">
+                    <code className="text-xs text-muted-foreground whitespace-pre-wrap">
+{`PlayLine(text, voice="Alloy"):
+  payload = {text, voice}
+  audioBytes = POST(ElevenLabsAPI, payload)
+  audioClip = WavToAudioClip(audioBytes)
+  AudioSource.Play(audioClip)
+
+SSML Example:
+<speak><voice name="Alloy">
+  Commander, <break time="400ms"/>
+  enemy forces converging on sector three.
+</voice></speak>`}
+                    </code>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-3">
+                    Note: API keys proxied through server for security. Pre-generate for demos.
+                  </p>
+                </CardContent>
+              </Card>
             </div>
           </section>
 
@@ -202,6 +533,39 @@ const AIFeatures = () => {
               </p>
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full border border-primary/30">
                 <span className="text-sm font-semibold text-primary">Season 1, 2025</span>
+              </div>
+            </div>
+            
+            {/* Tool to Task Mapping */}
+            <div className="mb-8 p-6 bg-card/50 border border-primary/30 rounded-lg">
+              <h3 className="text-xl font-bold text-primary mb-4">Tool-to-Task Mapping</h3>
+              <div className="grid md:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <p className="font-semibold text-primary mb-2">Voice & Narration:</p>
+                  <p className="text-muted-foreground mb-4">ElevenLabs → In-game advisor voice, dynamic narration, trailer VO</p>
+                  
+                  <p className="font-semibold text-primary mb-2">Visual Assets:</p>
+                  <p className="text-muted-foreground mb-4">OpenArt, ImagineArt, ArtCraft → Concept art, UI backgrounds, 2D sprites</p>
+                  
+                  <p className="font-semibold text-primary mb-2">Cinematics:</p>
+                  <p className="text-muted-foreground mb-4">LTX Studio → Script-to-cutscene, trailers, storyboarding</p>
+                  
+                  <p className="font-semibold text-primary mb-2">Animation:</p>
+                  <p className="text-muted-foreground mb-4">Dreamina AI → Lip-sync, 2D avatars, character animations</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-primary mb-2">Music & Audio:</p>
+                  <p className="text-muted-foreground mb-4">Fuser, Google AI Pro → Adaptive music, soundscape generation</p>
+                  
+                  <p className="font-semibold text-primary mb-2">3D Assets:</p>
+                  <p className="text-muted-foreground mb-4">Luma AI, Hailuo → 3D models, environment generation</p>
+                  
+                  <p className="font-semibold text-primary mb-2">Post-Production:</p>
+                  <p className="text-muted-foreground mb-4">CapCut, Veed, Morph Studio → Video editing, captions, effects</p>
+                  
+                  <p className="font-semibold text-primary mb-2">Development:</p>
+                  <p className="text-muted-foreground mb-4">Bolt → Rapid prototyping, vibe coding for game mechanics</p>
+                </div>
               </div>
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -300,6 +664,99 @@ const AIFeatures = () => {
                 </CardContent>
               </Card>
             </div>
+          </section>
+
+          {/* Chroma Awards Submission Checklist */}
+          <section className="mb-16">
+            <h2 className="text-3xl font-bold text-primary mb-6 flex items-center gap-3">
+              <Trophy className="w-8 h-8" />
+              Chroma Awards Submission Checklist
+            </h2>
+            <Card className="bg-card/70 border-primary/30">
+              <CardContent className="p-8">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-primary mb-4">Essential Requirements</h3>
+                    <ul className="space-y-3">
+                      <li className="flex items-start gap-3">
+                        <span className="text-secondary mt-1">✓</span>
+                        <div>
+                          <p className="font-semibold text-foreground">Playable Demo</p>
+                          <p className="text-sm text-muted-foreground">WebGL build playable in browser without download/login</p>
+                        </div>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="text-secondary mt-1">✓</span>
+                        <div>
+                          <p className="font-semibold text-foreground">Trailer</p>
+                          <p className="text-sm text-muted-foreground">60-second trailer on YouTube + vertical version for TikTok/Reels</p>
+                        </div>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="text-secondary mt-1">✓</span>
+                        <div>
+                          <p className="font-semibold text-foreground">English Subtitles</p>
+                          <p className="text-sm text-muted-foreground">All dialogue has English subtitles (Chroma requirement)</p>
+                        </div>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="text-secondary mt-1">✓</span>
+                        <div>
+                          <p className="font-semibold text-foreground">Tool Tags</p>
+                          <p className="text-sm text-muted-foreground">Tools Used clearly listed with Sponsor Awards if applicable</p>
+                        </div>
+                      </li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-primary mb-4">AI Integration Requirements</h3>
+                    <ul className="space-y-3">
+                      <li className="flex items-start gap-3">
+                        <span className="text-secondary mt-1">✓</span>
+                        <div>
+                          <p className="font-semibold text-foreground">AI Usage Demonstration</p>
+                          <p className="text-sm text-muted-foreground">Clear demonstration of which AI tools power different features</p>
+                        </div>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="text-secondary mt-1">✓</span>
+                        <div>
+                          <p className="font-semibold text-foreground">Novelty & Production Quality</p>
+                          <p className="text-sm text-muted-foreground">One-minute pitch emphasizing AI usage, novelty, and quality</p>
+                        </div>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="text-secondary mt-1">✓</span>
+                        <div>
+                          <p className="font-semibold text-foreground">IP Compliance</p>
+                          <p className="text-sm text-muted-foreground">No copyrighted assets without license; use Chroma free trials or own creations</p>
+                        </div>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="text-secondary mt-1">✓</span>
+                        <div>
+                          <p className="font-semibold text-foreground">Demo Loop</p>
+                          <p className="text-sm text-muted-foreground">3–8 minute curated mission showing unique AI features</p>
+                        </div>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+                
+                <div className="mt-8 p-6 bg-primary/10 rounded-lg border border-primary/30">
+                  <h4 className="font-bold text-primary mb-3">Tools Used (For Devpost Submission)</h4>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    ElevenLabs (voice), OpenArt (art), Luma AI (3D), Dreamina (lip-sync), LTX Studio (cinematics), 
+                    Fuser (music), Google Gemini 2.5 Flash (strategic AI), Mago Studio (style transfer), 
+                    CapCut/Veed (video editing)
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-3 italic">
+                    All tools listed above were used in the development and gameplay of Quaternion, 
+                    demonstrating comprehensive AI integration across all aspects of the game.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </section>
 
           {/* CTA */}
