@@ -12,13 +12,15 @@ import { UnitPanel } from '@/components/game/UnitPanel';
 import { CommandPanel } from '@/components/game/CommandPanel';
 import { Minimap } from '@/components/game/Minimap';
 import { GameLoop, PerformanceStats } from '@/game/GameLoop';
+import { EndgameScene } from '@/components/game/EndgameScene';
+import { EndgameManager, EndgameScenario } from '@/game/EndgameManager';
 import { ImageAssetLoader } from '@/game/ImageAssetLoader';
 
 interface GameResources {
-  matter: number;
+  ore: number;
   energy: number;
-  life: number;
-  knowledge: number;
+  biomass: number;
+  data: number;
 }
 
 const QuaternionGame = () => {
@@ -29,10 +31,10 @@ const QuaternionGame = () => {
   const [loadingProgress, setLoadingProgress] = useState(0);
   
   const [resources, setResources] = useState<GameResources>({
-    matter: 500,
-    energy: 250,
-    life: 100,
-    knowledge: 50
+    ore: 250,
+    energy: 40,
+    biomass: 0,
+    data: 10
   });
   
   const [population, setPopulation] = useState({ current: 8, max: 50 });
@@ -49,7 +51,8 @@ const QuaternionGame = () => {
   const [buildQueue, setBuildQueue] = useState<Array<{ id: string; building: string; progress: number; totalTime: number }>>([]);
   const [researchedTechs, setResearchedTechs] = useState<Set<string>>(new Set());
   const [aiMessages, setAiMessages] = useState<Array<{ commander: string; message: string; id: number }>>([]);
-  const [gameOver, setGameOver] = useState<{ won: boolean; reason: string } | null>(null);
+  const [gameOver, setGameOver] = useState<{ won: boolean; reason: string; scenario?: EndgameScenario } | null>(null);
+  const [endgameScenario, setEndgameScenario] = useState<EndgameScenario | null>(null);
   const [showPerformanceStats, setShowPerformanceStats] = useState(false);
   const [performanceStats, setPerformanceStats] = useState<PerformanceStats | null>(null);
   const [winConditionProgress, setWinConditionProgress] = useState<Record<string, { progress: number; max: number; label: string }>>({});
@@ -342,10 +345,10 @@ const QuaternionGame = () => {
 
       // Create resource nodes with better visuals
       const nodeTypes = [
-        { color: 0x4a90e2, resource: 'matter', icon: 'M' },
+        { color: 0x4a90e2, resource: 'ore', icon: 'O' },
         { color: 0xffd700, resource: 'energy', icon: 'E' },
-        { color: 0x50c878, resource: 'life', icon: 'L' },
-        { color: 0x9d4edd, resource: 'knowledge', icon: 'K' }
+        { color: 0x50c878, resource: 'biomass', icon: 'B' },
+        { color: 0x9d4edd, resource: 'data', icon: 'D' }
       ];
 
       for (let i = 0; i < 12; i++) {
@@ -724,17 +727,23 @@ const QuaternionGame = () => {
         setInstability(Math.floor(state.instability));
         
         if (state.gameOver) {
-          setGameOver({ won: state.winner === 1, reason: 'Game ended' });
+          const scenario = state.endgameScenario || null;
+          setEndgameScenario(scenario);
+          setGameOver({ 
+            won: state.winner === 1, 
+            reason: 'Game ended',
+            scenario: scenario || undefined
+          });
           return;
         }
         
         if (state.players.length > 0) {
           const player = state.players[0];
           setResources({
-            matter: Math.floor(player.resources.matter),
+            ore: Math.floor(player.resources.ore),
             energy: Math.floor(player.resources.energy),
-            life: Math.floor(player.resources.life),
-            knowledge: Math.floor(player.resources.knowledge)
+            biomass: Math.floor(player.resources.biomass),
+            data: Math.floor(player.resources.data)
           });
           setPopulation(player.population);
         }
@@ -898,9 +907,9 @@ const QuaternionGame = () => {
               });
               
               // Resource particle effect
-              const resourceColor = target.getData('type') === 'matter' ? 0x4a90e2 :
+              const resourceColor = target.getData('type') === 'ore' ? 0x4a90e2 :
                                    target.getData('type') === 'energy' ? 0xffd700 :
-                                   target.getData('type') === 'life' ? 0x50c878 : 0x9d4edd;
+                                   target.getData('type') === 'biomass' ? 0x50c878 : 0x9d4edd;
               
               for (let i = 0; i < 3; i++) {
                 const particle = this.add.circle(target.x, target.y, 2, resourceColor, 0.8);
@@ -1412,7 +1421,7 @@ const QuaternionGame = () => {
             <div className="space-y-4 text-gray-300 mb-6">
               <div>
                 <h3 className="text-xl font-bold text-white mb-2">Objective</h3>
-                <p>Balance four resources (Matter, Energy, Life, Knowledge) and achieve victory through one of four paths:</p>
+                <p>Balance four resources (Ore, Energy, Biomass, Data) and achieve victory through one of four paths:</p>
                 <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
                   <li><strong className="text-cyan-400">Equilibrium:</strong> Keep all resources balanced for 10-15 seconds</li>
                   <li><strong className="text-cyan-400">Technological:</strong> Research Quantum Ascendancy (now faster!)</li>
@@ -1456,8 +1465,19 @@ const QuaternionGame = () => {
         </div>
       )}
 
-      {/* Game Over Screen */}
-      {gameOver && (
+      {/* Endgame Scene */}
+      {gameOver && endgameScenario ? (
+        <EndgameScene
+          endgameData={EndgameManager.getEndgameData(
+            endgameScenario,
+            gameStateRef.current?.players.get(1)?.resources || resources,
+            gameTime
+          )}
+          gameTime={gameTime}
+          onRestart={() => window.location.reload()}
+        />
+      ) : gameOver ? (
+        // Fallback to old game over screen if no scenario detected
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm">
           <div className="bg-gray-800 border-2 border-cyan-400 rounded-lg p-8 max-w-md text-center">
             {gameOver.won ? (
@@ -1466,21 +1486,6 @@ const QuaternionGame = () => {
                 <h2 className="text-3xl font-bold text-green-400 mb-2">VICTORY!</h2>
                 <p className="text-gray-300 mb-4">{gameOver.reason}</p>
                 <p className="text-gray-400 mb-6">Time: {formatTime(gameTime)}</p>
-                {gameTime < 1500 && (
-                  <p className="text-green-400 text-sm mb-4 font-semibold">
-                    ✓ Completed in under 25 minutes - Perfect for Chroma Awards judging!
-                  </p>
-                )}
-                {gameTime >= 1500 && gameTime < 1800 && (
-                  <p className="text-yellow-400 text-sm mb-4">
-                    ⚠ Completed in 25-30 minutes - Good for judging!
-                  </p>
-                )}
-                {gameTime >= 1800 && (
-                  <p className="text-orange-400 text-sm mb-4">
-                    ⏱ Over 30 minutes - Consider using Quick Start mode for faster games
-                  </p>
-                )}
               </>
             ) : (
               <>
@@ -1506,14 +1511,9 @@ const QuaternionGame = () => {
                 Main Menu
               </Button>
             </div>
-            <div className="mt-6 pt-4 border-t border-gray-700">
-              <p className="text-xs text-gray-500">
-                Chroma Awards 2025 Submission | www.ChromaAwards.com
-              </p>
-            </div>
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Top HUD */}
       {!gameOver && (
@@ -1534,7 +1534,7 @@ const QuaternionGame = () => {
                 {/* Resources */}
                 <div className="flex items-center gap-2 bg-gray-800/80 px-3 py-2 rounded-lg">
                   <Box className="w-4 h-4 text-blue-400" />
-                  <span className="text-white font-mono">{resources.matter}</span>
+                  <span className="text-white font-mono">{resources.ore}</span>
                 </div>
                 <div className="flex items-center gap-2 bg-gray-800/80 px-3 py-2 rounded-lg">
                   <Zap className="w-4 h-4 text-yellow-400" />
@@ -1542,11 +1542,11 @@ const QuaternionGame = () => {
                 </div>
                 <div className="flex items-center gap-2 bg-gray-800/80 px-3 py-2 rounded-lg">
                   <Leaf className="w-4 h-4 text-green-400" />
-                  <span className="text-white font-mono">{resources.life}</span>
+                  <span className="text-white font-mono">{resources.biomass}</span>
                 </div>
                 <div className="flex items-center gap-2 bg-gray-800/80 px-3 py-2 rounded-lg">
                   <Brain className="w-4 h-4 text-purple-400" />
-                  <span className="text-white font-mono">{resources.knowledge}</span>
+                  <span className="text-white font-mono">{resources.data}</span>
                 </div>
               </div>
 

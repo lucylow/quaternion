@@ -69,18 +69,20 @@ export class MapManager {
     // Simple seeded random for deterministic generation
     let rng = this.seededRandom(seed);
 
-    // Demo Scenario: Create specific layout
-    this.createNode({ x: 2, y: 2 }, NodeType.MATTER, Faction.NEUTRAL);
-    this.createNode({ x: 6, y: 2 }, NodeType.MATTER, Faction.NEUTRAL);
+    // Demo Scenario: Create specific layout (from spec)
+    // MapSeed: 74219, Size: 9×9 tiles
+    // Nodes: 5 (2 Ore, 1 Energy Reactor, 1 Biomass Swamp, 1 Data Vault hidden in Fog)
+    this.createNode({ x: 2, y: 2 }, NodeType.ORE, Faction.NEUTRAL);
+    this.createNode({ x: 6, y: 2 }, NodeType.ORE, Faction.NEUTRAL);
     this.createNode({ x: 2, y: 6 }, NodeType.ENERGY, Faction.NEUTRAL);
-    this.createNode({ x: 6, y: 6 }, NodeType.LIFE, Faction.NEUTRAL);
+    this.createNode({ x: 6, y: 6 }, NodeType.BIOMASS, Faction.NEUTRAL);
     
     // Central node
     const centralNode = this.createNode({ x: 4, y: 4 }, NodeType.CENTRAL, Faction.NEUTRAL);
     this.centralNodePosition = { x: 4, y: 4 };
 
-    // Hidden Data node
-    const hiddenNode = this.createNode({ x: 0, y: 4 }, NodeType.KNOWLEDGE, Faction.NEUTRAL);
+    // Hidden Data node (in Fog)
+    const hiddenNode = this.createNode({ x: 0, y: 4 }, NodeType.DATA, Faction.NEUTRAL);
     hiddenNode.isHidden = true;
   }
 
@@ -127,18 +129,18 @@ export class MapManager {
   }
 
   /**
-   * Get base yield for node type
+   * Get base yield for node type (per 30s tick)
    */
   private getBaseYieldForType(type: NodeType): number {
     switch (type) {
-      case NodeType.MATTER:
-        return 40;
+      case NodeType.ORE:
+        return 40; // Spec: 40 base per tick per captured Ore Node
       case NodeType.ENERGY:
-        return 20;
-      case NodeType.LIFE:
-        return 10;
-      case NodeType.KNOWLEDGE:
-        return 5;
+        return 20; // Spec: 20 base per tick (reactor)
+      case NodeType.BIOMASS:
+        return 10; // Spec: 10 base per tick from swamp nodes
+      case NodeType.DATA:
+        return 5; // Spec: 5 base per tick from Research nodes
       case NodeType.CENTRAL:
         return 100; // Central node provides all resources
       default:
@@ -162,8 +164,10 @@ export class MapManager {
 
   /**
    * Process node capture (called every tick)
+   * Spec: 6s capture time (no contest), 12s (if contested)
+   * At 60 ticks/sec: 6s = 360 ticks, 12s = 720 ticks
    */
-  public processNodeCapture(nodeId: string, faction: Faction, captureRate: number = 0.01): boolean {
+  public processNodeCapture(nodeId: string, faction: Faction): boolean {
     const node = this.getNodeById(nodeId);
     if (!node) return false;
 
@@ -172,7 +176,7 @@ export class MapManager {
       return false;
     }
 
-    // If multiple factions contesting, progress stalls
+    // If multiple factions contesting, progress stalls (12s capture time)
     if (node.contestingFactions.length > 1) {
       // Progress doesn't advance when contested
       return false;
@@ -180,6 +184,14 @@ export class MapManager {
 
     // Only one faction contesting - normal capture
     if (node.contestingFactions.includes(faction)) {
+      // Spec: 6s capture time (no contest) = 360 ticks at 60 ticks/sec
+      // For simplicity, we'll use a rate that completes in 6 seconds
+      // If contested, it would take 12 seconds (double the time)
+      const isContested = node.controller !== Faction.NEUTRAL;
+      const captureTimeSeconds = isContested ? 12 : 6;
+      const captureTimeTicks = captureTimeSeconds * 60; // Assuming 60 ticks/sec
+      const captureRate = 1.0 / captureTimeTicks;
+      
       node.captureProgress += captureRate;
 
       if (node.captureProgress >= 1.0) {

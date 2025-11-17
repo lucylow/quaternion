@@ -73,26 +73,26 @@ export class TechTreeManager {
   }
 
   private initializeTechTree(): void {
-    // Basic Refinery
+    // Basic Refinery - Spec: Cost 200 Ore, Time 20s → increases Ore per node +25%
     this.addTechNode({
       nodeId: 'basic_refinery',
       nodeName: 'Basic Refinery',
-      description: 'Increases Matter production efficiency',
+      description: 'Increases Ore production efficiency by 25%',
       category: TechCategory.INFRASTRUCTURE,
-      cost: { matter: 200 },
-      researchTime: 20,
+      cost: { ore: 200 },
+      researchTime: 20, // 20 seconds = 1200 ticks at 60 ticks/sec
       prerequisiteNodes: [],
       effects: [
         {
           type: EffectType.RESOURCE_MODIFIER,
-          target: 'matter_generation',
+          target: 'ore_generation',
           value: 1.25,
           isMultiplicative: true
         }
       ],
       unitUnlocks: [],
       buildingUnlocks: [],
-      synergyNodes: [],
+      synergyNodes: ['reactor_overclock'],
       strategicWeight: 1.2,
       isHidden: false,
       isResearched: false,
@@ -100,14 +100,14 @@ export class TechTreeManager {
       researchProgress: 0
     });
 
-    // Scout AI
+    // Scout AI - Spec: Cost 100 Ore, 30 Data, Time 25s → enables Scout Drone
     this.addTechNode({
       nodeId: 'scout_ai',
       nodeName: 'Scout AI Systems',
       description: 'Enables Scout Drone production',
       category: TechCategory.MILITARY,
-      cost: { matter: 100, knowledge: 30 },
-      researchTime: 25,
+      cost: { ore: 100, data: 30 },
+      researchTime: 25, // 25 seconds
       prerequisiteNodes: [],
       effects: [],
       unitUnlocks: ['scout'],
@@ -120,14 +120,14 @@ export class TechTreeManager {
       researchProgress: 0
     });
 
-    // Reactor Overclock
+    // Reactor Overclock - Spec: Cost 250 Ore, 60 Data, Time 45s → Energy production +50% for 3 ticks
     this.addTechNode({
       nodeId: 'reactor_overclock',
       nodeName: 'Reactor Overclock',
-      description: 'Temporary Energy production boost',
+      description: 'Energy production +50% for 3 ticks (high payoff if timed)',
       category: TechCategory.INFRASTRUCTURE,
-      cost: { matter: 250, knowledge: 60 },
-      researchTime: 45,
+      cost: { ore: 250, data: 60 },
+      researchTime: 45, // 45 seconds
       prerequisiteNodes: ['basic_refinery'],
       effects: [
         {
@@ -139,7 +139,7 @@ export class TechTreeManager {
       ],
       unitUnlocks: [],
       buildingUnlocks: [],
-      synergyNodes: [],
+      synergyNodes: ['basic_refinery'],
       strategicWeight: 1.8,
       isHidden: false,
       isResearched: false,
@@ -147,19 +147,19 @@ export class TechTreeManager {
       researchProgress: 0
     });
 
-    // Bio Conserve (Demo objective)
+    // Bio Conserve - Spec: Cost 150 Biomass, 50 Data, Time 40s → reduces BioMass conversion loss
     this.addTechNode({
       nodeId: 'bio_conserve',
       nodeName: 'Bio-Conservation Protocol',
-      description: 'Unlocks advanced biomass utilization and alternative victory',
+      description: 'Reduces Biomass conversion loss and unlocks unique endings',
       category: TechCategory.SPECIAL,
-      cost: { life: 150, knowledge: 50 },
-      researchTime: 40,
+      cost: { biomass: 150, data: 50 },
+      researchTime: 40, // 40 seconds
       prerequisiteNodes: [],
       effects: [
         {
           type: EffectType.RESOURCE_MODIFIER,
-          target: 'life_efficiency',
+          target: 'biomass_efficiency',
           value: 1.4,
           isMultiplicative: true
         }
@@ -302,25 +302,25 @@ export class TechTreeManager {
           // Resource modifiers are applied during resource generation
           break;
         case EffectType.CAPACITY_INCREASE:
-          if (effect.target.includes('matter')) {
-            this.resourceManager.increaseMaxCapacity(ResourceType.MATTER, effect.value);
+          if (effect.target.includes('ore') || effect.target.includes('matter')) {
+            this.resourceManager.increaseMaxCapacity(ResourceType.ORE, effect.value);
           } else if (effect.target.includes('energy')) {
             this.resourceManager.increaseMaxCapacity(ResourceType.ENERGY, effect.value);
-          } else if (effect.target.includes('life')) {
-            this.resourceManager.increaseMaxCapacity(ResourceType.LIFE, effect.value);
-          } else if (effect.target.includes('knowledge')) {
-            this.resourceManager.increaseMaxCapacity(ResourceType.KNOWLEDGE, effect.value);
+          } else if (effect.target.includes('biomass') || effect.target.includes('life')) {
+            this.resourceManager.increaseMaxCapacity(ResourceType.BIOMASS, effect.value);
+          } else if (effect.target.includes('data') || effect.target.includes('knowledge')) {
+            this.resourceManager.increaseMaxCapacity(ResourceType.DATA, effect.value);
           }
           break;
         case EffectType.DECAY_REDUCTION:
-          if (effect.target.includes('matter')) {
-            this.resourceManager.reduceDecayRate(ResourceType.MATTER, effect.value);
+          if (effect.target.includes('ore') || effect.target.includes('matter')) {
+            this.resourceManager.reduceDecayRate(ResourceType.ORE, effect.value);
           } else if (effect.target.includes('energy')) {
             this.resourceManager.reduceDecayRate(ResourceType.ENERGY, effect.value);
-          } else if (effect.target.includes('life')) {
-            this.resourceManager.reduceDecayRate(ResourceType.LIFE, effect.value);
-          } else if (effect.target.includes('knowledge')) {
-            this.resourceManager.reduceDecayRate(ResourceType.KNOWLEDGE, effect.value);
+          } else if (effect.target.includes('biomass') || effect.target.includes('life')) {
+            this.resourceManager.reduceDecayRate(ResourceType.BIOMASS, effect.value);
+          } else if (effect.target.includes('data') || effect.target.includes('knowledge')) {
+            this.resourceManager.reduceDecayRate(ResourceType.DATA, effect.value);
           }
           break;
       }
@@ -371,9 +371,9 @@ export class TechTreeManager {
   private shouldRevealNode(node: TechNode): boolean {
     if (!this.resourceManager) return false;
 
-    // Demo: Reveal bio_conserve when player has enough life
+    // Demo: Reveal bio_conserve when player has enough biomass
     if (node.nodeId === 'bio_conserve') {
-      return this.resourceManager.getResourceAmount(ResourceType.LIFE) >= 50;
+      return this.resourceManager.getResourceAmount(ResourceType.BIOMASS) >= 50;
     }
 
     return false;
@@ -449,10 +449,10 @@ export class TechTreeManager {
           refund[type as ResourceType] = Math.floor(amount * 0.5);
         }
       });
-      this.resourceManager.addResource(ResourceType.MATTER, refund.matter || 0);
+      this.resourceManager.addResource(ResourceType.ORE, refund.ore || 0);
       this.resourceManager.addResource(ResourceType.ENERGY, refund.energy || 0);
-      this.resourceManager.addResource(ResourceType.LIFE, refund.life || 0);
-      this.resourceManager.addResource(ResourceType.KNOWLEDGE, refund.knowledge || 0);
+      this.resourceManager.addResource(ResourceType.BIOMASS, refund.biomass || 0);
+      this.resourceManager.addResource(ResourceType.DATA, refund.data || 0);
     }
 
     this.currentResearch = null;

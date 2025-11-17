@@ -9,12 +9,20 @@ import { UnitManager, UnitType } from './UnitManager';
 import { TechTreeManager } from './TechTreeManager';
 import { MapManager, Faction, NodeType } from './MapManager';
 import { EndgameManager, EndgameScenario } from './EndgameManager';
+import { VictoryDefeatSystem, VictoryType, DefeatType } from './VictoryDefeatSystem';
+import { getPuzzle, type PuzzleConstraint } from '@/data/puzzles';
+import { ArenaSeedManager, ArenaConfig } from './ArenaSeedManager';
+import { AdvisorTensionSystem, StrategicDecision } from './AdvisorTensionSystem';
+import { MoralVerdictSystem } from './MoralVerdictSystem';
+import { KaijuEventSystem } from './KaijuEventSystem';
+import { UnitQuirkSystem } from './UnitQuirkSystem';
+import { CinematicCameraSystem } from './CinematicCameraSystem';
 
 export interface Resources {
-  matter: number;
+  ore: number;
   energy: number;
-  life: number;
-  knowledge: number;
+  biomass: number;
+  data: number;
 }
 
 export interface Player {
@@ -86,6 +94,7 @@ export class QuaternionGameState {
   public unitManager: UnitManager;
   public techTreeManager: TechTreeManager;
   public mapManager: MapManager;
+  public victoryDefeatSystem: VictoryDefeatSystem;
   
   constructor(config: GameConfig) {
     this.id = this.generateId();
@@ -98,6 +107,15 @@ export class QuaternionGameState {
     this.unitManager = new UnitManager(this.resourceManager);
     this.techTreeManager = new TechTreeManager(this.resourceManager, this.unitManager);
     this.mapManager = new MapManager(config.mapWidth || 9, config.mapHeight || 9);
+    this.victoryDefeatSystem = new VictoryDefeatSystem();
+    
+    // Initialize fun experience systems
+    this.arenaSeedManager = new ArenaSeedManager();
+    this.advisorTensionSystem = new AdvisorTensionSystem();
+    this.moralVerdictSystem = new MoralVerdictSystem();
+    this.kaijuEventSystem = new KaijuEventSystem();
+    this.unitQuirkSystem = new UnitQuirkSystem();
+    this.cinematicCameraSystem = new CinematicCameraSystem();
     
     // Generate map
     this.mapManager.generateMap(config.seed);
@@ -150,19 +168,35 @@ export class QuaternionGameState {
   }
   
   private initializePlayers(): void {
-    // Adjust starting resources based on map size (smaller maps = faster games)
-    const isQuickStart = this.config.mapWidth <= 30 && this.config.mapHeight <= 20;
-    const startingResources = isQuickStart 
-      ? { matter: 800, energy: 400, life: 200, knowledge: 100 } // More resources for quick start
-      : { matter: 700, energy: 350, life: 150, knowledge: 75 }; // Increased for faster progression
+    // Use puzzle starting resources if in puzzle mode, otherwise use default
+    let startingResources: Resources;
+    
+    if (this.puzzleConfig) {
+      startingResources = {
+        ore: this.puzzleConfig.startingResources.ore,
+        energy: this.puzzleConfig.startingResources.energy,
+        biomass: this.puzzleConfig.startingResources.biomass,
+        data: this.puzzleConfig.startingResources.data
+      };
+    } else {
+      // Demo Scenario starting resources from spec:
+      // Starting resources: Ore 250, Energy 40, Biomass 0, Data 10
+      const isQuickStart = this.config.mapWidth <= 30 && this.config.mapHeight <= 20;
+      startingResources = isQuickStart 
+        ? { ore: 250, energy: 40, biomass: 0, data: 10 } // Demo scenario from spec
+        : { ore: 250, energy: 40, biomass: 0, data: 10 }; // Same for consistency
+    }
     
     // Set initial resources in ResourceManager
     this.resourceManager.setInitialResources(
-      startingResources.matter,
+      startingResources.ore,
       startingResources.energy,
-      startingResources.life,
-      startingResources.knowledge
+      startingResources.biomass,
+      startingResources.data
     );
+    
+    // Set initial biomass for morality tracking
+    this.victoryDefeatSystem.setInitialBiomass(startingResources.biomass);
     
     // Player 1 (Human)
     this.players.set(1, {
@@ -175,16 +209,18 @@ export class QuaternionGameState {
       moralAlignment: 0
     });
     
-    // Player 2 (AI)
-    this.players.set(2, {
-      id: 2,
-      name: 'AI Opponent',
-      isAI: true,
-      resources: startingResources,
-      population: { current: 8, max: 50 },
-      researchedTechs: new Set(),
-      moralAlignment: 0
-    });
+    // Player 2 (AI) - Only in non-puzzle modes
+    if (this.config.mode !== 'puzzle') {
+      this.players.set(2, {
+        id: 2,
+        name: 'AI Opponent',
+        isAI: true,
+        resources: startingResources,
+        population: { current: 8, max: 50 },
+        researchedTechs: new Set(),
+        moralAlignment: 0
+      });
+    }
   }
   
   /**
@@ -193,7 +229,8 @@ export class QuaternionGameState {
   public start(): void {
     if (this.isRunning) return;
     this.isRunning = true;
-    this.logAction('game_start', { seed: this.seed, config: this.config });
+    this.puzzleStartTime = Date.now();
+    this.logAction('game_start', { seed: this.seed, config: this.config, puzzleId: this.config.puzzleId });
   }
   
   /**
@@ -223,6 +260,9 @@ export class QuaternionGameState {
     // Calculate instability
     this.updateInstability();
     
+    // Update fun experience systems
+    this.updateFunSystems(deltaTime);
+    
     // Update win conditions
     this.checkWinConditions();
     
@@ -241,21 +281,21 @@ export class QuaternionGameState {
     // Convert map generation to ResourceType enum
     resourceGeneration.forEach((amount, nodeType) => {
       switch (nodeType) {
-        case 'matter':
-          controlledNodes.set(ResourceType.MATTER, 
-            (controlledNodes.get(ResourceType.MATTER) || 0) + 1);
+        case 'ore':
+          controlledNodes.set(ResourceType.ORE, 
+            (controlledNodes.get(ResourceType.ORE) || 0) + 1);
           break;
         case 'energy':
           controlledNodes.set(ResourceType.ENERGY,
             (controlledNodes.get(ResourceType.ENERGY) || 0) + 1);
           break;
-        case 'life':
-          controlledNodes.set(ResourceType.LIFE,
-            (controlledNodes.get(ResourceType.LIFE) || 0) + 1);
+        case 'biomass':
+          controlledNodes.set(ResourceType.BIOMASS,
+            (controlledNodes.get(ResourceType.BIOMASS) || 0) + 1);
           break;
-        case 'knowledge':
-          controlledNodes.set(ResourceType.KNOWLEDGE,
-            (controlledNodes.get(ResourceType.KNOWLEDGE) || 0) + 1);
+        case 'data':
+          controlledNodes.set(ResourceType.DATA,
+            (controlledNodes.get(ResourceType.DATA) || 0) + 1);
           break;
       }
     });
@@ -287,6 +327,49 @@ export class QuaternionGameState {
   }
   
   /**
+   * Update fun experience systems
+   */
+  private updateFunSystems(deltaTime: number): void {
+    // Update Kaiju events
+    const kaijuUpdate = this.kaijuEventSystem.update(deltaTime, this);
+    if (kaijuUpdate?.spawned) {
+      this.logAction('kaiju_spawn', { 
+        kaiju: kaijuUpdate.kaiju?.name,
+        position: kaijuUpdate.position 
+      });
+      this.events.push({
+        type: 'kaiju_spawn',
+        kaiju: kaijuUpdate.kaiju,
+        position: kaijuUpdate.position,
+        time: this.gameTime
+      });
+    }
+    if (kaijuUpdate?.defeated) {
+      this.logAction('kaiju_defeated', { kaiju: kaijuUpdate.kaiju?.name });
+      this.events.push({
+        type: 'kaiju_defeated',
+        kaiju: kaijuUpdate.kaiju,
+        time: this.gameTime
+      });
+    }
+
+    // Update Arena Seed (if active)
+    if (this.arenaSeedManager) {
+      const arenaStatus = this.arenaSeedManager.getStatus();
+      if (arenaStatus.isActive) {
+        const arenaUpdate = this.arenaSeedManager.update(deltaTime, this);
+        if (arenaUpdate?.completed) {
+          this.logAction('arena_complete', { 
+            victory: arenaUpdate.completed,
+            progress: arenaUpdate.progress,
+            max: arenaUpdate.max
+          });
+        }
+      }
+    }
+  }
+
+  /**
    * Variable update (for non-critical systems that don't need determinism)
    * This can be called with variable deltaTime for smooth animations
    */
@@ -299,6 +382,8 @@ export class QuaternionGameState {
   
   /**
    * Update resource generation and consumption
+   * Note: Resource generation is handled by ResourceManager.processResourceTick()
+   * which is called every 30 seconds (1800 ticks at 60 ticks/sec)
    */
   private updateResources(deltaTime: number): void {
     this.players.forEach((player, playerId) => {
@@ -318,10 +403,10 @@ export class QuaternionGameState {
         });
       
       // Clamp resources
-      player.resources.matter = Math.max(0, Math.min(1000, player.resources.matter));
+      player.resources.ore = Math.max(0, Math.min(1000, player.resources.ore));
       player.resources.energy = Math.max(0, Math.min(1000, player.resources.energy));
-      player.resources.life = Math.max(0, Math.min(1000, player.resources.life));
-      player.resources.knowledge = Math.max(0, Math.min(1000, player.resources.knowledge));
+      player.resources.biomass = Math.max(0, Math.min(1000, player.resources.biomass));
+      player.resources.data = Math.max(0, Math.min(1000, player.resources.data));
     });
   }
   
@@ -332,183 +417,739 @@ export class QuaternionGameState {
     const player = this.players.get(1);
     if (!player) return;
     
-    const { matter, energy, life, knowledge } = player.resources;
-    const avg = (matter + energy + life + knowledge) / 4;
+    const { ore, energy, biomass, data } = player.resources;
+    const avg = (ore + energy + biomass + data) / 4;
     
     // Calculate variance from average
-    const variance = [matter, energy, life, knowledge]
+    const variance = [ore, energy, biomass, data]
       .reduce((sum, val) => sum + Math.abs(val - avg), 0) / 4;
     
     // Instability increases with imbalance
     this.instability = (variance / avg) * 100;
     
     // Check for critical resources at zero
-    if (matter === 0 || energy === 0 || life === 0 || knowledge === 0) {
+    if (ore === 0 || energy === 0 || biomass === 0 || data === 0) {
       this.instability = this.maxInstability;
     }
   }
   
   /**
-   * Check all win conditions using EndgameManager
+   * Check all win conditions using VictoryDefeatSystem
+   * In puzzle mode, uses puzzle-specific win conditions
    */
   private checkWinConditions(): void {
     const player = this.players.get(1);
     if (!player) return;
     
-    const { matter, energy, life, knowledge } = player.resources;
-    const avg = (matter + energy + life + knowledge) / 4;
-    
-    // Detect endgame scenario using EndgameManager
-    const scenario = EndgameManager.detectScenario(
-      player.resources,
-      this.instability,
-      this.maxInstability,
-      player.researchedTechs,
-      player.moralAlignment,
-      this.gameTime
-    );
-    
-    if (!scenario) {
-      // Reset perfect balance progress if not in perfect balance
-      this.perfectBalanceProgress = 0;
+    // Check puzzle constraints first (failures)
+    if (this.puzzleConfig && this.checkPuzzleConstraints(player) === false) {
+      // Constraint violated - puzzle failed
       return;
     }
     
-    // Handle perfect balance (Ultimate Balance ending)
-    if (scenario === 'ultimate_balance') {
-      const maxDeviation = Math.max(
-        Math.abs(matter - avg),
-        Math.abs(energy - avg),
-        Math.abs(life - avg),
-        Math.abs(knowledge - avg)
-      );
-      const perfectBalanceThreshold = avg * 0.02; // 2% deviation
-      
-      if (maxDeviation <= perfectBalanceThreshold && avg > 200) {
-        this.perfectBalanceProgress += 1;
-        if (this.perfectBalanceProgress >= this.perfectBalanceRequiredTime) {
-          this.endGame(1, 'ultimate_balance', scenario);
-          return;
-        }
-      } else {
-        this.perfectBalanceProgress = 0;
+    // Check puzzle win condition if in puzzle mode
+    if (this.puzzleConfig) {
+      const puzzleWin = this.checkPuzzleWinCondition(player);
+      if (puzzleWin.won) {
+        this.endGame(1, `Puzzle Complete: ${this.puzzleConfig.winCondition.description}`, undefined);
+        return;
       }
     }
     
-    // Handle Harmony (Equilibrium)
-    if (scenario === 'harmony') {
-      const equilibrium = this.winConditions.get('equilibrium')!;
-      const maxDeviation = Math.max(
-        Math.abs(matter - avg),
-        Math.abs(energy - avg),
-        Math.abs(life - avg),
-        Math.abs(knowledge - avg)
+    const centralNodeControlled = this.mapManager.isCentralNodeControlledByPlayer();
+    const centralNodeUnderAttack = this.checkCentralNodeUnderAttack();
+    
+    const enemyNodeCount = this.mapManager.getNodesByFaction(Faction.ENEMY).length;
+    const totalNodeCount = this.mapManager.getAllNodes().length;
+    const enemyNodeControl = totalNodeCount > 0 ? enemyNodeCount / totalNodeCount : 0;
+    
+    // Check victory conditions (for non-puzzle modes)
+    if (!this.puzzleConfig) {
+      const victoryType = this.victoryDefeatSystem.checkVictoryConditions(
+        player.resources,
+        player.researchedTechs,
+        centralNodeControlled,
+        centralNodeUnderAttack,
+        this.gameTime
       );
       
-      const isQuickStart = this.config.mapWidth <= 30 && this.config.mapHeight <= 20;
-      const requiredTime = isQuickStart ? 10 * this.tickRate : 15 * this.tickRate;
-      
-      if (maxDeviation / avg <= 0.15) {
-        equilibrium.progress += 1;
-        if (equilibrium.progress >= requiredTime) {
-          equilibrium.achieved = true;
-          this.endGame(1, 'harmony', scenario);
-          return;
-        }
-      } else {
-        equilibrium.progress = 0;
-      }
-    }
-    
-    // Handle Ascendancy (Tech victory)
-    if (scenario === 'ascendancy' && player.researchedTechs.has('quantum_ascendancy')) {
-      const tech = this.winConditions.get('technological')!;
-      tech.achieved = true;
-      this.endGame(1, 'ascendancy', scenario);
-      return;
-    }
-    
-    // Handle Reclamation (Life focus)
-    if (scenario === 'reclamation') {
-      // Check if life is significantly higher and maintained
-      if (life > avg * 1.5 && life > 500 && 
-          life > matter * 1.3 && life > energy * 1.3 && life > knowledge * 1.3) {
-        const isQuickStart = this.config.mapWidth <= 30 && this.config.mapHeight <= 20;
-        const requiredTime = isQuickStart ? 10 * this.tickRate : 15 * this.tickRate;
+      if (victoryType !== VictoryType.NONE) {
+        const analysis = this.victoryDefeatSystem.generatePostGameAnalysis(
+          victoryType,
+          DefeatType.NONE,
+          this.seed,
+          player.resources,
+          player.researchedTechs,
+          1 - enemyNodeControl
+        );
         
-        // Track progress for reclamation
-        const reclamationCondition = this.winConditions.get('moral')!; // Reuse moral for tracking
-        reclamationCondition.progress += 1;
-        if (reclamationCondition.progress >= requiredTime) {
-          this.endGame(1, 'reclamation', scenario);
-          return;
-        }
-      } else {
-        this.winConditions.get('moral')!.progress = 0;
+        this.endGame(1, this.getVictoryReason(victoryType), undefined, analysis);
+        return;
       }
     }
     
-    // Handle Overclock (Energy maximized)
-    if (scenario === 'overclock') {
-      // Check if energy is significantly higher and maintained
-      if (energy > avg * 1.5 && energy > 500 &&
-          energy > matter * 1.3 && energy > life * 1.3 && energy > knowledge * 1.3) {
-        const isQuickStart = this.config.mapWidth <= 30 && this.config.mapHeight <= 20;
-        const requiredTime = isQuickStart ? 10 * this.tickRate : 15 * this.tickRate;
-        
-        // Track progress for overclock
-        const territorial = this.winConditions.get('territorial')!; // Reuse territorial for tracking
-        territorial.progress += 1;
-        if (territorial.progress >= requiredTime) {
-          this.endGame(1, 'overclock', scenario);
-          return;
-        }
-      } else {
-        this.winConditions.get('territorial')!.progress = 0;
+    // Update win condition progress for UI
+    this.updateWinConditionProgress();
+  }
+  
+  /**
+   * Check puzzle constraints (failures)
+   */
+  private checkPuzzleConstraints(player: Player): boolean {
+    if (!this.puzzleConfig) return true;
+    
+    for (const constraint of this.puzzleConstraints) {
+      switch (constraint.type) {
+        case 'resource_min':
+          const resourceValue = player.resources[constraint.resource as keyof Resources] || 0;
+          if (resourceValue < constraint.value) {
+            // Resource too low - fail puzzle
+            this.endGame(2, `Puzzle Failed: ${constraint.resource} dropped below ${constraint.value}`, undefined);
+            return false;
+          }
+          break;
+        case 'resource_max':
+          const resourceValueMax = player.resources[constraint.resource as keyof Resources] || 0;
+          if (resourceValueMax > constraint.value) {
+            // Resource too high - fail puzzle
+            this.endGame(2, `Puzzle Failed: ${constraint.resource} exceeded ${constraint.value}`, undefined);
+            return false;
+          }
+          break;
+        case 'time_limit':
+          if (this.gameTime > constraint.value) {
+            // Time exceeded - fail puzzle
+            this.endGame(2, `Puzzle Failed: Time limit exceeded (${constraint.value}s)`, undefined);
+            return false;
+          }
+          break;
       }
+    }
+    return true;
+  }
+  
+  /**
+   * Check puzzle win condition
+   */
+  private checkPuzzleWinCondition(player: Player): { won: boolean; progress: number; max: number } {
+    if (!this.puzzleConfig) return { won: false, progress: 0, max: 0 };
+    
+    const winCond = this.puzzleConfig.winCondition;
+    
+    switch (winCond.type) {
+      case 'equilibrium':
+        // Check if resources are balanced
+        const { ore, energy, biomass, data } = player.resources;
+        const avg = (ore + energy + biomass + data) / 4;
+        const maxDeviation = Math.max(
+          Math.abs(ore - avg),
+          Math.abs(energy - avg),
+          Math.abs(biomass - avg),
+          Math.abs(data - avg)
+        );
+        const threshold = avg * 0.15; // 15% deviation for equilibrium
+        
+        if (maxDeviation <= threshold && avg > 50) {
+          // Check duration requirement
+          const durationRequired = (winCond.duration || 15) * 60; // Convert to ticks
+          const winCondKey = `puzzle_equilibrium_${this.puzzleConfig.id}`;
+          const winCondition = this.winConditions.get(winCondKey);
+          
+          if (!winCondition) {
+            this.winConditions.set(winCondKey, { type: 'equilibrium', achieved: false, progress: 0 });
+          }
+          
+          const currentProgress = (this.winConditions.get(winCondKey)?.progress || 0) + 1;
+          this.winConditions.set(winCondKey, { type: 'equilibrium', achieved: currentProgress >= durationRequired, progress: currentProgress });
+          
+          if (currentProgress >= durationRequired) {
+            return { won: true, progress: durationRequired, max: durationRequired };
+          }
+          
+          return { won: false, progress: currentProgress, max: durationRequired };
+        } else {
+          // Reset progress if not balanced
+          const winCondKey = `puzzle_equilibrium_${this.puzzleConfig.id}`;
+          this.winConditions.set(winCondKey, { type: 'equilibrium', achieved: false, progress: 0 });
+          return { won: false, progress: 0, max: (winCond.duration || 15) * 60 };
+        }
+        
+      case 'technological':
+        if (player.researchedTechs.has(winCond.techId || 'quantum_ascendancy')) {
+          return { won: true, progress: 1, max: 1 };
+        }
+        return { won: false, progress: 0, max: 1 };
+        
+      case 'resource_target':
+        const targetResource = player.resources[(winCond.target as any) || 'ore'] || 0;
+        const targetValue = winCond.target || 0;
+        if (targetResource >= targetValue) {
+          return { won: true, progress: targetValue, max: targetValue };
+        }
+        return { won: false, progress: targetResource, max: targetValue };
+        
+      case 'survival':
+        const survivalTime = (winCond.duration || 420) * 60; // Convert to ticks
+        if (this.gameTime >= survivalTime) {
+          return { won: true, progress: survivalTime, max: survivalTime };
+        }
+        return { won: false, progress: this.gameTime * 60, max: survivalTime };
+        
+      case 'territorial':
+        const centralNodeControlled = this.mapManager.isCentralNodeControlledByPlayer();
+        if (centralNodeControlled) {
+          const durationRequired = (winCond.duration || 30) * 60;
+          const winCondKey = `puzzle_territorial_${this.puzzleConfig.id}`;
+          const winCondition = this.winConditions.get(winCondKey);
+          const currentProgress = (winCondition?.progress || 0) + 1;
+          this.winConditions.set(winCondKey, { type: 'territorial', achieved: currentProgress >= durationRequired, progress: currentProgress });
+          
+          if (currentProgress >= durationRequired) {
+            return { won: true, progress: durationRequired, max: durationRequired };
+          }
+          return { won: false, progress: currentProgress, max: durationRequired };
+        } else {
+          const winCondKey = `puzzle_territorial_${this.puzzleConfig.id}`;
+          this.winConditions.set(winCondKey, { type: 'territorial', achieved: false, progress: 0 });
+          return { won: false, progress: 0, max: (winCond.duration || 30) * 60 };
+        }
+        
+      default:
+        return { won: false, progress: 0, max: 0 };
     }
   }
   
   /**
-   * Check lose conditions (Collapse Timeline)
+   * Check if central node is under attack
+   */
+  private checkCentralNodeUnderAttack(): boolean {
+    // Simplified: check if enemy units are near central node
+    // In full implementation, this would check actual unit positions
+    const enemyNodes = this.mapManager.getNodesByFaction(Faction.ENEMY);
+    return enemyNodes.length > 0; // Simplified check
+  }
+  
+  /**
+   * Update win condition progress for UI display
+   */
+  private updateWinConditionProgress(): void {
+    const victoryProgress = this.victoryDefeatSystem.getVictoryProgress();
+    
+    victoryProgress.forEach((condition, type) => {
+      const winCondition = this.winConditions.get(this.getWinConditionKey(type));
+      if (winCondition) {
+        winCondition.progress = condition.progress;
+      }
+    });
+  }
+  
+  private getWinConditionKey(victoryType: VictoryType): string {
+    switch (victoryType) {
+      case VictoryType.EQUILIBRIUM: return 'equilibrium';
+      case VictoryType.TECHNOLOGICAL: return 'technological';
+      case VictoryType.TERRITORIAL: return 'territorial';
+      case VictoryType.MORAL: return 'moral';
+      default: return 'equilibrium';
+    }
+  }
+  
+  private getVictoryReason(victoryType: VictoryType): string {
+    switch (victoryType) {
+      case VictoryType.EQUILIBRIUM: return 'equilibrium_victory';
+      case VictoryType.TECHNOLOGICAL: return 'technological_victory';
+      case VictoryType.TERRITORIAL: return 'territorial_victory';
+      case VictoryType.MORAL: return 'moral_victory';
+      default: return 'victory';
+    }
+  }
+  
+  /**
+   * Detect win scenarios (excludes collapse)
+   */
+  private detectWinScenario(
+    resources: Resources,
+    researchedTechs: Set<string>,
+    gameTime: number
+  ): EndgameScenario | null {
+    const { matter, energy, life, knowledge } = resources;
+    const avg = (matter + energy + life + knowledge) / 4;
+    const maxDeviation = Math.max(
+      Math.abs(matter - avg),
+      Math.abs(energy - avg),
+      Math.abs(life - avg),
+      Math.abs(knowledge - avg)
+    );
+    
+    // Check for perfect balance (Ultimate Balance - Fifth Ending)
+    const perfectBalanceThreshold = avg * 0.02; // 2% deviation
+    if (maxDeviation <= perfectBalanceThreshold && avg > 200) {
+      return 'ultimate_balance';
+    }
+    
+    // Check for equilibrium/harmony (within ±15%)
+    const harmonyThreshold = avg * 0.15; // 15% deviation
+    if (maxDeviation <= harmonyThreshold && avg > 150) {
+      return 'harmony';
+    }
+    
+    // Check for Ascendancy (Knowledge/Technology victory)
+    if (researchedTechs.has('quantum_ascendancy') || 
+        knowledge > avg * 1.5 && knowledge > 500) {
+      return 'ascendancy';
+    }
+    
+    // Check for Reclamation (Life focus)
+    if (life > avg * 1.5 && life > 500 && 
+        life > matter * 1.3 && life > energy * 1.3 && life > knowledge * 1.3) {
+      return 'reclamation';
+    }
+    
+    // Check for Overclock (Energy maximized)
+    if (energy > avg * 1.5 && energy > 500 &&
+        energy > matter * 1.3 && energy > life * 1.3 && energy > knowledge * 1.3) {
+      return 'overclock';
+    }
+    
+    return null;
+  }
+  
+  /**
+   * Check lose conditions using VictoryDefeatSystem
    */
   private checkLoseConditions(): void {
     const player = this.players.get(1);
     if (!player) return;
     
-    // Detect collapse scenario using EndgameManager
-    const scenario = EndgameManager.detectScenario(
+    const deltaTime = 1 / this.tickRate; // Time per tick
+    
+    const centralNodeControlled = this.mapManager.isCentralNodeControlledByPlayer();
+    
+    const enemyNodeCount = this.mapManager.getNodesByFaction(Faction.ENEMY).length;
+    const totalNodeCount = this.mapManager.getAllNodes().length;
+    const enemyNodeControl = totalNodeCount > 0 ? enemyNodeCount / totalNodeCount : 0;
+    
+    // Baseline resources (starting values)
+    const baselineResources = {
+      ore: 250,
+      energy: 40,
+      biomass: 0,
+      data: 10
+    };
+    
+    // Check defeat conditions
+    const defeatType = this.victoryDefeatSystem.checkDefeatConditions(
       player.resources,
       this.instability,
       this.maxInstability,
-      player.researchedTechs,
-      player.moralAlignment,
-      this.gameTime
+      centralNodeControlled,
+      enemyNodeControl,
+      baselineResources,
+      deltaTime
     );
     
-    // Any resource reaches 0 or instability exceeds maximum
-    if (scenario === 'collapse') {
-      let reason = 'instability_meltdown';
-      if (player.resources.matter === 0 || 
-          player.resources.energy === 0 || 
-          player.resources.life === 0 || 
-          player.resources.knowledge === 0) {
-        reason = 'resource_collapse';
-      }
-      this.endGame(2, reason, 'collapse');
+    if (defeatType !== DefeatType.NONE) {
+      const analysis = this.victoryDefeatSystem.generatePostGameAnalysis(
+        VictoryType.NONE,
+        defeatType,
+        this.seed,
+        player.resources,
+        player.researchedTechs,
+        1 - enemyNodeControl
+      );
+      
+      this.endGame(2, this.getDefeatReason(defeatType), undefined, analysis);
       return;
+    }
+  }
+  
+  private getDefeatReason(defeatType: DefeatType): string {
+    switch (defeatType) {
+      case DefeatType.RESOURCE_COLLAPSE: return 'resource_collapse';
+      case DefeatType.INSTABILITY_OVERFLOW: return 'instability_overflow';
+      case DefeatType.CORE_NODE_LOST: return 'core_node_lost';
+      case DefeatType.MORALITY_COLLAPSE: return 'morality_collapse';
+      case DefeatType.AI_OVERRUN: return 'ai_overrun';
+      default: return 'defeat';
     }
   }
   
   /**
    * End the game
    */
-  private endGame(winnerId: number, reason: string, scenario?: EndgameScenario): void {
+  private endGame(winnerId: number, reason: string, scenario?: EndgameScenario, analysis?: any): void {
     this.gameOver = true;
     this.winner = winnerId;
     this.isRunning = false;
     this.endgameScenario = scenario || null;
-    this.logAction('game_end', { winner: winnerId, reason, scenario, tick: this.tick });
+    
+    const endData: any = { winner: winnerId, reason, scenario, tick: this.tick };
+    if (analysis) {
+      endData.analysis = analysis;
+      endData.replayCode = analysis.replayCode;
+    }
+    
+    this.logAction('game_end', endData);
+  }
+  
+  /**
+   * Get post-game analysis
+   */
+  public getPostGameAnalysis(): any {
+    const player = this.players.get(1);
+    if (!player) return null;
+    
+    const victoryType = this.winner === 1 ? 
+      (this.endgameScenario === 'harmony' ? VictoryType.EQUILIBRIUM :
+       this.endgameScenario === 'ascendancy' ? VictoryType.TECHNOLOGICAL :
+       this.endgameScenario === 'reclamation' ? VictoryType.MORAL :
+       VictoryType.NONE) : VictoryType.NONE;
+    
+    const defeatType = this.winner === 2 ?
+      (this.endgameScenario === 'collapse' ? DefeatType.RESOURCE_COLLAPSE :
+       DefeatType.NONE) : DefeatType.NONE;
+    
+    const enemyNodeCount = this.mapManager.getNodesByFaction(Faction.ENEMY).length;
+    const totalNodeCount = this.mapManager.getAllNodes().length;
+    const nodeControl = totalNodeCount > 0 ? 1 - (enemyNodeCount / totalNodeCount) : 0;
+    
+    return this.victoryDefeatSystem.generatePostGameAnalysis(
+      victoryType,
+      defeatType,
+      this.seed,
+      player.resources,
+      player.researchedTechs,
+      nodeControl
+    );
+  }
+  
+  /**
+   * Log an action for replay
+   */
+  public logAction(type: string, data: any): void {
+    this.actionLog.push({
+      tick: this.tick,
+      time: this.gameTime,
+      type,
+      data
+    });
+  }
+  
+  /**
+   * Build a unit
+   */
+  public buildUnit(unitType: string, playerId: number): boolean {
+    const player = this.players.get(playerId);
+    if (!player) return false;
+    
+    // Check costs and build
+    this.logAction('build_unit', { unitType, playerId, tick: this.tick });
+    return true;
+  }
+  
+  /**
+   * Research technology
+   */
+  public researchTech(techId: string, playerId: number): boolean {
+    const player = this.players.get(playerId);
+    if (!player) return false;
+    
+    // Use TechTreeManager to start research
+    const success = this.techTreeManager.startResearch(techId);
+    if (success) {
+      this.logAction('research_tech', { techId, playerId, tick: this.tick });
+    }
+    return success;
+  }
+  
+  /**
+   * Queue unit production
+   */
+  public queueUnitProduction(
+    unitType: UnitType,
+    spawnPosition: { x: number; y: number },
+    playerId: number
+  ): boolean {
+    const success = this.unitManager.queueUnitProduction(unitType, spawnPosition, playerId);
+    if (success) {
+      this.logAction('queue_unit', { unitType, playerId, tick: this.tick });
+    }
+    return success;
+  }
+  
+  /**
+   * Start node capture
+   */
+  public startNodeCapture(nodeId: string, faction: Faction = Faction.PLAYER): boolean {
+    return this.mapManager.startNodeCapture(nodeId, faction);
+  }
+  
+  /**
+   * Process node capture
+   */
+  public processNodeCapture(nodeId: string, faction: Faction = Faction.PLAYER): boolean {
+    return this.mapManager.processNodeCapture(nodeId, faction);
+  }
+  
+  /**
+   * Get current game state for UI
+   */
+  public getState() {
+    return {
+      id: this.id,
+      tick: this.tick,
+      gameTime: this.gameTime,
+      isRunning: this.isRunning,
+      gameOver: this.gameOver,
+      winner: this.winner,
+      endgameScenario: this.endgameScenario,
+      players: Array.from(this.players.values()),
+      instability: this.instability,
+      winConditions: Array.from(this.winConditions.values()),
+      units: this.units,
+      buildings: this.buildings,
+      resourceNodes: this.resourceNodes
+    };
+  }
+  
+  /**
+   * Serialize for replay
+   */
+  public serialize() {
+    return {
+      id: this.id,
+      config: this.config,
+      seed: this.seed,
+      finalTick: this.tick,
+      gameTime: this.gameTime,
+      winner: this.winner,
+      actionLog: this.actionLog,
+      events: this.events
+    };
+  }
+}
+
+      this.gameTime
+    );
+    
+    if (victoryType !== VictoryType.NONE) {
+      const analysis = this.victoryDefeatSystem.generatePostGameAnalysis(
+        victoryType,
+        DefeatType.NONE,
+        this.seed,
+        player.resources,
+        player.researchedTechs,
+        1 - enemyNodeControl
+      );
+      
+      this.endGame(1, this.getVictoryReason(victoryType), undefined, analysis);
+      return;
+    }
+    
+    // Update win condition progress for UI
+    this.updateWinConditionProgress();
+  }
+  
+  /**
+   * Check if central node is under attack
+   */
+  private checkCentralNodeUnderAttack(): boolean {
+    // Simplified: check if enemy units are near central node
+    // In full implementation, this would check actual unit positions
+    const enemyNodes = this.mapManager.getNodesByFaction(Faction.ENEMY);
+    return enemyNodes.length > 0; // Simplified check
+  }
+  
+  /**
+   * Update win condition progress for UI display
+   */
+  private updateWinConditionProgress(): void {
+    const victoryProgress = this.victoryDefeatSystem.getVictoryProgress();
+    
+    victoryProgress.forEach((condition, type) => {
+      const winCondition = this.winConditions.get(this.getWinConditionKey(type));
+      if (winCondition) {
+        winCondition.progress = condition.progress;
+      }
+    });
+  }
+  
+  private getWinConditionKey(victoryType: VictoryType): string {
+    switch (victoryType) {
+      case VictoryType.EQUILIBRIUM: return 'equilibrium';
+      case VictoryType.TECHNOLOGICAL: return 'technological';
+      case VictoryType.TERRITORIAL: return 'territorial';
+      case VictoryType.MORAL: return 'moral';
+      default: return 'equilibrium';
+    }
+  }
+  
+  private getVictoryReason(victoryType: VictoryType): string {
+    switch (victoryType) {
+      case VictoryType.EQUILIBRIUM: return 'equilibrium_victory';
+      case VictoryType.TECHNOLOGICAL: return 'technological_victory';
+      case VictoryType.TERRITORIAL: return 'territorial_victory';
+      case VictoryType.MORAL: return 'moral_victory';
+      default: return 'victory';
+    }
+  }
+  
+  /**
+   * Detect win scenarios (excludes collapse)
+   */
+  private detectWinScenario(
+    resources: Resources,
+    researchedTechs: Set<string>,
+    gameTime: number
+  ): EndgameScenario | null {
+    const { matter, energy, life, knowledge } = resources;
+    const avg = (matter + energy + life + knowledge) / 4;
+    const maxDeviation = Math.max(
+      Math.abs(matter - avg),
+      Math.abs(energy - avg),
+      Math.abs(life - avg),
+      Math.abs(knowledge - avg)
+    );
+    
+    // Check for perfect balance (Ultimate Balance - Fifth Ending)
+    const perfectBalanceThreshold = avg * 0.02; // 2% deviation
+    if (maxDeviation <= perfectBalanceThreshold && avg > 200) {
+      return 'ultimate_balance';
+    }
+    
+    // Check for equilibrium/harmony (within ±15%)
+    const harmonyThreshold = avg * 0.15; // 15% deviation
+    if (maxDeviation <= harmonyThreshold && avg > 150) {
+      return 'harmony';
+    }
+    
+    // Check for Ascendancy (Knowledge/Technology victory)
+    if (researchedTechs.has('quantum_ascendancy') || 
+        knowledge > avg * 1.5 && knowledge > 500) {
+      return 'ascendancy';
+    }
+    
+    // Check for Reclamation (Life focus)
+    if (life > avg * 1.5 && life > 500 && 
+        life > matter * 1.3 && life > energy * 1.3 && life > knowledge * 1.3) {
+      return 'reclamation';
+    }
+    
+    // Check for Overclock (Energy maximized)
+    if (energy > avg * 1.5 && energy > 500 &&
+        energy > matter * 1.3 && energy > life * 1.3 && energy > knowledge * 1.3) {
+      return 'overclock';
+    }
+    
+    return null;
+  }
+  
+  /**
+   * Check lose conditions using VictoryDefeatSystem
+   */
+  private checkLoseConditions(): void {
+    const player = this.players.get(1);
+    if (!player) return;
+    
+    const deltaTime = 1 / this.tickRate; // Time per tick
+    
+    const centralNodeControlled = this.mapManager.isCentralNodeControlledByPlayer();
+    
+    const enemyNodeCount = this.mapManager.getNodesByFaction(Faction.ENEMY).length;
+    const totalNodeCount = this.mapManager.getAllNodes().length;
+    const enemyNodeControl = totalNodeCount > 0 ? enemyNodeCount / totalNodeCount : 0;
+    
+    // Baseline resources (starting values)
+    const baselineResources = {
+      ore: 250,
+      energy: 40,
+      biomass: 0,
+      data: 10
+    };
+    
+    // Check defeat conditions
+    const defeatType = this.victoryDefeatSystem.checkDefeatConditions(
+      player.resources,
+      this.instability,
+      this.maxInstability,
+      centralNodeControlled,
+      enemyNodeControl,
+      baselineResources,
+      deltaTime
+    );
+    
+    if (defeatType !== DefeatType.NONE) {
+      const analysis = this.victoryDefeatSystem.generatePostGameAnalysis(
+        VictoryType.NONE,
+        defeatType,
+        this.seed,
+        player.resources,
+        player.researchedTechs,
+        1 - enemyNodeControl
+      );
+      
+      this.endGame(2, this.getDefeatReason(defeatType), undefined, analysis);
+      return;
+    }
+  }
+  
+  private getDefeatReason(defeatType: DefeatType): string {
+    switch (defeatType) {
+      case DefeatType.RESOURCE_COLLAPSE: return 'resource_collapse';
+      case DefeatType.INSTABILITY_OVERFLOW: return 'instability_overflow';
+      case DefeatType.CORE_NODE_LOST: return 'core_node_lost';
+      case DefeatType.MORALITY_COLLAPSE: return 'morality_collapse';
+      case DefeatType.AI_OVERRUN: return 'ai_overrun';
+      default: return 'defeat';
+    }
+  }
+  
+  /**
+   * End the game
+   */
+  private endGame(winnerId: number, reason: string, scenario?: EndgameScenario, analysis?: any): void {
+    this.gameOver = true;
+    this.winner = winnerId;
+    this.isRunning = false;
+    this.endgameScenario = scenario || null;
+    
+    const endData: any = { winner: winnerId, reason, scenario, tick: this.tick };
+    if (analysis) {
+      endData.analysis = analysis;
+      endData.replayCode = analysis.replayCode;
+    }
+    
+    this.logAction('game_end', endData);
+  }
+  
+  /**
+   * Get post-game analysis
+   */
+  public getPostGameAnalysis(): any {
+    const player = this.players.get(1);
+    if (!player) return null;
+    
+    const victoryType = this.winner === 1 ? 
+      (this.endgameScenario === 'harmony' ? VictoryType.EQUILIBRIUM :
+       this.endgameScenario === 'ascendancy' ? VictoryType.TECHNOLOGICAL :
+       this.endgameScenario === 'reclamation' ? VictoryType.MORAL :
+       VictoryType.NONE) : VictoryType.NONE;
+    
+    const defeatType = this.winner === 2 ?
+      (this.endgameScenario === 'collapse' ? DefeatType.RESOURCE_COLLAPSE :
+       DefeatType.NONE) : DefeatType.NONE;
+    
+    const enemyNodeCount = this.mapManager.getNodesByFaction(Faction.ENEMY).length;
+    const totalNodeCount = this.mapManager.getAllNodes().length;
+    const nodeControl = totalNodeCount > 0 ? 1 - (enemyNodeCount / totalNodeCount) : 0;
+    
+    return this.victoryDefeatSystem.generatePostGameAnalysis(
+      victoryType,
+      defeatType,
+      this.seed,
+      player.resources,
+      player.researchedTechs,
+      nodeControl
+    );
   }
   
   /**

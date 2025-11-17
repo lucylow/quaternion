@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Users, User, Gamepad2, Plus, Search, ArrowLeft, Loader2, Target, BookOpen, Puzzle, Film, Zap, Leaf, Brain, Box } from 'lucide-react';
 import { COMMANDERS } from '@/data/quaternionData';
+import { PUZZLES, getAvailablePuzzles, getPuzzle, type Puzzle } from '@/data/puzzles';
 import { toast } from 'sonner';
 
 interface GameConfig {
@@ -24,6 +25,7 @@ interface GameConfig {
   quaternionAxis?: 'matter' | 'energy' | 'life' | 'knowledge';
   cooperativeMode?: boolean;
   replayId?: string;
+  puzzleId?: string;
 }
 
 interface Room {
@@ -95,6 +97,9 @@ const Lobby = () => {
     completed: [] as string[],
     unlocked: ['puzzle_1', 'puzzle_2']
   });
+  
+  // Selected puzzle
+  const [selectedPuzzle, setSelectedPuzzle] = useState<string | null>(null);
 
   // Room management
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -136,9 +141,18 @@ const Lobby = () => {
       config.mode = 'campaign';
       config.seed = campaignProgress.currentChapter * 1000000 + Math.floor(Math.random() * 1000);
     } else if (singlePlayerMode === 'puzzle') {
+      if (!selectedPuzzle) {
+        toast.error('Please select a puzzle to play');
+        return;
+      }
       config.mode = 'puzzle';
-      // Puzzle mode uses specific seeds
-      config.seed = 999000; // Default puzzle seed
+      const puzzle = getPuzzle(selectedPuzzle);
+      if (puzzle) {
+        config.seed = puzzle.seed;
+        config.puzzleId = puzzle.id;
+      } else {
+        config.seed = 999000; // Default puzzle seed
+      }
     } else if (singlePlayerMode === 'theater') {
       config.mode = 'theater';
       // Theater mode needs a replay ID - for now, use a default
@@ -411,6 +425,111 @@ const Lobby = () => {
               </CardContent>
             </Card>
 
+            {/* Puzzle Selection - Only shown when puzzle mode is selected */}
+            {singlePlayerMode === 'puzzle' && (
+              <Card className="bg-card/70 border-primary/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Puzzle className="w-5 h-5 text-orange-400" />
+                    Select Puzzle
+                  </CardTitle>
+                  <CardDescription>
+                    Choose a puzzle challenge. Complete puzzles to unlock more!
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[600px] overflow-y-auto">
+                    {getAvailablePuzzles(puzzleProgress.completed).map((puzzle) => {
+                      const isCompleted = puzzleProgress.completed.includes(puzzle.id);
+                      const isSelected = selectedPuzzle === puzzle.id;
+                      const difficultyColors = {
+                        easy: 'text-green-400 border-green-400',
+                        medium: 'text-yellow-400 border-yellow-400',
+                        hard: 'text-red-400 border-red-400'
+                      };
+                      
+                      return (
+                        <Card
+                          key={puzzle.id}
+                          className={`bg-card/70 border-primary/30 cursor-pointer transition-all ${
+                            isSelected ? 'border-2 border-primary ring-2 ring-primary/20' : ''
+                          } ${isCompleted ? 'opacity-80' : ''}`}
+                          onClick={() => setSelectedPuzzle(puzzle.id)}
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1">
+                                <h4 className="font-semibold text-lg mb-1">{puzzle.name}</h4>
+                                <div className="flex items-center gap-2 mb-2">
+                                  <Badge 
+                                    variant="outline" 
+                                    className={`text-xs ${difficultyColors[puzzle.difficulty]}`}
+                                  >
+                                    {puzzle.difficulty}
+                                  </Badge>
+                                  <Badge variant="outline" className="text-xs">
+                                    {puzzle.category}
+                                  </Badge>
+                                  {isCompleted && (
+                                    <Badge variant="outline" className="text-xs border-green-400 text-green-400">
+                                      ✓ Completed
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                              {puzzle.description}
+                            </p>
+                            <div className="space-y-1 text-xs text-muted-foreground">
+                              <div className="font-semibold text-white mb-1">Win Condition:</div>
+                              <div>{puzzle.winCondition.description}</div>
+                              {puzzle.constraints.length > 0 && (
+                                <>
+                                  <div className="font-semibold text-white mt-2 mb-1">Constraints:</div>
+                                  <ul className="list-disc list-inside space-y-0.5">
+                                    {puzzle.constraints.slice(0, 2).map((constraint, idx) => (
+                                      <li key={idx}>
+                                        {constraint.type === 'time_limit' && `${constraint.value}s time limit`}
+                                        {constraint.type === 'resource_min' && `Min ${constraint.resource}: ${constraint.value}`}
+                                        {constraint.type === 'resource_max' && `Max ${constraint.resource}: ${constraint.value}`}
+                                        {constraint.type === 'no_building' && 'No buildings allowed'}
+                                        {constraint.type === 'no_research' && 'No research allowed'}
+                                        {constraint.type === 'unit_limit' && `Max ${constraint.value} units`}
+                                        {constraint.type === 'tech_required' && `Must research: ${constraint.techId}`}
+                                      </li>
+                                    ))}
+                                    {puzzle.constraints.length > 2 && (
+                                      <li>+{puzzle.constraints.length - 2} more...</li>
+                                    )}
+                                  </ul>
+                                </>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                  {selectedPuzzle && (
+                    <div className="mt-4 p-4 bg-primary/10 border border-primary/30 rounded-lg">
+                      <div className="flex items-start gap-2 mb-2">
+                        <Puzzle className="w-4 h-4 text-primary mt-0.5" />
+                        <div className="flex-1">
+                          <h5 className="font-semibold mb-2">Hints for {getPuzzle(selectedPuzzle)?.name}:</h5>
+                          <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
+                            {getPuzzle(selectedPuzzle)?.hints.map((hint, idx) => (
+                              <li key={idx}>{hint}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             <Card className="bg-card/70 border-primary/30">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -418,10 +537,14 @@ const Lobby = () => {
                   Single Player Configuration
                 </CardTitle>
                 <CardDescription>
-                  Configure your single player game against AI opponents
+                  {singlePlayerMode === 'puzzle' 
+                    ? 'Puzzle mode uses preset configurations'
+                    : 'Configure your single player game against AI opponents'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
+                {/* Hide config for puzzle mode */}
+                {singlePlayerMode !== 'puzzle' && (
                 <div className="grid md:grid-cols-2 gap-6">
                   {/* Commander Selection */}
                   <div className="space-y-2">
@@ -523,8 +646,10 @@ const Lobby = () => {
                     </Select>
                   </div>
                 </div>
+                )}
 
-                {/* Seed (optional) */}
+                {/* Seed (optional) - Hidden for puzzle mode */}
+                {singlePlayerMode !== 'puzzle' && (
                 <div className="space-y-2">
                   <Label htmlFor="seed">Game Seed (Optional)</Label>
                   <Input
@@ -543,15 +668,19 @@ const Lobby = () => {
                     Leave empty for random seed, or enter a specific seed for reproducible maps
                   </p>
                 </div>
+                )}
 
                 {/* Start Button */}
                 <Button
                   onClick={handleStartSinglePlayer}
                   size="lg"
                   className="w-full bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:shadow-neon"
+                  disabled={singlePlayerMode === 'puzzle' && !selectedPuzzle}
                 >
                   <Gamepad2 className="w-5 h-5 mr-2" />
-                  Start Single Player Game
+                  {singlePlayerMode === 'puzzle' 
+                    ? (selectedPuzzle ? `Start Puzzle: ${getPuzzle(selectedPuzzle)?.name}` : 'Select a Puzzle to Start')
+                    : 'Start Single Player Game'}
                 </Button>
               </CardContent>
             </Card>
