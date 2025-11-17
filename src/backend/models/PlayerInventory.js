@@ -1,5 +1,5 @@
 // src/backend/models/PlayerInventory.js
-import { createClient } from '@supabase/supabase-js';
+const { createClient } = require('@supabase/supabase-js');
 
 class PlayerInventory {
   constructor(playerId) {
@@ -145,5 +145,5 @@ class PlayerInventory {
   }
 }
 
-export { PlayerInventory };
+module.exports = { PlayerInventory };
 

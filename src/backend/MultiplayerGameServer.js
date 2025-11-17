@@ -2,24 +2,37 @@
  * MultiplayerGameServer - WebSocket Server with Game Management
  * Complete multiplayer backend for Quaternion RTS game
  */
-const express = require('express');
-const http = require('http');
-const WebSocket = require('ws');
-const { EventEmitter } = require('events');
-const { v4: uuidv4 } = require('uuid');
-const { MultiplayerGameState } = require('./game/MultiplayerGameState');
-const { MultiplayerAIController } = require('./ai/MultiplayerAIController');
-const { CommandQueue } = require('./utils/CommandQueue');
-const { ReplayRecorder } = require('./utils/ReplayRecorder');
-const { MatchmakingQueue } = require('./utils/MatchmakingQueue');
+import express from 'express';
+import http from 'http';
+import { WebSocket, WebSocketServer } from 'ws';
+import { EventEmitter } from 'events';
+import { v4 as uuidv4 } from 'uuid';
+import { MultiplayerGameState } from './game/MultiplayerGameState.js';
+import { MultiplayerAIController } from './ai/MultiplayerAIController.js';
+import { CommandQueue } from './utils/CommandQueue.js';
+import { ReplayRecorder } from './utils/ReplayRecorder.js';
+import { MatchmakingQueue } from './utils/MatchmakingQueue.js';
 
 class MultiplayerGameServer extends EventEmitter {
-  constructor(port = 3000) {
+  constructor(options = {}) {
     super();
-    this.port = port;
-    this.app = express();
-    this.server = http.createServer(this.app);
-    this.wss = new WebSocket.Server({ server: this.server });
+    this.port = options.port || 3000;
+    
+    // Use existing app/server if provided, otherwise create new ones
+    if (options.app && options.server) {
+      this.app = options.app;
+      this.server = options.server;
+    } else {
+      this.app = express();
+      this.server = http.createServer(this.app);
+    }
+    
+    // Use existing WebSocket server if provided, otherwise create new one
+    if (options.wss) {
+      this.wss = options.wss;
+    } else {
+      this.wss = new WebSocketServer({ server: this.server });
+    }
     
     this.games = new Map(); // gameId -> GameSession
     this.players = new Map(); // playerId -> PlayerConnection
@@ -30,7 +43,11 @@ class MultiplayerGameServer extends EventEmitter {
   }
 
   setupRoutes() {
-    this.app.use(express.json());
+    // Only add JSON parser if not already added
+    if (!this.app._jsonParserAdded) {
+      this.app.use(express.json());
+      this.app._jsonParserAdded = true;
+    }
 
     // Create new multiplayer game
     this.app.post('/api/multiplayer/create', (req, res) => {
@@ -158,7 +175,7 @@ class MultiplayerGameServer extends EventEmitter {
   }
 
   setupWebSocketHandlers() {
-    this.wss.on('connection', (ws) => {
+    this.wss.on('connection', (ws, req) => {
       const connectionId = uuidv4();
       const playerConnection = new PlayerConnection(ws, connectionId);
 
@@ -440,9 +457,14 @@ class MultiplayerGameServer extends EventEmitter {
   }
 
   start() {
-    this.server.listen(this.port, () => {
-      console.log(`Multiplayer server running on port ${this.port}`);
-    });
+    // Only start server if we created it ourselves
+    if (!this._externalServer) {
+      this.server.listen(this.port, () => {
+        console.log(`Multiplayer server running on port ${this.port}`);
+      });
+    } else {
+      console.log(`Multiplayer server attached to existing HTTP server`);
+    }
   }
 }
 
@@ -497,7 +519,7 @@ class GameSession {
 
   broadcastToPlayers(message) {
     for (const [playerId, connection] of this.players.entries()) {
-      if (connection && connection.ws.readyState === WebSocket.OPEN) {
+      if (connection && connection.ws.readyState === 1) { // WebSocket.OPEN = 1
         connection.send(message);
       }
     }
@@ -554,11 +576,11 @@ class PlayerConnection {
   }
 
   send(message) {
-    if (this.ws.readyState === WebSocket.OPEN) {
+    if (this.ws.readyState === 1) { // WebSocket.OPEN = 1
       this.ws.send(JSON.stringify(message));
     }
   }
 }
 
-module.exports = { MultiplayerGameServer, GameSession };
+export { MultiplayerGameServer, GameSession };
 

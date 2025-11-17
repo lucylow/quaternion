@@ -1,0 +1,8 @@
+# Place your music stem files here (OGG format recommended)
+# Examples:
+# - ambient.ogg (ambient background music)
+# - tension.ogg (tension/combat music)
+# - pulse.ogg (rhythmic pulse layer)
+# 
+# These stems will be mixed together based on game state
+

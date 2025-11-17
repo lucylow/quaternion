@@ -26,6 +26,7 @@ import { AllocationPuzzleModal } from '@/components/game/AllocationPuzzleModal';
 import { BlackMarketPanel } from '@/components/game/BlackMarketPanel';
 import { ResourceAdvisorPanel } from '@/components/game/ResourceAdvisorPanel';
 import { ResourceType } from '@/game/ResourceManager';
+import { initializeAudio } from '@/audio/audioInit';
 
 interface GameResources {
   ore: number;
@@ -97,6 +98,9 @@ const QuaternionGame = () => {
 
   useEffect(() => {
     if (!gameRef.current || phaserGameRef.current) return;
+
+    // Initialize audio system (non-blocking, will work after user interaction)
+    initializeAudio().catch(err => console.warn('Audio init deferred:', err));
 
     // Store functions in variables accessible to the scene
     const showToast = toast;

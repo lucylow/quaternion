@@ -56,11 +56,15 @@ export class EnhancedMapRenderer {
    */
   async initializeMap(): Promise<void> {
     try {
-      // Create parallax background
-      this.parallaxLayers = this.assetManager.createParallaxBackground(
-        this.scene,
-        this.country
-      );
+      // Create parallax background (may fail if assets not loaded, that's ok)
+      try {
+        this.parallaxLayers = this.assetManager.createParallaxBackground(
+          this.scene,
+          this.country
+        );
+      } catch (error) {
+        console.warn('Parallax background not available, continuing without it');
+      }
 
       // Load country-specific metadata
       const metadata = await this.assetManager.loadCountryMetadata(this.country);
@@ -75,8 +79,12 @@ export class EnhancedMapRenderer {
         this.addEnvironmentObjects(metadata.environment);
       }
 
-      // Create weather effects
-      this.createWeatherEffects(metadata.weather);
+      // Create weather effects (only if particle system is available)
+      try {
+        this.createWeatherEffects(metadata.weather);
+      } catch (error) {
+        console.warn('Weather effects not available');
+      }
 
       // Setup dynamic lighting
       if (metadata.lighting) {
@@ -169,7 +177,7 @@ export class EnhancedMapRenderer {
   /**
    * Get tile type based on position
    */
-  private getTileType(x: number, y: number): string {
+  getTileType(x: number, y: number): string {
     const noise = Math.sin(x * 0.1) * Math.cos(y * 0.1);
 
     if (noise > 0.5) return 'resource';
@@ -249,22 +257,10 @@ export class EnhancedMapRenderer {
    * Create weather effects
    */
   private createWeatherEffects(weatherType: string): void {
-    const particleConfig = this.getWeatherParticleConfig(weatherType);
-
-    const manager = this.scene.add.particles(0, 0, 'particle', {
-      blendMode: 'ADD',
-    });
-
-    const emitter = manager.createEmitter(particleConfig);
-
-    // Randomly spawn particles
-    for (let i = 0; i < 10; i++) {
-      const x = Math.random() * this.width;
-      const y = Math.random() * this.height;
-      emitter.emitParticleAt(x, y);
-    }
-
-    this.weatherEffects.push(emitter);
+    // Only create weather effects if particle system is available
+    // For now, we'll skip this as it requires a particle texture
+    // This can be enabled when particle assets are available
+    console.log(`Weather effect requested: ${weatherType}`);
   }
 
   /**
@@ -372,8 +368,10 @@ export class EnhancedMapRenderer {
    * Get tile at position
    */
   getTileAt(x: number, y: number): { x: number; y: number; type: string } {
-    const tileType = this.getTileType(x / 32, y / 32);
-    return { x, y, type: tileType };
+    const tileX = Math.floor(x / 32);
+    const tileY = Math.floor(y / 32);
+    const tileType = this.getTileType(tileX, tileY);
+    return { x: tileX, y: tileY, type: tileType };
   }
 
   /**

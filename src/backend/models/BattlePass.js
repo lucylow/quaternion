@@ -1,5 +1,5 @@
 // src/backend/models/BattlePass.js
-import { createClient } from '@supabase/supabase-js';
+const { createClient } = require('@supabase/supabase-js');
 
 class BattlePass {
   constructor(playerId, passType) {
@@ -323,5 +323,5 @@ class BattlePass {
   }
 }
 
-export { BattlePass };
+module.exports = { BattlePass };
 

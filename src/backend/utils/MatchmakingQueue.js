@@ -69,5 +69,5 @@ class MatchmakingQueue {
   }
 }
 
-module.exports = { MatchmakingQueue };
+export { MatchmakingQueue };
 

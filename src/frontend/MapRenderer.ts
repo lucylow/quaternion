@@ -144,11 +144,7 @@ export class MapRenderer {
     // Create particle systems at random walkable tiles
     Object.entries(config).forEach(([name, settings]) => {
       const manager = this.scene.add.particles(0, 0, 'particle', {
-        blendMode: 'ADD',
-        scale: settings.scale || { start: 1, end: 0 },
-        alpha: settings.alpha || { start: 1, end: 0 },
-        lifespan: settings.lifespan || 1000,
-        frequency: -1 // Manual emission
+        blendMode: 'ADD'
       });
 
       // Create emitter with proper configuration
@@ -162,31 +158,14 @@ export class MapRenderer {
         tint: settings.tint,
         gravityY: settings.gravityY,
         emitZone: settings.emitZone,
-        frequency: 100 // Emit every 100ms
+        frequency: -1 // Manual emission only
       };
 
+      // Create one emitter per particle type (will be positioned dynamically)
       const emitter = manager.createEmitter(emitterConfig);
+      emitter.stop(); // Start stopped, we'll emit manually
 
-      // Randomly place emitters on walkable terrain
-      for (let i = 0; i < 3; i++) {
-        let x: number, y: number, tile: TileData;
-        let attempts = 0;
-        do {
-          x = Math.floor(Math.random() * this.width);
-          y = Math.floor(Math.random() * this.height);
-          tile = this.mapData[y][x];
-          attempts++;
-        } while (!tile.walkable && attempts < 50);
-
-        if (tile.walkable) {
-          const worldX = x * this.tileSize + this.tileSize / 2;
-          const worldY = y * this.tileSize + this.tileSize / 2;
-
-          emitter.setPosition(worldX, worldY);
-          emitter.start();
-        }
-      }
-
+      // Store the manager for later use
       this.particleEmitters[name] = manager;
     });
   }
@@ -253,9 +232,17 @@ export class MapRenderer {
         if (this.mapData[y] && this.mapData[y][x] && this.mapData[y][x].walkable) {
           const worldX = x * this.tileSize + this.tileSize / 2;
           const worldY = y * this.tileSize + this.tileSize / 2;
-          const emitter = this.particleEmitters[randomEmitterName].emitters.list[0];
-          if (emitter) {
-            emitter.emitParticleAt(worldX, worldY);
+          const manager = this.particleEmitters[randomEmitterName];
+          if (manager && manager.emitters && manager.emitters.list.length > 0) {
+            const emitter = manager.emitters.list[0];
+            if (emitter) {
+              // Temporarily set position and emit
+              const oldX = emitter.x;
+              const oldY = emitter.y;
+              emitter.setPosition(worldX, worldY);
+              emitter.emitParticle(1);
+              emitter.setPosition(oldX, oldY);
+            }
           }
         }
       }

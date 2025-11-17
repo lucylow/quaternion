@@ -48,8 +48,9 @@ export class GameClient {
   private reconnectDelay = 1000;
 
   constructor(serverUrl: string) {
-    // Convert http to ws
-    this.serverUrl = serverUrl.replace(/^http/, 'ws');
+    // Convert http to ws and add WebSocket path
+    const wsUrl = serverUrl.replace(/^http/, 'ws');
+    this.serverUrl = `${wsUrl}/ws`;
   }
 
   connect(playerId: string, token?: string): Promise<void> {

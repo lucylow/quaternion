@@ -182,43 +182,18 @@ export class AssetManager {
       'notifications',
     ];
 
-    // Since we may not have all UI assets, we'll create placeholders
-    for (const element of uiElements) {
-      const basePath = `${this.assetPaths.ui}${element}.png`;
-
-      // Try to load, but don't fail if missing
-      try {
-        this.scene.load.image(`ui_${element}`, basePath);
-      } catch (error) {
-        console.warn(`UI asset not found: ${element}`);
-      }
-    }
+    // Since we may not have all UI assets, we'll skip loading them
+    // They can be loaded on-demand if needed
+    console.log('UI assets can be loaded on-demand');
   }
 
   /**
    * Load mobile-specific assets and layouts
    */
   async loadMobileAssets(): Promise<void> {
-    const mobileUI = [
-      'touch_controls',
-      'mobile_hud',
-      'minimap_mobile',
-      'unit_selection_mobile',
-      'build_menu_mobile',
-      'chat_mobile',
-      'inventory_mobile',
-    ];
-
-    // Load mobile mockup images
-    for (const ui of mobileUI) {
-      const basePath = `${this.assetPaths.mobile}${ui}.webp`;
-
-      try {
-        this.scene.load.image(`mobile_${ui}`, basePath);
-      } catch (error) {
-        console.warn(`Mobile asset not found: ${ui}`);
-      }
-    }
+    // Mobile assets can be loaded on-demand from the mobile-mockups directory
+    // The ResponsiveMobileUI will create UI elements programmatically
+    console.log('Mobile assets can be loaded on-demand');
   }
 
   /**

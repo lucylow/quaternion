@@ -170,7 +170,7 @@ export class FormationSystem {
     const positions = [];
     const radius = (units.length * spacing) / (2 * Math.PI);
 
-    units.forEach((unit, index) {
+    units.forEach((unit, index) => {
       const angle = (index / units.length) * Math.PI * 2;
       const x = center.x + Math.cos(angle) * radius;
       const y = center.y + Math.sin(angle) * radius;

@@ -2,7 +2,7 @@
  * MultiplayerAIController - Deterministic AI with Difficulty Scaling
  * Adapter for existing AIController to work with multiplayer game state
  */
-const { AIController, AIDifficulty } = require('../../ai/AIController.js');
+import { AIController, AIDifficulty } from '../../ai/AIController.js';
 
 class MultiplayerAIController {
   constructor(config) {
@@ -507,5 +507,5 @@ class AIState {
   }
 }
 
-module.exports = { MultiplayerAIController, AIState };
+export { MultiplayerAIController, AIState };
 

@@ -41,5 +41,5 @@ class CommandQueue {
   }
 }
 
-module.exports = { CommandQueue };
+export { CommandQueue };
 

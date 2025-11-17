@@ -8,8 +8,11 @@ export default class MusicManager {
   static instance() { if (!this._instance) this._instance = new MusicManager(); return this._instance; }
 
   private stems: Record<string, Stem> = {}; // e.g., 'ambient','tension','triumph'
-  private audioCtx = AudioManager.instance().getAudioContext();
   private active = false;
+
+  private getAudioContext() {
+    return AudioManager.instance().getAudioContext();
+  }
 
   async loadStems(list: { id: string, url: string }[]) {
     const am = AudioManager.instance();
@@ -23,7 +26,7 @@ export default class MusicManager {
   // start playing baseline stems (looped). Stems will be played via bufferSource + gain nodes.
   playBase(stemIds: string[]) {
     const am = AudioManager.instance();
-    const ctx = am.getAudioContext();
+    const ctx = this.getAudioContext();
 
     // stop existing stems
     this.stopAll();
@@ -50,7 +53,7 @@ export default class MusicManager {
 
   // morph stems by policy object: { ambient:0.8, tension:0.2 }
   setStemVolumes(volumes: Record<string, number>, ramp = 0.5) {
-    const ctx = AudioManager.instance().getAudioContext();
+    const ctx = this.getAudioContext();
     const now = ctx.currentTime;
     Object.entries(volumes).forEach(([id, v]) => {
       const s = this.stems[id];

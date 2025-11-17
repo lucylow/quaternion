@@ -2,7 +2,7 @@
  * MultiplayerGameState - Adapter for existing GameState to work with multiplayer
  * Wraps the existing GameState.js to provide multiplayer-compatible interface
  */
-const { GameState } = require('../../game/GameState.js');
+import { GameState } from '../../game/GameState.js';
 
 class MultiplayerGameState {
   constructor(config) {
@@ -326,5 +326,5 @@ class MultiplayerGameState {
   }
 }
 
-module.exports = { MultiplayerGameState };
+export { MultiplayerGameState };
 

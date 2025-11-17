@@ -1,8 +1,10 @@
 // src/backend/services/StripePaymentService.js
-import Stripe from 'stripe';
-import { v4 as uuidv4 } from 'uuid';
+const Stripe = require('stripe');
+const { v4: uuidv4 } = require('uuid');
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const stripe = process.env.STRIPE_SECRET_KEY 
+  ? new Stripe(process.env.STRIPE_SECRET_KEY)
+  : null;
 
 class StripePaymentService {
   constructor() {
@@ -16,6 +18,9 @@ class StripePaymentService {
    */
   async createCustomer(playerId, playerData) {
     try {
+      if (!stripe) {
+        throw new Error('Stripe not configured. Please set STRIPE_SECRET_KEY environment variable.');
+      }
       const customer = await stripe.customers.create({
         email: playerData.email,
         metadata: {
@@ -45,6 +50,9 @@ class StripePaymentService {
    */
   async processOneTimePayment(playerId, amount, productType, productId) {
     try {
+      if (!stripe) {
+        throw new Error('Stripe not configured. Please set STRIPE_SECRET_KEY environment variable.');
+      }
       const customer = this.customers.get(playerId);
       if (!customer) {
         throw new Error('Customer not found');
@@ -92,6 +100,9 @@ class StripePaymentService {
    */
   async confirmPayment(paymentIntentId, playerId) {
     try {
+      if (!stripe) {
+        throw new Error('Stripe not configured. Please set STRIPE_SECRET_KEY environment variable.');
+      }
       const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
 
       if (paymentIntent.status !== 'succeeded') {
@@ -124,6 +135,9 @@ class StripePaymentService {
    */
   async createSubscription(playerId, planId, billingCycle = 'monthly') {
     try {
+      if (!stripe) {
+        throw new Error('Stripe not configured. Please set STRIPE_SECRET_KEY environment variable.');
+      }
       const customer = this.customers.get(playerId);
       if (!customer) {
         throw new Error('Customer not found');
@@ -177,6 +191,9 @@ class StripePaymentService {
    */
   async cancelSubscription(subscriptionId, playerId) {
     try {
+      if (!stripe) {
+        throw new Error('Stripe not configured. Please set STRIPE_SECRET_KEY environment variable.');
+      }
       const subscription = this.subscriptions.get(subscriptionId);
       if (!subscription || subscription.playerId !== playerId) {
         throw new Error('Subscription not found');
@@ -203,6 +220,9 @@ class StripePaymentService {
    */
   async getCustomerBilling(playerId) {
     try {
+      if (!stripe) {
+        throw new Error('Stripe not configured. Please set STRIPE_SECRET_KEY environment variable.');
+      }
       const customer = this.customers.get(playerId);
       if (!customer) {
         throw new Error('Customer not found');
@@ -245,6 +265,9 @@ class StripePaymentService {
    */
   async processRefund(paymentIntentId, amount = null) {
     try {
+      if (!stripe) {
+        throw new Error('Stripe not configured. Please set STRIPE_SECRET_KEY environment variable.');
+      }
       const refund = await stripe.refunds.create({
         payment_intent: paymentIntentId,
         amount: amount ? Math.round(amount * 100) : undefined
@@ -262,5 +285,5 @@ class StripePaymentService {
   }
 }
 
-export { StripePaymentService };
+module.exports = { StripePaymentService };
 

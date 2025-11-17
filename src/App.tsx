@@ -17,6 +17,9 @@ const AIFeatures = lazy(() => import("./pages/AIFeatures"));
 const Replays = lazy(() => import("./pages/Replays"));
 const TechTree = lazy(() => import("./pages/TechTree"));
 const MapGenerator = lazy(() => import("./pages/MapGenerator"));
+const CosmeticShop = lazy(() => import("./pages/CosmeticShop"));
+const Checkout = lazy(() => import("./pages/Checkout"));
+const BattlePass = lazy(() => import("./pages/BattlePass"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Loading fallback component
@@ -48,6 +51,9 @@ const App = () => (
               <Route path="/replays" element={<Replays />} />
               <Route path="/tech-tree" element={<TechTree />} />
               <Route path="/map-generator" element={<MapGenerator />} />
+              <Route path="/shop" element={<CosmeticShop />} />
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/battle-pass" element={<BattlePass />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

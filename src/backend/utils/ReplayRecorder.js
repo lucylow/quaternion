@@ -44,5 +44,5 @@ class ReplayRecorder {
   }
 }
 
-module.exports = { ReplayRecorder };
+export { ReplayRecorder };
 
