@@ -68,6 +68,8 @@ const Index = () => {
               <a href="#ai-tools" onClick={(e) => { e.preventDefault(); scrollToSection('ai-tools'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded">AI Tools</a>
               <a href="#demo" onClick={(e) => { e.preventDefault(); scrollToSection('demo'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded">Demo</a>
               <a href="#characters" onClick={(e) => { e.preventDefault(); scrollToSection('characters'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded">Characters</a>
+              <a href="/game" onClick={(e) => { e.preventDefault(); navigate('/game'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded">Game</a>
+              <a href="/quaternion" onClick={(e) => { e.preventDefault(); navigate('/quaternion'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded">Quaternion</a>
             </div>
             <Button 
               onClick={() => navigate('/quaternion')}
