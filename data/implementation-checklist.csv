@@ -1,0 +1,13 @@
+Priority,Feature,Timeframe,AI Tools Involved,Judges See
+P0 - Critical,Web-playable build (Rosebud AI / Itch.io),Week 1,Rosebud AI / Itch.io,Playable in browser without download
+P0 - Critical,Core RTS gameplay (units, resources, terrain),Weeks 1-2,Unity Engine,Core gameplay loop (clear goals, feedback)
+P0 - Critical,Procedural map generation (seed-based),Week 2,Luma AI Google AI Pro,Each match feels different; strategic depth
+P1 - High,AI opponent with behavior tree,Week 3,Google AI Pro ML models,Opponent adapts; makes intelligent decisions
+P1 - High,ElevenLabs voice integration (2-3 lines),Week 3,ElevenLabs TTS API,Voiced narration; immersive atmosphere
+P1 - High,Dynamic terrain events (LLM-generated),Week 3-4,Saga AI Google AI Pro ElevenLabs,Reactive world; narrative context to events
+P2 - Important,Adaptive music (Fuser integration),Week 4,Fuser API,Music matches game tension; not jarring
+P2 - Important,Commander personality system,Week 3-4,Saga AI Google AI Pro,Distinct opponent personalities; replayable
+P2 - Important,NPC trader interactions,Week 4,Saga AI for dialogue,Living world; NPCs respond to player
+P3 - Nice-to-Have,Custom voice cloning for commanders,Week 5 (optional),ElevenLabs Voice Cloning,Premium voice production
+P3 - Nice-to-Have,Procedural asset generation (OpenArt pipeline),Week 5 (optional),OpenArt Magnific Mago Studio,Cohesive, professional visual aesthetic
+

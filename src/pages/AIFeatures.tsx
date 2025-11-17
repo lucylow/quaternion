@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Brain, Bot, Sparkles, Cpu, Network, Zap, Gift, Trophy, Mic, Video, Music, Image, Code, Palette, Layers, Play } from "lucide-react";
+import { ArrowLeft, Brain, Bot, Sparkles, Cpu, Network, Zap, Gift, Trophy, Mic, Video, Music, Image, Code, Palette, Layers, Play, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AIPipelineVisualization from "@/components/AIPipelineVisualization";
+import AIImplementationChecklist from "@/components/AIImplementationChecklist";
 
 const AIFeatures = () => {
   const navigate = useNavigate();
@@ -127,6 +128,39 @@ const AIFeatures = () => {
     }
   ];
 
+  const chromaCriteria = [
+    {
+      name: "Narrative Design",
+      delivery: "Dynamic AI-generated battle intros, commander dialogue, reactive world events. Player feels immersed in living strategy world.",
+      tools: "Saga AI, Google AI Pro, ElevenLabs",
+      evidence: "Playable demo with unique narration each match"
+    },
+    {
+      name: "Creativity & Originality",
+      delivery: "Original IP; no franchise re-use. Every map procedurally unique. AI opponent personalities distinct. Uses AI meaningfully.",
+      tools: "Luma AI, Saga AI, OpenArt, ImagineArt",
+      evidence: "Diverse map generation; distinct commander personalities visible in gameplay"
+    },
+    {
+      name: "Music & Sound",
+      delivery: "Adaptive music tracks generated via Fuser; voice acting for commanders and narration via ElevenLabs. Soundscape cohesive and responsive.",
+      tools: "Fuser, ElevenLabs, Google AI Pro",
+      evidence: "Real-time music layering; distinct voice performances; environmental SFX"
+    },
+    {
+      name: "Thematic Adherence",
+      delivery: "Game is 100% web-playable, no downloads. Playable within 15-30 min. Follows all Chroma guidelines. Transparent AI usage.",
+      tools: "Rosebud AI / Itch.io (hosting)",
+      evidence: "YouTube trailer; Devpost submission with tool tags; gameplay demo"
+    },
+    {
+      name: "Production Value",
+      delivery: "High-quality visuals (AI-generated, upscaled, polished). No bugs or glitches in demo. Smooth UI, responsive controls.",
+      tools: "Magnific, Mago Studio, CapCut, Dreamina",
+      evidence: "Professional-quality assets; bug-free 15-minute playable demo"
+    }
+  ];
+
   const chromaAwardsOffers = [
     { name: "ElevenLabs", offer: "2 Months of Starter (Worth $10)", value: "$10", categories: ["Voiceover", "Music", "Sound Effects"] },
     { name: "Freepik", offer: "50% Off Annual Premium+ Plans (Worth $321)", value: "$321", categories: ["Image & Video", "Editing Tools", "Stock Assets", "3D", "Fine-Tuning"] },
@@ -197,6 +231,109 @@ const AIFeatures = () => {
           {/* AI Pipeline Visualization */}
           <section className="mb-16">
             <AIPipelineVisualization />
+          </section>
+
+          {/* AI Implementation Checklist */}
+          <section className="mb-16">
+            <AIImplementationChecklist />
+          </section>
+
+          {/* Chroma Awards Criteria Table */}
+          <section className="mb-16">
+            <div className="text-center mb-8">
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <Trophy className="w-8 h-8 text-primary" />
+                <h2 className="text-3xl font-bold text-primary">Chroma Awards Criteria vs Quaternion</h2>
+                <CheckCircle2 className="w-8 h-8 text-secondary" />
+              </div>
+              <p className="text-muted-foreground max-w-3xl mx-auto">
+                How Quaternion delivers on each Chroma Awards evaluation criterion with comprehensive AI integration
+              </p>
+            </div>
+
+            <div className="overflow-x-auto">
+              <div className="min-w-full inline-block align-middle">
+                <div className="overflow-hidden rounded-lg border border-primary/30 bg-card/70">
+                  <table className="min-w-full divide-y divide-primary/20">
+                    <thead>
+                      <tr className="bg-primary/20">
+                        <th className="px-6 py-4 text-left text-sm font-bold text-primary uppercase tracking-wider border-r border-primary/20">
+                          Criterion
+                        </th>
+                        <th className="px-6 py-4 text-left text-sm font-bold text-primary uppercase tracking-wider border-r border-primary/20">
+                          How Quaternion Delivers
+                        </th>
+                        <th className="px-6 py-4 text-left text-sm font-bold text-primary uppercase tracking-wider border-r border-primary/20">
+                          AI Tools Used
+                        </th>
+                        <th className="px-6 py-4 text-left text-sm font-bold text-primary uppercase tracking-wider">
+                          Judge Evidence
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-primary/10">
+                      {chromaCriteria.map((criterion, index) => (
+                        <tr 
+                          key={index} 
+                          className={`transition-colors hover:bg-primary/5 ${
+                            index % 2 === 0 ? 'bg-card/50' : 'bg-card/30'
+                          }`}
+                        >
+                          <td className="px-6 py-5 whitespace-nowrap border-r border-primary/20">
+                            <div className="text-sm font-bold text-primary">
+                              {criterion.name}
+                            </div>
+                          </td>
+                          <td className="px-6 py-5 border-r border-primary/20">
+                            <div className="text-sm text-muted-foreground leading-relaxed max-w-md">
+                              {criterion.delivery}
+                            </div>
+                          </td>
+                          <td className="px-6 py-5 border-r border-primary/20">
+                            <div className="text-sm text-secondary font-medium">
+                              {criterion.tools}
+                            </div>
+                          </td>
+                          <td className="px-6 py-5">
+                            <div className="text-sm text-muted-foreground">
+                              {criterion.evidence}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile-friendly card view */}
+            <div className="mt-8 md:hidden space-y-4">
+              {chromaCriteria.map((criterion, index) => (
+                <Card key={index} className="bg-card/70 border-primary/30">
+                  <CardContent className="p-6">
+                    <h3 className="text-lg font-bold text-primary mb-3 flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 text-secondary" />
+                      {criterion.name}
+                    </h3>
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-xs font-semibold text-primary mb-1 uppercase tracking-wide">How We Deliver</p>
+                        <p className="text-sm text-muted-foreground leading-relaxed">{criterion.delivery}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-primary mb-1 uppercase tracking-wide">AI Tools Used</p>
+                        <p className="text-sm text-secondary font-medium">{criterion.tools}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-primary mb-1 uppercase tracking-wide">Judge Evidence</p>
+                        <p className="text-sm text-muted-foreground">{criterion.evidence}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </section>
 
           {/* Development Pipeline */}

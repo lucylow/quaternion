@@ -21,14 +21,16 @@
       * { margin: 0; padding: 0; box-sizing: border-box; }
       body { 
         margin: 0; 
-        overflow: hidden; 
+        overflow-x: hidden; 
+        overflow-y: auto;
         background: hsl(220, 40%, 5%);
         color: hsl(180, 100%, 95%);
         font-family: 'Orbitron', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        -webkit-overflow-scrolling: touch;
       }
       #root { 
-        width: 100vw; 
-        height: 100vh; 
+        width: 100%; 
+        min-height: 100vh; 
         position: relative;
       }
       /* Loading indicator */

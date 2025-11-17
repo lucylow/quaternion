@@ -33,22 +33,24 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Suspense fallback={<RouteLoader />}>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/game" element={<Game />} />
-            <Route path="/lobby" element={<Lobby />} />
-            <Route path="/quaternion" element={<QuaternionGame />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/commanders" element={<Commanders />} />
-            <Route path="/how-to-play" element={<HowToPlay />} />
-            <Route path="/ai-features" element={<AIFeatures />} />
-            <Route path="/replays" element={<Replays />} />
-            <Route path="/tech-tree" element={<TechTree />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
+        <div className="min-h-screen w-full overflow-x-hidden">
+          <Suspense fallback={<RouteLoader />}>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/game" element={<Game />} />
+              <Route path="/lobby" element={<Lobby />} />
+              <Route path="/quaternion" element={<QuaternionGame />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/commanders" element={<Commanders />} />
+              <Route path="/how-to-play" element={<HowToPlay />} />
+              <Route path="/ai-features" element={<AIFeatures />} />
+              <Route path="/replays" element={<Replays />} />
+              <Route path="/tech-tree" element={<TechTree />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </div>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

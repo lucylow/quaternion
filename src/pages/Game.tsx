@@ -50,10 +50,10 @@ const Game = () => {
     if (!gameRef.current || phaserGameRef.current) return;
 
     const playerUnits: Phaser.Physics.Arcade.Sprite[] = [];
-    const selectedUnits: Phaser.Physics.Arcade.Sprite[] = [];
+    let selectedUnits: Phaser.Physics.Arcade.Sprite[] = [];
     let selectionGraphics: Phaser.GameObjects.Graphics;
     let isSelecting = false;
-    const selectionStart = { x: 0, y: 0 };
+    let selectionStart = { x: 0, y: 0 };
     const resourceNodes: Phaser.GameObjects.Sprite[] = [];
 
     const config: Phaser.Types.Core.GameConfig = {
