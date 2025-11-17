@@ -22,7 +22,14 @@ export type TerrainFeatureType =
   | 'bridge' 
   | 'tunnel' 
   | 'road' 
-  | 'objective';
+  | 'objective'
+  | 'crashed_ship'
+  | 'memorial'
+  | 'artifact'
+  | 'ancient_ruins'
+  | 'broadcast_tower'
+  | 'research_station'
+  | 'cataclysm_scar';
 
 export type DynamicAnomalyType = 
   | 'lava_vent' 
@@ -45,6 +52,13 @@ export interface Tile {
   strategicValue: number; // 0-100, for AI evaluation
   feature?: TerrainFeatureType;
   metadata?: Record<string, any>;
+  lore?: {
+    name?: string;
+    description?: string;
+    backstory?: string;
+    factionContext?: string;
+    eventText?: string;
+  };
 }
 
 export interface Chokepoint {
