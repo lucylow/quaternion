@@ -7,12 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Users, User, Gamepad2, Plus, Search, ArrowLeft, Loader2 } from 'lucide-react';
+import { Users, User, Gamepad2, Plus, Search, ArrowLeft, Loader2, Target, BookOpen, Puzzle, Film, Zap, Leaf, Brain, Box } from 'lucide-react';
 import { COMMANDERS } from '@/data/quaternionData';
 import { toast } from 'sonner';
 
 interface GameConfig {
-  mode: 'single' | 'multiplayer';
+  mode: 'single' | 'multiplayer' | 'campaign' | 'puzzle' | 'theater';
   commanderId: string;
   difficulty?: 'easy' | 'medium' | 'hard';
   mapType?: string;
@@ -20,6 +20,10 @@ interface GameConfig {
   mapHeight?: number;
   seed?: number;
   roomId?: string;
+  gameMode?: 'arena' | 'campaign' | 'puzzle' | 'theater';
+  quaternionAxis?: 'matter' | 'energy' | 'life' | 'knowledge';
+  cooperativeMode?: boolean;
+  replayId?: string;
 }
 
 interface Room {
@@ -31,15 +35,24 @@ interface Room {
   status: 'waiting' | 'starting' | 'in-progress';
   mapType: string;
   createdAt: string;
+  cooperativeMode?: boolean;
+  assignedAxes?: {
+    matter?: string;
+    energy?: string;
+    life?: string;
+    knowledge?: string;
+  };
 }
 
 const Lobby = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'single' | 'multiplayer'>('single');
+  const [singlePlayerMode, setSinglePlayerMode] = useState<'arena' | 'campaign' | 'puzzle' | 'theater'>('arena');
   
   // Single player config
   const [singlePlayerConfig, setSinglePlayerConfig] = useState<GameConfig>({
     mode: 'single',
+    gameMode: 'arena',
     commanderId: 'AUREN',
     difficulty: 'medium',
     mapType: 'crystalline_plains',
@@ -65,7 +78,22 @@ const Lobby = () => {
     commanderId: 'AUREN',
     mapType: 'crystalline_plains',
     mapWidth: 40,
-    mapHeight: 30
+    mapHeight: 30,
+    cooperativeMode: false,
+    quaternionAxis: undefined
+  });
+
+  // Campaign progress
+  const [campaignProgress, setCampaignProgress] = useState({
+    currentChapter: 1,
+    unlockedChapters: [1],
+    completedSeeds: [] as number[]
+  });
+
+  // Puzzle progress
+  const [puzzleProgress, setPuzzleProgress] = useState({
+    completed: [] as string[],
+    unlocked: ['puzzle_1', 'puzzle_2']
   });
 
   // Room management
@@ -101,9 +129,26 @@ const Lobby = () => {
   }, [activeTab]);
 
   const handleStartSinglePlayer = () => {
+    const config = { ...singlePlayerConfig };
+    
+    // Handle different game modes
+    if (singlePlayerMode === 'campaign') {
+      config.mode = 'campaign';
+      config.seed = campaignProgress.currentChapter * 1000000 + Math.floor(Math.random() * 1000);
+    } else if (singlePlayerMode === 'puzzle') {
+      config.mode = 'puzzle';
+      // Puzzle mode uses specific seeds
+      config.seed = 999000; // Default puzzle seed
+    } else if (singlePlayerMode === 'theater') {
+      config.mode = 'theater';
+      // Theater mode needs a replay ID - for now, use a default
+      toast.info('Theater mode: Select a replay to watch');
+      return;
+    }
+    
     navigate('/quaternion', {
       state: {
-        config: singlePlayerConfig
+        config
       }
     });
   };
@@ -111,6 +156,12 @@ const Lobby = () => {
   const handleCreateRoom = async () => {
     if (!roomName.trim()) {
       toast.error('Please enter a room name');
+      return;
+    }
+
+    // Validate cooperative mode requirements
+    if (multiplayerConfig.cooperativeMode && !multiplayerConfig.quaternionAxis) {
+      toast.error('Please select your Quaternion Axis for cooperative mode');
       return;
     }
 
@@ -124,7 +175,9 @@ const Lobby = () => {
           mapType: multiplayerConfig.mapType,
           mapWidth: multiplayerConfig.mapWidth,
           mapHeight: multiplayerConfig.mapHeight,
-          commanderId: multiplayerConfig.commanderId
+          commanderId: multiplayerConfig.commanderId,
+          cooperativeMode: multiplayerConfig.cooperativeMode,
+          quaternionAxis: multiplayerConfig.quaternionAxis
         })
       });
 
@@ -151,13 +204,22 @@ const Lobby = () => {
   };
 
   const handleJoinRoom = async (roomId: string) => {
+    const room = rooms.find(r => r.id === roomId);
+    
+    // Check if cooperative mode requires axis selection
+    if (room?.cooperativeMode && !multiplayerConfig.quaternionAxis) {
+      toast.error('Please select your Quaternion Axis to join this cooperative room');
+      return;
+    }
+    
     setJoiningRoom(roomId);
     try {
       const response = await fetch(`/api/rooms/${roomId}/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          commanderId: multiplayerConfig.commanderId
+          commanderId: multiplayerConfig.commanderId,
+          quaternionAxis: multiplayerConfig.quaternionAxis
         })
       });
 
@@ -222,6 +284,89 @@ const Lobby = () => {
 
           {/* Single Player Tab */}
           <TabsContent value="single">
+            {/* Single Player Mode Selection */}
+            <div className="grid md:grid-cols-4 gap-4 mb-6">
+              <Card 
+                className={`bg-card/70 border-primary/30 cursor-pointer transition-all ${
+                  singlePlayerMode === 'arena' ? 'border-2 border-primary ring-2 ring-primary/20' : ''
+                }`}
+                onClick={() => {
+                  setSinglePlayerMode('arena');
+                  setSinglePlayerConfig({ ...singlePlayerConfig, gameMode: 'arena', mode: 'single' });
+                }}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Target className="w-5 h-5 text-primary" />
+                    <CardTitle className="text-lg">Arena Seed</CardTitle>
+                  </div>
+                  <CardDescription className="text-xs">
+                    Short replayable matches with deterministic seeds. Perfect for judges.
+                  </CardDescription>
+                </CardContent>
+              </Card>
+
+              <Card 
+                className={`bg-card/70 border-primary/30 cursor-pointer transition-all ${
+                  singlePlayerMode === 'campaign' ? 'border-2 border-primary ring-2 ring-primary/20' : ''
+                }`}
+                onClick={() => {
+                  setSinglePlayerMode('campaign');
+                  setSinglePlayerConfig({ ...singlePlayerConfig, gameMode: 'campaign', mode: 'campaign' });
+                }}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <BookOpen className="w-5 h-5 text-purple-400" />
+                    <CardTitle className="text-lg">Campaign</CardTitle>
+                  </div>
+                  <CardDescription className="text-xs">
+                    Chained seeds with advisor memory and meta-unlocks carrying over.
+                  </CardDescription>
+                </CardContent>
+              </Card>
+
+              <Card 
+                className={`bg-card/70 border-primary/30 cursor-pointer transition-all ${
+                  singlePlayerMode === 'puzzle' ? 'border-2 border-primary ring-2 ring-primary/20' : ''
+                }`}
+                onClick={() => {
+                  setSinglePlayerMode('puzzle');
+                  setSinglePlayerConfig({ ...singlePlayerConfig, gameMode: 'puzzle', mode: 'puzzle' });
+                }}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Puzzle className="w-5 h-5 text-orange-400" />
+                    <CardTitle className="text-lg">Puzzle Siege</CardTitle>
+                  </div>
+                  <CardDescription className="text-xs">
+                    Short scripted puzzles focused on equilibrium challenges.
+                  </CardDescription>
+                </CardContent>
+              </Card>
+
+              <Card 
+                className={`bg-card/70 border-primary/30 cursor-pointer transition-all ${
+                  singlePlayerMode === 'theater' ? 'border-2 border-primary ring-2 ring-primary/20' : ''
+                }`}
+                onClick={() => {
+                  setSinglePlayerMode('theater');
+                  setSinglePlayerConfig({ ...singlePlayerConfig, gameMode: 'theater', mode: 'theater' });
+                }}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Film className="w-5 h-5 text-cyan-400" />
+                    <CardTitle className="text-lg">Theater Mode</CardTitle>
+                  </div>
+                  <CardDescription className="text-xs">
+                    Replay your best runs with AI Core commentary overlay.
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            </div>
+
             {/* Quick Start for Chroma Awards */}
             <Card className="bg-card/70 border-primary/30 mb-6 border-2 border-yellow-400/50">
               <CardHeader>
@@ -230,20 +375,26 @@ const Lobby = () => {
                   Quick Start (Chroma Awards Demo)
                 </CardTitle>
                 <CardDescription>
-                  Optimized for 15-20 minute play sessions. Perfect for judges to experience the full game quickly.
+                  Optimized for 15-25 minute play sessions. Perfect for judges to experience the full game quickly.
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground">
-                      • Smaller map for faster gameplay
+                      ⚡ 50-70% faster build/research times
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      • Easier difficulty for smoother experience
+                      🎯 Reduced win condition requirements (10-20s)
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      • All core mechanics included
+                      💰 30% lower costs, 50% faster resource gathering
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      📦 Smaller map + increased starting resources
+                    </p>
+                    <p className="text-xs text-yellow-400 mt-2 font-semibold">
+                      Target completion: 15-25 minutes
                     </p>
                   </div>
                   <Button
@@ -408,6 +559,43 @@ const Lobby = () => {
 
           {/* Multiplayer Tab */}
           <TabsContent value="multiplayer">
+            {/* Multiplayer Mode Selection */}
+            <div className="grid md:grid-cols-2 gap-4 mb-6">
+              <Card 
+                className={`bg-card/70 border-primary/30 cursor-pointer transition-all ${
+                  !multiplayerConfig.cooperativeMode ? 'border-2 border-primary ring-2 ring-primary/20' : ''
+                }`}
+                onClick={() => setMultiplayerConfig({ ...multiplayerConfig, cooperativeMode: false })}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Users className="w-5 h-5 text-primary" />
+                    <CardTitle className="text-lg">Competitive</CardTitle>
+                  </div>
+                  <CardDescription className="text-xs">
+                    Standard multiplayer matches with competing factions.
+                  </CardDescription>
+                </CardContent>
+              </Card>
+
+              <Card 
+                className={`bg-card/70 border-primary/30 cursor-pointer transition-all ${
+                  multiplayerConfig.cooperativeMode ? 'border-2 border-primary ring-2 ring-primary/20' : ''
+                }`}
+                onClick={() => setMultiplayerConfig({ ...multiplayerConfig, cooperativeMode: true })}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Users className="w-5 h-5 text-green-400" />
+                    <CardTitle className="text-lg">Cooperative Faction</CardTitle>
+                  </div>
+                  <CardDescription className="text-xs">
+                    Up to 4 players, each controlling one quaternion axis (Matter, Energy, Life, Knowledge).
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            </div>
+
             <div className="grid md:grid-cols-2 gap-6">
               {/* Create Room */}
               <Card className="bg-card/70 border-primary/30">
@@ -477,6 +665,52 @@ const Lobby = () => {
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {/* Cooperative Mode: Quaternion Axis Selection */}
+                  {multiplayerConfig.cooperativeMode && (
+                    <div className="space-y-2">
+                      <Label htmlFor="quaternionAxis">Your Quaternion Axis</Label>
+                      <Select
+                        value={multiplayerConfig.quaternionAxis || ''}
+                        onValueChange={(value: 'matter' | 'energy' | 'life' | 'knowledge') =>
+                          setMultiplayerConfig({ ...multiplayerConfig, quaternionAxis: value })
+                        }
+                      >
+                        <SelectTrigger id="quaternionAxis">
+                          <SelectValue placeholder="Select your axis..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="matter">
+                            <div className="flex items-center gap-2">
+                              <Box className="w-4 h-4 text-blue-400" />
+                              Matter - Physical resources and structures
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="energy">
+                            <div className="flex items-center gap-2">
+                              <Zap className="w-4 h-4 text-yellow-400" />
+                              Energy - Power and movement
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="life">
+                            <div className="flex items-center gap-2">
+                              <Leaf className="w-4 h-4 text-green-400" />
+                              Life - Growth and sustainability
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="knowledge">
+                            <div className="flex items-center gap-2">
+                              <Brain className="w-4 h-4 text-purple-400" />
+                              Knowledge - Research and technology
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        In cooperative mode, each player controls one axis. Coordinate with your team!
+                      </p>
+                    </div>
+                  )}
 
                   <Button
                     onClick={handleCreateRoom}
@@ -548,6 +782,50 @@ const Lobby = () => {
                     </Select>
                   </div>
 
+                  {/* Quaternion Axis Selection for Joining Cooperative Rooms */}
+                  <div className="space-y-2">
+                    <Label htmlFor="joinQuaternionAxis">Quaternion Axis (for Cooperative Rooms)</Label>
+                    <Select
+                      value={multiplayerConfig.quaternionAxis || ''}
+                      onValueChange={(value: 'matter' | 'energy' | 'life' | 'knowledge') =>
+                        setMultiplayerConfig({ ...multiplayerConfig, quaternionAxis: value })
+                      }
+                    >
+                      <SelectTrigger id="joinQuaternionAxis">
+                        <SelectValue placeholder="Select axis (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="matter">
+                          <div className="flex items-center gap-2">
+                            <Box className="w-4 h-4 text-blue-400" />
+                            Matter
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="energy">
+                          <div className="flex items-center gap-2">
+                            <Zap className="w-4 h-4 text-yellow-400" />
+                            Energy
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="life">
+                          <div className="flex items-center gap-2">
+                            <Leaf className="w-4 h-4 text-green-400" />
+                            Life
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="knowledge">
+                          <div className="flex items-center gap-2">
+                            <Brain className="w-4 h-4 text-purple-400" />
+                            Knowledge
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Required for cooperative rooms. Each player controls one axis.
+                    </p>
+                  </div>
+
                   {/* Room List */}
                   <div className="space-y-2 max-h-96 overflow-y-auto">
                     {loadingRooms ? (
@@ -573,6 +851,11 @@ const Lobby = () => {
                                   <Badge variant="outline" className="text-xs">
                                     {room.mapType.replace('_', ' ')}
                                   </Badge>
+                                  {room.cooperativeMode && (
+                                    <Badge variant="outline" className="text-xs border-green-400 text-green-400">
+                                      Cooperative
+                                    </Badge>
+                                  )}
                                 </div>
                                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                   <span className="flex items-center gap-1">
@@ -581,6 +864,35 @@ const Lobby = () => {
                                   </span>
                                   <span>Host: {room.host}</span>
                                 </div>
+                                {room.cooperativeMode && room.assignedAxes && (
+                                  <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                                    <span className="text-muted-foreground">Axes:</span>
+                                    {room.assignedAxes.matter && (
+                                      <Badge variant="outline" className="text-xs border-blue-400 text-blue-400">
+                                        <Box className="w-3 h-3 mr-1" />
+                                        Matter
+                                      </Badge>
+                                    )}
+                                    {room.assignedAxes.energy && (
+                                      <Badge variant="outline" className="text-xs border-yellow-400 text-yellow-400">
+                                        <Zap className="w-3 h-3 mr-1" />
+                                        Energy
+                                      </Badge>
+                                    )}
+                                    {room.assignedAxes.life && (
+                                      <Badge variant="outline" className="text-xs border-green-400 text-green-400">
+                                        <Leaf className="w-3 h-3 mr-1" />
+                                        Life
+                                      </Badge>
+                                    )}
+                                    {room.assignedAxes.knowledge && (
+                                      <Badge variant="outline" className="text-xs border-purple-400 text-purple-400">
+                                        <Brain className="w-3 h-3 mr-1" />
+                                        Knowledge
+                                      </Badge>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                               <Button
                                 size="sm"

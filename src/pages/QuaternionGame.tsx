@@ -127,15 +127,35 @@ const QuaternionGame = () => {
       },
       scale: {
         mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        // Optimize for desktop rendering
+        autoRound: true,
       },
       physics: {
         default: 'arcade',
         arcade: {
           gravity: { y: 0 },
-          debug: false
+          debug: false,
+          // Optimize physics for desktop
+          fps: 60,
+          timeScale: 1,
         }
-      }
+      },
+      // Performance optimizations for desktop
+      render: {
+        antialias: true,
+        pixelArt: false,
+        roundPixels: false,
+        powerPreference: 'high-performance', // Prefer dedicated GPU on desktop
+      },
+      fps: {
+        target: 60,
+        forceSetTimeOut: false, // Use requestAnimationFrame for better performance
+        smoothStep: true, // Smooth frame interpolation
+      },
+      // Disable unnecessary features for better performance
+      disableContextMenu: true,
+      banner: false,
     };
 
     function preload(this: Phaser.Scene) {
@@ -697,7 +717,7 @@ const QuaternionGame = () => {
             if (wc.type === 'equilibrium') {
               progress.equilibrium = {
                 progress: wc.progress,
-                max: isQuickStart ? 30 * 60 : 60 * 60, // 30 or 60 seconds at 60 ticks/sec
+                max: isQuickStart ? 10 * 60 : 15 * 60, // 10 or 15 seconds at 60 ticks/sec (reduced)
                 label: 'Equilibrium Victory'
               };
             } else if (wc.type === 'technological') {
@@ -709,13 +729,13 @@ const QuaternionGame = () => {
             } else if (wc.type === 'territorial') {
               progress.territorial = {
                 progress: wc.progress,
-                max: isQuickStart ? 45 * 60 : 90 * 60, // 45 or 90 seconds
+                max: isQuickStart ? 15 * 60 : 20 * 60, // 15 or 20 seconds (reduced)
                 label: 'Territorial Victory'
               };
             } else if (wc.type === 'moral') {
               progress.moral = {
                 progress: player.moralAlignment || 0,
-                max: 80,
+                max: 60, // Reduced from 80 to 60
                 label: 'Moral Victory'
               };
             }
@@ -815,9 +835,9 @@ const QuaternionGame = () => {
           const dist = Phaser.Math.Distance.Between(unit.x, unit.y, target.x, target.y);
           if (dist < 30) {
             unit.setVelocity(0, 0);
-            if (time > (unit.getData('lastGather') || 0) + 2000) {
+            if (time > (unit.getData('lastGather') || 0) + 1000) { // Reduced from 2000ms to 1000ms
               const resourceType = target.getData('type');
-              const amount = 10;
+              const amount = 15; // Increased from 10 to 15
               setResources(prev => ({
                 ...prev,
                 [resourceType]: prev[resourceType as keyof GameResources] + amount
@@ -1318,11 +1338,12 @@ const QuaternionGame = () => {
                 <h3 className="text-xl font-bold text-white mb-2">Objective</h3>
                 <p>Balance four resources (Matter, Energy, Life, Knowledge) and achieve victory through one of four paths:</p>
                 <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
-                  <li><strong className="text-cyan-400">Equilibrium:</strong> Keep all resources balanced for 30-60 seconds</li>
-                  <li><strong className="text-cyan-400">Technological:</strong> Research Quantum Ascendancy</li>
-                  <li><strong className="text-cyan-400">Territorial:</strong> Control the central node</li>
-                  <li><strong className="text-cyan-400">Moral:</strong> Make ethical choices (+80 alignment)</li>
+                  <li><strong className="text-cyan-400">Equilibrium:</strong> Keep all resources balanced for 10-15 seconds</li>
+                  <li><strong className="text-cyan-400">Technological:</strong> Research Quantum Ascendancy (now faster!)</li>
+                  <li><strong className="text-cyan-400">Territorial:</strong> Control the central node for 15-20 seconds</li>
+                  <li><strong className="text-cyan-400">Moral:</strong> Make ethical choices (+60 alignment, 3 events)</li>
                 </ul>
+                <p className="text-xs text-yellow-400 mt-2">⚡ Optimized for 15-25 minute sessions!</p>
               </div>
               <div>
                 <h3 className="text-xl font-bold text-white mb-2">Controls</h3>
@@ -1369,9 +1390,19 @@ const QuaternionGame = () => {
                 <h2 className="text-3xl font-bold text-green-400 mb-2">VICTORY!</h2>
                 <p className="text-gray-300 mb-4">{gameOver.reason}</p>
                 <p className="text-gray-400 mb-6">Time: {formatTime(gameTime)}</p>
-                {gameTime < 1800 && (
-                  <p className="text-green-400 text-sm mb-4">
-                    ✓ Completed in under 30 minutes - Perfect for Chroma Awards judging!
+                {gameTime < 1500 && (
+                  <p className="text-green-400 text-sm mb-4 font-semibold">
+                    ✓ Completed in under 25 minutes - Perfect for Chroma Awards judging!
+                  </p>
+                )}
+                {gameTime >= 1500 && gameTime < 1800 && (
+                  <p className="text-yellow-400 text-sm mb-4">
+                    ⚠ Completed in 25-30 minutes - Good for judging!
+                  </p>
+                )}
+                {gameTime >= 1800 && (
+                  <p className="text-orange-400 text-sm mb-4">
+                    ⏱ Over 30 minutes - Consider using Quick Start mode for faster games
                   </p>
                 )}
               </>
@@ -1447,10 +1478,21 @@ const QuaternionGame = () => {
                 <div className="text-white font-mono flex items-center gap-1">
                   <Clock className="w-4 h-4" />
                   {formatTime(gameTime)}
-                  {gameTime > 0 && gameTime < 1800 && (
-                    <span className="text-xs text-green-400 ml-1">
-                      ({Math.floor((gameTime / 1800) * 100)}% of 30min)
-                    </span>
+                  {gameTime > 0 && (
+                    <>
+                      {gameTime < 1800 ? (
+                        <span className="text-xs text-green-400 ml-1">
+                          ({Math.floor((gameTime / 1800) * 100)}% of 30min)
+                        </span>
+                      ) : (
+                        <span className="text-xs text-yellow-400 ml-1">
+                          (Over 30min)
+                        </span>
+                      )}
+                      <span className="text-xs text-cyan-400 ml-2">
+                        Target: &lt;25min
+                      </span>
+                    </>
                   )}
                 </div>
                 <div className="text-white font-mono">

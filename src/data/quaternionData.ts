@@ -45,14 +45,15 @@ export interface UnitType {
 }
 
 // Complete Tech Tree
+// Optimized for 30-minute game sessions - reduced times and costs
 export const TECH_TREE: Record<string, TechNode> = {
   // Matter Branch
   quantum_core: {
     id: 'quantum_core',
     name: 'Quantum Core',
     branch: 'matter',
-    cost: { matter: 100, knowledge: 50 },
-    researchTime: 30,
+    cost: { matter: 70, knowledge: 35 }, // Reduced by 30%
+    researchTime: 10, // Reduced from 30 to 10 seconds
     prerequisites: [],
     effects: '+20% Matter generation',
     description: 'Harness quantum mechanics to boost matter extraction'
@@ -61,8 +62,8 @@ export const TECH_TREE: Record<string, TechNode> = {
     id: 'matter_compression',
     name: 'Matter Compression',
     branch: 'matter',
-    cost: { matter: 200, knowledge: 100 },
-    researchTime: 45,
+    cost: { matter: 140, knowledge: 70 }, // Reduced by 30%
+    researchTime: 15, // Reduced from 45 to 15 seconds
     prerequisites: ['quantum_core'],
     effects: '+50% Matter storage capacity',
     description: 'Compress matter to store more resources'
@@ -73,8 +74,8 @@ export const TECH_TREE: Record<string, TechNode> = {
     id: 'fusion_reactor',
     name: 'Fusion Reactor',
     branch: 'energy',
-    cost: { matter: 150, energy: 100, knowledge: 75 },
-    researchTime: 40,
+    cost: { matter: 105, energy: 70, knowledge: 50 }, // Reduced by 30%
+    researchTime: 12, // Reduced from 40 to 12 seconds
     prerequisites: [],
     effects: '+30% Energy generation',
     description: 'Unlock fusion power for massive energy output'
@@ -83,8 +84,8 @@ export const TECH_TREE: Record<string, TechNode> = {
     id: 'energy_grid',
     name: 'Energy Grid',
     branch: 'energy',
-    cost: { matter: 100, energy: 150, knowledge: 100 },
-    researchTime: 50,
+    cost: { matter: 70, energy: 105, knowledge: 70 }, // Reduced by 30%
+    researchTime: 18, // Reduced from 50 to 18 seconds
     prerequisites: ['fusion_reactor'],
     effects: '-25% Energy consumption',
     description: 'Optimize energy distribution across the network'
@@ -95,8 +96,8 @@ export const TECH_TREE: Record<string, TechNode> = {
     id: 'bioconserve',
     name: 'BioConserve',
     branch: 'life',
-    cost: { life: 200, knowledge: 100 },
-    researchTime: 35,
+    cost: { life: 140, knowledge: 70 }, // Reduced by 30%
+    researchTime: 12, // Reduced from 35 to 12 seconds
     prerequisites: [],
     effects: '+40% Life regeneration',
     description: 'Preserve and regenerate biological resources'
@@ -105,8 +106,8 @@ export const TECH_TREE: Record<string, TechNode> = {
     id: 'genetic_enhancement',
     name: 'Genetic Enhancement',
     branch: 'life',
-    cost: { life: 250, knowledge: 150 },
-    researchTime: 60,
+    cost: { life: 175, knowledge: 105 }, // Reduced by 30%
+    researchTime: 20, // Reduced from 60 to 20 seconds
     prerequisites: ['bioconserve'],
     effects: '+50% Unit health and damage',
     description: 'Enhance units through genetic modification'
@@ -117,8 +118,8 @@ export const TECH_TREE: Record<string, TechNode> = {
     id: 'neural_network',
     name: 'Neural Network',
     branch: 'knowledge',
-    cost: { energy: 100, knowledge: 150 },
-    researchTime: 45,
+    cost: { energy: 70, knowledge: 105 }, // Reduced by 30%
+    researchTime: 15, // Reduced from 45 to 15 seconds
     prerequisites: [],
     effects: '+25% Research speed',
     description: 'AI-powered research acceleration'
@@ -127,8 +128,8 @@ export const TECH_TREE: Record<string, TechNode> = {
     id: 'quantum_computing',
     name: 'Quantum Computing',
     branch: 'knowledge',
-    cost: { matter: 200, energy: 200, knowledge: 300 },
-    researchTime: 90,
+    cost: { matter: 140, energy: 140, knowledge: 210 }, // Reduced by 30%
+    researchTime: 30, // Reduced from 90 to 30 seconds
     prerequisites: ['neural_network', 'quantum_core'],
     effects: '+100% Knowledge generation',
     description: 'Unlock quantum computing capabilities'
@@ -139,8 +140,8 @@ export const TECH_TREE: Record<string, TechNode> = {
     id: 'quantum_ascendancy',
     name: 'Quantum Ascendancy',
     branch: 'knowledge',
-    cost: { matter: 500, energy: 500, life: 500, knowledge: 500 },
-    researchTime: 120,
+    cost: { matter: 350, energy: 350, life: 350, knowledge: 350 }, // Reduced by 30%
+    researchTime: 40, // Reduced from 120 to 40 seconds
     prerequisites: ['matter_compression', 'energy_grid', 'genetic_enhancement', 'quantum_computing'],
     effects: 'Win Condition: Technological Victory',
     description: 'Achieve transcendence through perfect harmony'
@@ -148,57 +149,58 @@ export const TECH_TREE: Record<string, TechNode> = {
 };
 
 // Buildings
+// Optimized for 30-minute game sessions - reduced times, costs, and increased production
 export const BUILDINGS: Record<string, Building> = {
   matter_extractor: {
     id: 'matter_extractor',
     name: 'Matter Extractor',
-    cost: { matter: 100 },
-    buildTime: 20,
-    produces: { matter: 2 },
+    cost: { matter: 70 }, // Reduced by 30%
+    buildTime: 8, // Reduced from 20 to 8 seconds
+    produces: { matter: 3 }, // Increased from 2 to 3
     description: 'Extracts raw matter from resource nodes',
     icon: 'Box'
   },
   refinery: {
     id: 'refinery',
     name: 'Refinery',
-    cost: { matter: 150, energy: 50 },
-    buildTime: 30,
-    produces: { energy: 3 },
+    cost: { matter: 105, energy: 35 }, // Reduced by 30%
+    buildTime: 12, // Reduced from 30 to 12 seconds
+    produces: { energy: 4 }, // Increased from 3 to 4
     description: 'Converts matter into energy',
     icon: 'Zap'
   },
   bio_lab: {
     id: 'bio_lab',
     name: 'Bio Lab',
-    cost: { matter: 200, energy: 100 },
-    buildTime: 40,
-    produces: { life: 1.5 },
+    cost: { matter: 140, energy: 70 }, // Reduced by 30%
+    buildTime: 16, // Reduced from 40 to 16 seconds
+    produces: { life: 2.5 }, // Increased from 1.5 to 2.5
     description: 'Cultivates biological resources',
     icon: 'Leaf'
   },
   research_center: {
     id: 'research_center',
     name: 'Research Center',
-    cost: { matter: 250, energy: 150, life: 50 },
-    buildTime: 50,
-    produces: { knowledge: 1 },
+    cost: { matter: 175, energy: 105, life: 35 }, // Reduced by 30%
+    buildTime: 20, // Reduced from 50 to 20 seconds
+    produces: { knowledge: 1.5 }, // Increased from 1 to 1.5
     description: 'Generates knowledge through research',
     icon: 'Brain'
   },
   command_center: {
     id: 'command_center',
     name: 'Command Center',
-    cost: { matter: 500, energy: 300, life: 200, knowledge: 100 },
-    buildTime: 90,
-    produces: { matter: 1, energy: 1, life: 1, knowledge: 1 },
+    cost: { matter: 350, energy: 210, life: 140, knowledge: 70 }, // Reduced by 30%
+    buildTime: 35, // Reduced from 90 to 35 seconds
+    produces: { matter: 1.5, energy: 1.5, life: 1.5, knowledge: 1.5 }, // Increased from 1 to 1.5
     description: 'Central hub that produces all resources',
     icon: 'Building'
   },
   barracks: {
     id: 'barracks',
     name: 'Barracks',
-    cost: { matter: 200, energy: 100 },
-    buildTime: 35,
+    cost: { matter: 140, energy: 70 }, // Reduced by 30%
+    buildTime: 14, // Reduced from 35 to 14 seconds
     description: 'Trains combat units',
     icon: 'Swords'
   }
@@ -330,11 +332,12 @@ export const MAP_TYPES = [
 ];
 
 // Win Conditions
+// Optimized for 30-minute game sessions - reduced time requirements
 export const WIN_CONDITIONS = [
   {
     id: 'equilibrium',
     name: 'Equilibrium Victory',
-    description: 'Maintain all four resources in harmony (±15%) for 60 seconds',
+    description: 'Maintain all four resources in harmony (±15%) for 15 seconds (Quick Match: 10s)',
     icon: '⚖️'
   },
   {
@@ -346,13 +349,13 @@ export const WIN_CONDITIONS = [
   {
     id: 'territorial',
     name: 'Territorial Victory',
-    description: 'Capture and hold the Central Node for 90 seconds',
+    description: 'Capture and hold the Central Node for 20 seconds (Quick Match: 15s)',
     icon: '🏰'
   },
   {
     id: 'moral',
     name: 'Moral Victory',
-    description: 'Make ethical choices over 4 key events (+80 moral alignment)',
+    description: 'Make ethical choices over 3 key events (+60 moral alignment)',
     icon: '✨'
   }
 ];

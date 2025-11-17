@@ -69,15 +69,35 @@ const Game = () => {
       },
       scale: {
         mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        // Optimize for desktop rendering
+        autoRound: true,
       },
       physics: {
         default: 'arcade',
         arcade: {
           gravity: { y: 0 },
-          debug: false
+          debug: false,
+          // Optimize physics for desktop
+          fps: 60,
+          timeScale: 1,
         }
-      }
+      },
+      // Performance optimizations for desktop
+      render: {
+        antialias: true,
+        pixelArt: false,
+        roundPixels: false,
+        powerPreference: 'high-performance', // Prefer dedicated GPU on desktop
+      },
+      fps: {
+        target: 60,
+        forceSetTimeOut: false, // Use requestAnimationFrame for better performance
+        smoothStep: true, // Smooth frame interpolation
+      },
+      // Disable unnecessary features for better performance
+      disableContextMenu: true,
+      banner: false,
     };
 
     function preload(this: Phaser.Scene) {

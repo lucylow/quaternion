@@ -1,0 +1,21 @@
+{
+  "name": "Quaternion: Neural Frontier",
+  "short_name": "Quaternion",
+  "description": "An AI-generated strategy game where every decision rotates the four dimensions of reality",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#001122",
+  "theme_color": "#00ffff",
+  "orientation": "landscape-primary",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ],
+  "categories": ["games", "strategy"],
+  "screenshots": [],
+  "prefer_related_applications": false
+}
+
