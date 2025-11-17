@@ -16,6 +16,7 @@ const HowToPlay = lazy(() => import("./pages/HowToPlay"));
 const AIFeatures = lazy(() => import("./pages/AIFeatures"));
 const Replays = lazy(() => import("./pages/Replays"));
 const TechTree = lazy(() => import("./pages/TechTree"));
+const MapGenerator = lazy(() => import("./pages/MapGenerator"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Loading fallback component
@@ -46,6 +47,7 @@ const App = () => (
               <Route path="/ai-features" element={<AIFeatures />} />
               <Route path="/replays" element={<Replays />} />
               <Route path="/tech-tree" element={<TechTree />} />
+              <Route path="/map-generator" element={<MapGenerator />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

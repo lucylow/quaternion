@@ -144,12 +144,28 @@ export class MapRenderer {
     // Create particle systems at random walkable tiles
     Object.entries(config).forEach(([name, settings]) => {
       const manager = this.scene.add.particles(0, 0, 'particle', {
-        ...settings,
-        blendMode: 'ADD'
+        blendMode: 'ADD',
+        scale: settings.scale || { start: 1, end: 0 },
+        alpha: settings.alpha || { start: 1, end: 0 },
+        lifespan: settings.lifespan || 1000,
+        frequency: -1 // Manual emission
       });
 
-      // Create emitter
-      const emitter = manager.createEmitter(settings);
+      // Create emitter with proper configuration
+      const emitterConfig: Phaser.Types.GameObjects.Particles.ParticleEmitterConfig = {
+        scale: settings.scale,
+        alpha: settings.alpha,
+        lifespan: settings.lifespan,
+        speed: settings.speed,
+        angle: settings.angle,
+        rotate: settings.rotate,
+        tint: settings.tint,
+        gravityY: settings.gravityY,
+        emitZone: settings.emitZone,
+        frequency: 100 // Emit every 100ms
+      };
+
+      const emitter = manager.createEmitter(emitterConfig);
 
       // Randomly place emitters on walkable terrain
       for (let i = 0; i < 3; i++) {

@@ -35,3 +35,74 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Map Generator Styles */
+.game-wrapper {
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.game-wrapper h1 {
+  text-align: center;
+  padding: 15px;
+  background: rgba(0, 0, 0, 0.7);
+  font-size: 28px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+  color: #fff;
+  margin: 0;
+}
+
+.game-wrapper p {
+  text-align: center;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  font-size: 14px;
+  color: #aaa;
+  margin: 0;
+}
+
+.game-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #000;
+  overflow: auto;
+}
+
+.info-panel {
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.8);
+  border-top: 2px solid #0099FF;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.info-panel h3 {
+  color: #0099FF;
+  margin-bottom: 10px;
+  font-size: 16px;
+}
+
+.info-panel ul {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 10px;
+  font-size: 12px;
+  margin: 0;
+  padding: 0;
+}
+
+.info-panel li {
+  padding: 5px;
+  background: rgba(0, 153, 255, 0.1);
+  border-left: 3px solid #0099FF;
+  padding-left: 10px;
+}
+
+.info-panel strong {
+  color: #0099FF;
+}
