@@ -1,7 +1,14 @@
 /**
  * Enhanced GameState for Quaternion strategy game
  * Implements the 4-resource system (Matter, Energy, Life, Knowledge)
+ * Now with integrated ResourceManager, UnitManager, TechTreeManager, and MapManager
  */
+
+import { ResourceManager, ResourceType } from './ResourceManager';
+import { UnitManager, UnitType } from './UnitManager';
+import { TechTreeManager } from './TechTreeManager';
+import { MapManager, Faction, NodeType } from './MapManager';
+import { EndgameManager, EndgameScenario } from './EndgameManager';
 
 export interface Resources {
   matter: number;
@@ -57,10 +64,15 @@ export class QuaternionGameState {
   public instability: number = 0;
   public maxInstability: number = 200;
   
+  // Perfect balance tracking (for ultimate balance ending)
+  private perfectBalanceProgress: number = 0;
+  private perfectBalanceRequiredTime: number = 10 * 60; // 10 seconds at 60 FPS
+  
   // Win conditions
   public winConditions: Map<string, WinCondition>;
   public winner: number | null = null;
   public gameOver: boolean = false;
+  public endgameScenario: EndgameScenario | null = null;
   
   // Events and actions log
   public actionLog: any[] = [];
@@ -69,11 +81,26 @@ export class QuaternionGameState {
   // AI state
   public aiState: any = null;
   
+  // Enhanced managers
+  public resourceManager: ResourceManager;
+  public unitManager: UnitManager;
+  public techTreeManager: TechTreeManager;
+  public mapManager: MapManager;
+  
   constructor(config: GameConfig) {
     this.id = this.generateId();
     this.tick = 0;
     this.config = config;
     this.seed = config.seed;
+    
+    // Initialize enhanced managers
+    this.resourceManager = new ResourceManager();
+    this.unitManager = new UnitManager(this.resourceManager);
+    this.techTreeManager = new TechTreeManager(this.resourceManager, this.unitManager);
+    this.mapManager = new MapManager(config.mapWidth || 9, config.mapHeight || 9);
+    
+    // Generate map
+    this.mapManager.generateMap(config.seed);
     
     // Initialize players
     this.players = new Map();
@@ -86,6 +113,36 @@ export class QuaternionGameState {
       ['territorial', { type: 'territorial', achieved: false, progress: 0 }],
       ['moral', { type: 'moral', achieved: false, progress: 0 }]
     ]);
+    
+    // Set up resource change callbacks
+    this.setupResourceCallbacks();
+  }
+  
+  private setupResourceCallbacks(): void {
+    this.resourceManager.onResourceChange((type, amount) => {
+      // Sync with player resources
+      const player = this.players.get(1);
+      if (player) {
+        switch (type) {
+          case ResourceType.MATTER:
+            player.resources.matter = amount;
+            break;
+          case ResourceType.ENERGY:
+            player.resources.energy = amount;
+            break;
+          case ResourceType.LIFE:
+            player.resources.life = amount;
+            break;
+          case ResourceType.KNOWLEDGE:
+            player.resources.knowledge = amount;
+            break;
+        }
+      }
+    });
+    
+    this.resourceManager.onResourceCriticalLevel((type) => {
+      this.logAction('resource_critical', { resource: type, tick: this.tick });
+    });
   }
   
   private generateId(): string {
@@ -98,6 +155,14 @@ export class QuaternionGameState {
     const startingResources = isQuickStart 
       ? { matter: 800, energy: 400, life: 200, knowledge: 100 } // More resources for quick start
       : { matter: 700, energy: 350, life: 150, knowledge: 75 }; // Increased for faster progression
+    
+    // Set initial resources in ResourceManager
+    this.resourceManager.setInitialResources(
+      startingResources.matter,
+      startingResources.energy,
+      startingResources.life,
+      startingResources.knowledge
+    );
     
     // Player 1 (Human)
     this.players.set(1, {
@@ -149,6 +214,9 @@ export class QuaternionGameState {
     this.tick++;
     this.gameTime += deltaTime;
     
+    // Process enhanced managers
+    this.processManagers();
+    
     // Update resources (passive generation and consumption)
     this.updateResources(deltaTime);
     
@@ -160,6 +228,62 @@ export class QuaternionGameState {
     
     // Check lose conditions
     this.checkLoseConditions();
+  }
+  
+  /**
+   * Process all enhanced managers
+   */
+  private processManagers(): void {
+    // Get resource generation from map nodes
+    const resourceGeneration = this.mapManager.getResourceGeneration();
+    const controlledNodes = new Map<ResourceType, number>();
+    
+    // Convert map generation to ResourceType enum
+    resourceGeneration.forEach((amount, nodeType) => {
+      switch (nodeType) {
+        case 'matter':
+          controlledNodes.set(ResourceType.MATTER, 
+            (controlledNodes.get(ResourceType.MATTER) || 0) + 1);
+          break;
+        case 'energy':
+          controlledNodes.set(ResourceType.ENERGY,
+            (controlledNodes.get(ResourceType.ENERGY) || 0) + 1);
+          break;
+        case 'life':
+          controlledNodes.set(ResourceType.LIFE,
+            (controlledNodes.get(ResourceType.LIFE) || 0) + 1);
+          break;
+        case 'knowledge':
+          controlledNodes.set(ResourceType.KNOWLEDGE,
+            (controlledNodes.get(ResourceType.KNOWLEDGE) || 0) + 1);
+          break;
+      }
+    });
+    
+    // Process resource tick
+    this.resourceManager.processResourceTick(controlledNodes, new Map());
+    
+    // Process unit production
+    const completedUnits = this.unitManager.processProductionTicks();
+    completedUnits.forEach(unit => {
+      this.units.push(unit);
+    });
+    
+    // Process unit ticks
+    this.unitManager.processUnitTicks();
+    
+    // Process research
+    this.techTreeManager.processResearchTick();
+    
+    // Sync researched techs
+    const player = this.players.get(1);
+    if (player) {
+      this.techTreeManager.getAllTechNodes().forEach(node => {
+        if (node.isResearched && !player.researchedTechs.has(node.nodeId)) {
+          player.researchedTechs.add(node.nodeId);
+        }
+      });
+    }
   }
   
   /**
@@ -225,84 +349,153 @@ export class QuaternionGameState {
   }
   
   /**
-   * Check all win conditions
+   * Check all win conditions using EndgameManager
    */
   private checkWinConditions(): void {
     const player = this.players.get(1);
     if (!player) return;
     
-    // Equilibrium Victory: All resources within ±15% for 15 seconds (10 seconds for quick start)
-    const equilibrium = this.winConditions.get('equilibrium')!;
     const { matter, energy, life, knowledge } = player.resources;
     const avg = (matter + energy + life + knowledge) / 4;
-    const maxDeviation = Math.max(
-      Math.abs(matter - avg),
-      Math.abs(energy - avg),
-      Math.abs(life - avg),
-      Math.abs(knowledge - avg)
+    
+    // Detect endgame scenario using EndgameManager
+    const scenario = EndgameManager.detectScenario(
+      player.resources,
+      this.instability,
+      this.maxInstability,
+      player.researchedTechs,
+      player.moralAlignment,
+      this.gameTime
     );
     
-    // Adjust time requirement for quick start mode - much faster for 30-min games
-    const isQuickStart = this.config.mapWidth <= 30 && this.config.mapHeight <= 20;
-    const requiredTime = isQuickStart ? 10 * this.tickRate : 15 * this.tickRate;
-    
-    if (maxDeviation / avg <= 0.15) {
-      equilibrium.progress += 1;
-      if (equilibrium.progress >= requiredTime) {
-        equilibrium.achieved = true;
-        this.endGame(1, 'equilibrium');
-      }
-    } else {
-      equilibrium.progress = 0;
+    if (!scenario) {
+      // Reset perfect balance progress if not in perfect balance
+      this.perfectBalanceProgress = 0;
+      return;
     }
     
-    // Technological Victory: Unlock terminal technology
-    const tech = this.winConditions.get('technological')!;
-    if (player.researchedTechs.has('quantum_ascendancy')) {
+    // Handle perfect balance (Ultimate Balance ending)
+    if (scenario === 'ultimate_balance') {
+      const maxDeviation = Math.max(
+        Math.abs(matter - avg),
+        Math.abs(energy - avg),
+        Math.abs(life - avg),
+        Math.abs(knowledge - avg)
+      );
+      const perfectBalanceThreshold = avg * 0.02; // 2% deviation
+      
+      if (maxDeviation <= perfectBalanceThreshold && avg > 200) {
+        this.perfectBalanceProgress += 1;
+        if (this.perfectBalanceProgress >= this.perfectBalanceRequiredTime) {
+          this.endGame(1, 'ultimate_balance', scenario);
+          return;
+        }
+      } else {
+        this.perfectBalanceProgress = 0;
+      }
+    }
+    
+    // Handle Harmony (Equilibrium)
+    if (scenario === 'harmony') {
+      const equilibrium = this.winConditions.get('equilibrium')!;
+      const maxDeviation = Math.max(
+        Math.abs(matter - avg),
+        Math.abs(energy - avg),
+        Math.abs(life - avg),
+        Math.abs(knowledge - avg)
+      );
+      
+      const isQuickStart = this.config.mapWidth <= 30 && this.config.mapHeight <= 20;
+      const requiredTime = isQuickStart ? 10 * this.tickRate : 15 * this.tickRate;
+      
+      if (maxDeviation / avg <= 0.15) {
+        equilibrium.progress += 1;
+        if (equilibrium.progress >= requiredTime) {
+          equilibrium.achieved = true;
+          this.endGame(1, 'harmony', scenario);
+          return;
+        }
+      } else {
+        equilibrium.progress = 0;
+      }
+    }
+    
+    // Handle Ascendancy (Tech victory)
+    if (scenario === 'ascendancy' && player.researchedTechs.has('quantum_ascendancy')) {
+      const tech = this.winConditions.get('technological')!;
       tech.achieved = true;
-      this.endGame(1, 'technological');
+      this.endGame(1, 'ascendancy', scenario);
+      return;
     }
     
-    // Territorial Victory: Hold central node for 20 seconds (15 seconds for quick start)
-    const territorial = this.winConditions.get('territorial')!;
-    const isQuickStart = this.config.mapWidth <= 30 && this.config.mapHeight <= 20;
-    // This would check if player controls the central node
-    // For now, we'll track progress but not implement full territorial control
-    if (territorial.progress > 0) {
-      const requiredTime = isQuickStart ? 15 * this.tickRate : 20 * this.tickRate;
-      if (territorial.progress >= requiredTime) {
-        territorial.achieved = true;
-        this.endGame(1, 'territorial');
+    // Handle Reclamation (Life focus)
+    if (scenario === 'reclamation') {
+      // Check if life is significantly higher and maintained
+      if (life > avg * 1.5 && life > 500 && 
+          life > matter * 1.3 && life > energy * 1.3 && life > knowledge * 1.3) {
+        const isQuickStart = this.config.mapWidth <= 30 && this.config.mapHeight <= 20;
+        const requiredTime = isQuickStart ? 10 * this.tickRate : 15 * this.tickRate;
+        
+        // Track progress for reclamation
+        const reclamationCondition = this.winConditions.get('moral')!; // Reuse moral for tracking
+        reclamationCondition.progress += 1;
+        if (reclamationCondition.progress >= requiredTime) {
+          this.endGame(1, 'reclamation', scenario);
+          return;
+        }
+      } else {
+        this.winConditions.get('moral')!.progress = 0;
       }
     }
     
-    // Moral Victory: Make ethical choices over 3 key events (reduced from 4)
-    const moral = this.winConditions.get('moral')!;
-    if (player.moralAlignment >= 60) { // Reduced from 80 to 60
-      moral.achieved = true;
-      this.endGame(1, 'moral');
+    // Handle Overclock (Energy maximized)
+    if (scenario === 'overclock') {
+      // Check if energy is significantly higher and maintained
+      if (energy > avg * 1.5 && energy > 500 &&
+          energy > matter * 1.3 && energy > life * 1.3 && energy > knowledge * 1.3) {
+        const isQuickStart = this.config.mapWidth <= 30 && this.config.mapHeight <= 20;
+        const requiredTime = isQuickStart ? 10 * this.tickRate : 15 * this.tickRate;
+        
+        // Track progress for overclock
+        const territorial = this.winConditions.get('territorial')!; // Reuse territorial for tracking
+        territorial.progress += 1;
+        if (territorial.progress >= requiredTime) {
+          this.endGame(1, 'overclock', scenario);
+          return;
+        }
+      } else {
+        this.winConditions.get('territorial')!.progress = 0;
+      }
     }
   }
   
   /**
-   * Check lose conditions
+   * Check lose conditions (Collapse Timeline)
    */
   private checkLoseConditions(): void {
     const player = this.players.get(1);
     if (!player) return;
     
-    // Any resource reaches 0
-    if (player.resources.matter === 0 || 
-        player.resources.energy === 0 || 
-        player.resources.life === 0 || 
-        player.resources.knowledge === 0) {
-      this.endGame(2, 'resource_collapse');
-      return;
-    }
+    // Detect collapse scenario using EndgameManager
+    const scenario = EndgameManager.detectScenario(
+      player.resources,
+      this.instability,
+      this.maxInstability,
+      player.researchedTechs,
+      player.moralAlignment,
+      this.gameTime
+    );
     
-    // Instability exceeds maximum
-    if (this.instability >= this.maxInstability) {
-      this.endGame(2, 'instability_meltdown');
+    // Any resource reaches 0 or instability exceeds maximum
+    if (scenario === 'collapse') {
+      let reason = 'instability_meltdown';
+      if (player.resources.matter === 0 || 
+          player.resources.energy === 0 || 
+          player.resources.life === 0 || 
+          player.resources.knowledge === 0) {
+        reason = 'resource_collapse';
+      }
+      this.endGame(2, reason, 'collapse');
       return;
     }
   }
@@ -310,11 +503,12 @@ export class QuaternionGameState {
   /**
    * End the game
    */
-  private endGame(winnerId: number, reason: string): void {
+  private endGame(winnerId: number, reason: string, scenario?: EndgameScenario): void {
     this.gameOver = true;
     this.winner = winnerId;
     this.isRunning = false;
-    this.logAction('game_end', { winner: winnerId, reason, tick: this.tick });
+    this.endgameScenario = scenario || null;
+    this.logAction('game_end', { winner: winnerId, reason, scenario, tick: this.tick });
   }
   
   /**
@@ -348,9 +542,41 @@ export class QuaternionGameState {
     const player = this.players.get(playerId);
     if (!player) return false;
     
-    player.researchedTechs.add(techId);
-    this.logAction('research_tech', { techId, playerId, tick: this.tick });
-    return true;
+    // Use TechTreeManager to start research
+    const success = this.techTreeManager.startResearch(techId);
+    if (success) {
+      this.logAction('research_tech', { techId, playerId, tick: this.tick });
+    }
+    return success;
+  }
+  
+  /**
+   * Queue unit production
+   */
+  public queueUnitProduction(
+    unitType: UnitType,
+    spawnPosition: { x: number; y: number },
+    playerId: number
+  ): boolean {
+    const success = this.unitManager.queueUnitProduction(unitType, spawnPosition, playerId);
+    if (success) {
+      this.logAction('queue_unit', { unitType, playerId, tick: this.tick });
+    }
+    return success;
+  }
+  
+  /**
+   * Start node capture
+   */
+  public startNodeCapture(nodeId: string, faction: Faction = Faction.PLAYER): boolean {
+    return this.mapManager.startNodeCapture(nodeId, faction);
+  }
+  
+  /**
+   * Process node capture
+   */
+  public processNodeCapture(nodeId: string, faction: Faction = Faction.PLAYER): boolean {
+    return this.mapManager.processNodeCapture(nodeId, faction);
   }
   
   /**
@@ -364,6 +590,7 @@ export class QuaternionGameState {
       isRunning: this.isRunning,
       gameOver: this.gameOver,
       winner: this.winner,
+      endgameScenario: this.endgameScenario,
       players: Array.from(this.players.values()),
       instability: this.instability,
       winConditions: Array.from(this.winConditions.values()),

@@ -12,6 +12,7 @@ import { UnitPanel } from '@/components/game/UnitPanel';
 import { CommandPanel } from '@/components/game/CommandPanel';
 import { Minimap } from '@/components/game/Minimap';
 import { GameLoop, PerformanceStats } from '@/game/GameLoop';
+import { ImageAssetLoader } from '@/game/ImageAssetLoader';
 
 interface GameResources {
   matter: number;
@@ -163,10 +164,24 @@ const QuaternionGame = () => {
         setLoadingProgress(value * 100);
       });
 
+      // Load game images (maps, monsters, countries)
+      ImageAssetLoader.loadAssets(this);
+
+      // Wait for all assets to load
+      this.load.once('complete', () => {
+        setTimeout(() => {
+          setLoading(false);
+          gameStateRef.current?.start();
+        }, 500);
+      });
+
+      // Fallback timeout in case assets don't load
       setTimeout(() => {
-        setLoading(false);
-        gameStateRef.current?.start();
-      }, 1000);
+        if (this.load.progress < 1) {
+          setLoading(false);
+          gameStateRef.current?.start();
+        }
+      }, 3000);
     }
 
     // Create particle emitter for effects
@@ -274,19 +289,36 @@ const QuaternionGame = () => {
     function create(this: Phaser.Scene) {
       const { width, height } = this.cameras.main;
 
-      // Create enhanced grid background with animated gradient
-      const bgGraphics = this.add.graphics();
-      bgGraphics.fillGradientStyle(0x001122, 0x001122, 0x002244, 0x002244, 1);
-      bgGraphics.fillRect(0, 0, width * 2, height * 2);
+      // Use a map image as background if available, otherwise fall back to gradient
+      const mapKeys = ImageAssetLoader.getMapKeys();
+      let backgroundImage: Phaser.GameObjects.Image | Phaser.GameObjects.Graphics | null = null;
+
+      if (mapKeys.length > 0 && this.textures.exists(mapKeys[0])) {
+        // Use a random map as background
+        const selectedMap = mapKeys[Math.floor(Math.random() * mapKeys.length)];
+        backgroundImage = this.add.image(width, height, selectedMap);
+        backgroundImage.setDisplaySize(width * 2, height * 2);
+        backgroundImage.setAlpha(0.4); // Semi-transparent so game elements are visible
+        backgroundImage.setTint(0x001122); // Darken the map slightly
+        backgroundImage.setDepth(-1000); // Behind everything
+      } else {
+        // Fallback to gradient background if images aren't loaded
+        const bgGraphics = this.add.graphics();
+        bgGraphics.fillGradientStyle(0x001122, 0x001122, 0x002244, 0x002244, 1);
+        bgGraphics.fillRect(0, 0, width * 2, height * 2);
+        backgroundImage = bgGraphics;
+      }
       
-      // Animated grid lines with subtle pulse
-      bgGraphics.lineStyle(1, 0x00ffea, 0.15);
+      // Add grid overlay on top of background
+      const gridGraphics = this.add.graphics();
+      gridGraphics.lineStyle(1, 0x00ffea, 0.15);
       for (let x = 0; x < width * 2; x += 64) {
-        bgGraphics.lineBetween(x, 0, x, height * 2);
+        gridGraphics.lineBetween(x, 0, x, height * 2);
       }
       for (let y = 0; y < height * 2; y += 64) {
-        bgGraphics.lineBetween(0, y, width * 2, y);
+        gridGraphics.lineBetween(0, y, width * 2, y);
       }
+      gridGraphics.setDepth(-999);
       
       // Add subtle animated stars/particles in background
       for (let i = 0; i < 50; i++) {
@@ -297,6 +329,7 @@ const QuaternionGame = () => {
           0x00ffea,
           0.3 + Math.random() * 0.4
         );
+        star.setDepth(-998);
         this.tweens.add({
           targets: star,
           alpha: { from: 0.3, to: 0.7 },
@@ -896,8 +929,27 @@ const QuaternionGame = () => {
         const x = aiBase.x + Math.cos(angle) * distance;
         const y = aiBase.y + Math.sin(angle) * distance;
         
-        const aiUnit = this.physics.add.sprite(x, y, '');
-        aiUnit.setDisplaySize(24, 24);
+        // Try to use a monster sprite if available, otherwise use graphics
+        const monsterKeys = ImageAssetLoader.getMonsterKeys();
+        let monsterKey = '';
+        if (monsterKeys.length > 0 && this.textures.exists(monsterKeys[0])) {
+          // Use a random monster sprite
+          monsterKey = monsterKeys[Math.floor(Math.random() * monsterKeys.length)];
+        }
+        
+        const aiUnit = this.physics.add.sprite(x, y, monsterKey || '');
+        if (monsterKey) {
+          // Use monster image
+          aiUnit.setDisplaySize(48, 48);
+          aiUnit.setAlpha(0.9);
+          aiUnit.setTint(0xff4444); // Red tint for enemies
+        } else {
+          // Fallback to graphics
+          aiUnit.setDisplaySize(24, 24);
+          const aiGraphic = createUnitGraphic(this, x, y, 0xff4444, 'soldier');
+          aiUnit.setData('graphic', aiGraphic);
+        }
+        
         aiUnit.setData('type', 'soldier');
         aiUnit.setData('player', 2);
         aiUnit.setData('health', 200);
@@ -905,9 +957,6 @@ const QuaternionGame = () => {
         aiUnit.setData('damage', 25);
         aiUnit.setData('target', playerBase);
         aiUnit.setData('state', 'attacking');
-        
-        const aiGraphic = createUnitGraphic(this, x, y, 0xff4444, 'soldier');
-        aiUnit.setData('graphic', aiGraphic);
         
         // Move towards player base
         this.physics.moveToObject(aiUnit, playerBase, 100);
@@ -924,6 +973,7 @@ const QuaternionGame = () => {
         
         const graphic = aiUnit.getData('graphic');
         if (graphic) {
+          // Update graphic position for units using graphics
           graphic.setPosition(aiUnit.x, aiUnit.y);
           
           const healthBar = graphic.getData('healthBar');
@@ -936,6 +986,32 @@ const QuaternionGame = () => {
             healthBar.fillStyle(color, 1);
             healthBar.fillRect(-15, -20, 30 * healthPercent, 4);
           }
+        } else {
+          // For sprite-based units, update floating health bar
+          const health = aiUnit.getData('health') || 200;
+          const maxHealth = aiUnit.getData('maxHealth') || 200;
+          const healthPercent = health / maxHealth;
+          
+          let healthBar = aiUnit.getData('floatingHealthBar');
+          if (!healthBar) {
+            // Create health bar once if it doesn't exist
+            const healthBarBg = this.add.graphics();
+            const healthBarFill = this.add.graphics();
+            healthBar = { bg: healthBarBg, fill: healthBarFill };
+            aiUnit.setData('floatingHealthBar', healthBar);
+          }
+          
+          // Update health bar position and fill
+          healthBar.bg.clear();
+          healthBar.bg.fillStyle(0x000000, 0.7);
+          healthBar.bg.fillRect(aiUnit.x - 20, aiUnit.y - 35, 40, 6);
+          healthBar.bg.setDepth(aiUnit.depth + 1);
+          
+          healthBar.fill.clear();
+          const color = healthPercent > 0.5 ? 0xff0000 : healthPercent > 0.25 ? 0xff8800 : 0x880000;
+          healthBar.fill.fillStyle(color, 1);
+          healthBar.fill.fillRect(aiUnit.x - 19, aiUnit.y - 34, 38 * healthPercent, 4);
+          healthBar.fill.setDepth(aiUnit.depth + 2);
         }
         
         const target = aiUnit.getData('target');
