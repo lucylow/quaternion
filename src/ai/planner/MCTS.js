@@ -1,27 +1,46 @@
 import { UnitType } from '../../units/Unit.js';
 import { BuildingType } from '../../buildings/Building.js';
+import { SituationEvaluator } from '../situationEvaluator.js';
 
 /**
- * Monte Carlo Tree Search planner for deterministic fallback
- * Provides fast, local decision-making without LLM calls
+ * Enhanced Monte Carlo Tree Search planner
+ * Provides fast, local decision-making with improved evaluation
  */
 export default class MCTS {
-  constructor({ rollouts = 100 } = {}) {
+  constructor({ rollouts = 100, explorationConstant = 1.41 } = {}) {
     this.rollouts = rollouts;
+    this.explorationConstant = explorationConstant; // UCB1 constant
+    this.nodeMap = new Map(); // Cache for tree nodes
   }
 
   /**
-   * Get best action for current game state
+   * Get best action for current game state using improved MCTS
    */
   bestMove(gameState, playerId) {
     const legal = this.getLegalActions(gameState, playerId);
     if (legal.length === 0) return null;
 
+    // Use situation evaluator for better context
+    const situation = SituationEvaluator.evaluate(gameState, playerId);
+
+    // For small action spaces, use direct evaluation
+    if (legal.length <= 5) {
+      return this.bestMoveDirect(gameState, playerId, legal, situation);
+    }
+
+    // For larger action spaces, use UCB1 selection
+    return this.bestMoveUCB(gameState, playerId, legal, situation);
+  }
+
+  /**
+   * Direct evaluation for small action spaces
+   */
+  bestMoveDirect(gameState, playerId, actions, situation) {
     let best = null;
     let bestScore = -Infinity;
 
-    for (let action of legal) {
-      const score = this.evaluateAction(gameState, playerId, action);
+    for (let action of actions) {
+      const score = this.evaluateActionEnhanced(gameState, playerId, action, situation);
       if (score > bestScore) {
         bestScore = score;
         best = action;
@@ -29,6 +48,85 @@ export default class MCTS {
     }
 
     return best;
+  }
+
+  /**
+   * UCB1-based selection for larger action spaces
+   */
+  bestMoveUCB(gameState, playerId, actions, situation) {
+    const nodeKey = this.getStateKey(gameState, playerId);
+    let node = this.nodeMap.get(nodeKey);
+
+    if (!node) {
+      node = {
+        visits: 0,
+        actions: actions.map(a => ({
+          action: a,
+          visits: 0,
+          value: 0
+        }))
+      };
+      this.nodeMap.set(nodeKey, node);
+    }
+
+    // Perform rollouts
+    for (let i = 0; i < this.rollouts; i++) {
+      this.selectAndRollout(node, gameState, playerId, situation);
+    }
+
+    // Select best action based on visits and value
+    const bestAction = node.actions.reduce((best, curr) => {
+      const currScore = curr.visits > 0 ? curr.value / curr.visits : 0;
+      const bestScore = best.visits > 0 ? best.value / best.visits : -Infinity;
+      return currScore > bestScore ? curr : best;
+    });
+
+    return bestAction.action;
+  }
+
+  /**
+   * Select action using UCB1 and perform rollout
+   */
+  selectAndRollout(node, gameState, playerId, situation) {
+    node.visits++;
+
+    // Select action using UCB1
+    let selected = null;
+    let bestUCB = -Infinity;
+
+    for (let actionNode of node.actions) {
+      let ucb;
+      if (actionNode.visits === 0) {
+        ucb = Infinity; // Unvisited actions get priority
+      } else {
+        const exploitation = actionNode.value / actionNode.visits;
+        const exploration = this.explorationConstant * 
+          Math.sqrt(Math.log(node.visits) / actionNode.visits);
+        ucb = exploitation + exploration;
+      }
+
+      if (ucb > bestUCB) {
+        bestUCB = ucb;
+        selected = actionNode;
+      }
+    }
+
+    if (!selected) return;
+
+    // Evaluate action
+    const score = this.evaluateActionEnhanced(gameState, playerId, selected.action, situation);
+    
+    // Update statistics
+    selected.visits++;
+    selected.value += score;
+  }
+
+  /**
+   * Get state key for caching
+   */
+  getStateKey(gameState, playerId) {
+    const player = gameState.players[playerId];
+    return `${playerId}_${player.minerals}_${player.gas}_${gameState.tick % 100}`;
   }
 
   /**
@@ -87,7 +185,54 @@ export default class MCTS {
   }
 
   /**
-   * Heuristic score for an action
+   * Enhanced heuristic score for an action with situation context
+   */
+  evaluateActionEnhanced(gameState, playerId, action, situation) {
+    const baseScore = this.evaluateAction(gameState, playerId, action);
+    
+    // Adjust based on situation
+    let situationBonus = 0;
+
+    if (action.type === 'build_unit') {
+      if (action.unitType === UnitType.WORKER) {
+        // Higher priority if economy is weak
+        if (situation.economy.saturation < 0.7) {
+          situationBonus += 0.3;
+        }
+        // Lower priority if under attack
+        if (situation.threat.level > 0.5) {
+          situationBonus -= 0.2;
+        }
+      } else {
+        // Higher priority if military is weak or under threat
+        if (situation.military.advantage < 0 || situation.threat.level > 0.3) {
+          situationBonus += 0.4;
+        }
+      }
+    } else if (action.type === 'build_building') {
+      // Higher priority if economy allows expansion
+      if (situation.economy.canExpand && action.buildingType === BuildingType.BASE) {
+        situationBonus += 0.5;
+      }
+    } else if (action.type === 'army_action') {
+      if (action.action === 'attack') {
+        // Higher priority if we have advantage
+        if (situation.military.advantage > 0.2) {
+          situationBonus += 0.3;
+        }
+      } else if (action.action === 'defend') {
+        // Higher priority if under threat
+        if (situation.threat.level > 0.4) {
+          situationBonus += 0.4;
+        }
+      }
+    }
+
+    return Math.min(1, baseScore + situationBonus);
+  }
+
+  /**
+   * Base heuristic score for an action
    */
   evaluateAction(gameState, playerId, action) {
     const player = gameState.players[playerId];

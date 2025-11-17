@@ -62,17 +62,16 @@ const Index = () => {
               <Brain className="w-8 h-8" />
               <span>QUATERNION<span className="text-secondary">:</span>NF</span>
             </a>
-            <div className="hidden md:flex items-center gap-8">
-              <a href="#overview" onClick={(e) => { e.preventDefault(); scrollToSection('overview'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded">Overview</a>
-              <a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection('features'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded">Features</a>
-              <a href="#ai-tools" onClick={(e) => { e.preventDefault(); scrollToSection('ai-tools'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded">AI Tools</a>
-              <a href="#demo" onClick={(e) => { e.preventDefault(); scrollToSection('demo'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded">Demo</a>
-              <a href="#characters" onClick={(e) => { e.preventDefault(); scrollToSection('characters'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded">Characters</a>
-              <a href="/game" onClick={(e) => { e.preventDefault(); navigate('/game'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded">Game</a>
-              <a href="/quaternion" onClick={(e) => { e.preventDefault(); navigate('/quaternion'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded">Quaternion</a>
+            <div className="hidden md:flex items-center gap-6">
+              <a href="#overview" onClick={(e) => { e.preventDefault(); scrollToSection('overview'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">Overview</a>
+              <a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection('features'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">Features</a>
+              <a href="/about" onClick={(e) => { e.preventDefault(); navigate('/about'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">About</a>
+              <a href="/commanders" onClick={(e) => { e.preventDefault(); navigate('/commanders'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">Commanders</a>
+              <a href="/how-to-play" onClick={(e) => { e.preventDefault(); navigate('/how-to-play'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">How to Play</a>
+              <a href="/ai-features" onClick={(e) => { e.preventDefault(); navigate('/ai-features'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">AI Features</a>
             </div>
             <Button 
-              onClick={() => navigate('/quaternion')}
+              onClick={() => navigate('/lobby')}
               className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:shadow-neon focus:ring-2 focus:ring-primary focus:ring-offset-2"
             >
               Play Now
@@ -95,7 +94,7 @@ const Index = () => {
             <div className="flex flex-wrap gap-4">
               <Button 
                 size="lg" 
-                onClick={() => navigate('/quaternion')}
+                onClick={() => navigate('/lobby')}
                 className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:shadow-neon focus:ring-2 focus:ring-primary focus:ring-offset-2"
               >
                 Play Free Demo
@@ -319,7 +318,7 @@ const Index = () => {
                   <h3 className="text-2xl font-bold mb-2">WebGL Game Demo</h3>
                   <p className="text-muted-foreground mb-4">Play directly in your browser - no downloads required</p>
                   <Button 
-                    onClick={() => navigate('/quaternion')}
+                    onClick={() => navigate('/lobby')}
                     className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:shadow-neon"
                   >
                     Launch Game
@@ -423,13 +422,24 @@ const Index = () => {
             </div>
             
             <div>
+              <h4 className="font-bold mb-4">Game Pages</h4>
+              <div className="space-y-2 text-sm">
+                <a href="/about" onClick={(e) => { e.preventDefault(); navigate('/about'); }} className="block text-muted-foreground hover:text-primary transition-colors">About</a>
+                <a href="/commanders" onClick={(e) => { e.preventDefault(); navigate('/commanders'); }} className="block text-muted-foreground hover:text-primary transition-colors">Commanders</a>
+                <a href="/how-to-play" onClick={(e) => { e.preventDefault(); navigate('/how-to-play'); }} className="block text-muted-foreground hover:text-primary transition-colors">How to Play</a>
+                <a href="/ai-features" onClick={(e) => { e.preventDefault(); navigate('/ai-features'); }} className="block text-muted-foreground hover:text-primary transition-colors">AI Features</a>
+                <a href="/tech-tree" onClick={(e) => { e.preventDefault(); navigate('/tech-tree'); }} className="block text-muted-foreground hover:text-primary transition-colors">Tech Tree</a>
+                <a href="/replays" onClick={(e) => { e.preventDefault(); navigate('/replays'); }} className="block text-muted-foreground hover:text-primary transition-colors">Replays</a>
+              </div>
+            </div>
+            <div>
               <h4 className="font-bold mb-4">Quick Links</h4>
               <div className="space-y-2 text-sm">
-                <a href="#overview" className="block text-muted-foreground hover:text-primary transition-colors">Game Overview</a>
-                <a href="#features" className="block text-muted-foreground hover:text-primary transition-colors">Features</a>
-                <a href="#ai-tools" className="block text-muted-foreground hover:text-primary transition-colors">AI Tools</a>
-                <a href="#demo" className="block text-muted-foreground hover:text-primary transition-colors">Play Demo</a>
-                <a href="#characters" className="block text-muted-foreground hover:text-primary transition-colors">Characters</a>
+                <a href="#overview" onClick={(e) => { e.preventDefault(); scrollToSection('overview'); }} className="block text-muted-foreground hover:text-primary transition-colors">Game Overview</a>
+                <a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection('features'); }} className="block text-muted-foreground hover:text-primary transition-colors">Features</a>
+                <a href="#ai-tools" onClick={(e) => { e.preventDefault(); scrollToSection('ai-tools'); }} className="block text-muted-foreground hover:text-primary transition-colors">AI Tools</a>
+                <a href="#demo" onClick={(e) => { e.preventDefault(); scrollToSection('demo'); }} className="block text-muted-foreground hover:text-primary transition-colors">Play Demo</a>
+                <a href="#characters" onClick={(e) => { e.preventDefault(); scrollToSection('characters'); }} className="block text-muted-foreground hover:text-primary transition-colors">Characters</a>
               </div>
             </div>
             

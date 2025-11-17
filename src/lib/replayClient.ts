@@ -1,5 +1,8 @@
 // Client for replay API
 import { supabase } from '@/integrations/supabase/client';
+import * as replayApiMock from '@/utils/replayApi';
+
+const MOCK_ENABLED = (import.meta.env.VITE_USE_REPLAY_MOCK || '').toLowerCase() === 'true';
 
 export interface ReplayRequest {
   seed: number;
@@ -9,6 +12,7 @@ export interface ReplayRequest {
     maxTicks?: number;
     maxDurationSec?: number;
   };
+  mode?: 'full' | 'fast';
 }
 
 export interface ReplayMetadata {
@@ -49,13 +53,20 @@ export interface ReplayData extends ReplayMetadata {
     engineCommit: string;
     generatedBy?: string;
     nonDeterminism?: any;
+    partial?: boolean;
+    contentHash?: string;
   };
 }
 
 /**
  * Generate a new replay
+ * Uses mock API if VITE_USE_REPLAY_MOCK=true, otherwise uses Supabase edge function
  */
 export async function generateReplay(request: ReplayRequest): Promise<ReplayMetadata> {
+  if (MOCK_ENABLED) {
+    return replayApiMock.generateReplay(request);
+  }
+
   const { data, error } = await supabase.functions.invoke('replay-handler/generate', {
     body: request,
     method: 'POST'
@@ -70,8 +81,17 @@ export async function generateReplay(request: ReplayRequest): Promise<ReplayMeta
 
 /**
  * Get replay data by ID
+ * Uses mock API if VITE_USE_REPLAY_MOCK=true, otherwise uses Supabase edge function
  */
 export async function getReplay(replayId: string): Promise<ReplayData> {
+  if (MOCK_ENABLED) {
+    const data = await replayApiMock.getReplay(replayId);
+    if (!data) {
+      throw new Error(`Replay ${replayId} not found`);
+    }
+    return data;
+  }
+
   const { data, error } = await supabase.functions.invoke(`replay-handler/${replayId}`, {
     method: 'GET'
   });
@@ -93,8 +113,19 @@ export function getReplayDownloadUrl(replayId: string): string {
 
 /**
  * Download replay as JSON file
+ * Uses mock API if VITE_USE_REPLAY_MOCK=true, otherwise uses Supabase edge function
  */
 export async function downloadReplay(replayId: string): Promise<void> {
+  if (MOCK_ENABLED) {
+    // Get metadata first
+    const metadata = await getReplay(replayId);
+    if (!metadata || !metadata.url) {
+      throw new Error('Replay metadata not found');
+    }
+    await replayApiMock.downloadReplay(metadata);
+    return;
+  }
+
   const url = getReplayDownloadUrl(replayId);
   const response = await fetch(url);
   

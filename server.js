@@ -30,6 +30,16 @@ app.use((req, res, next) => {
   next();
 });
 
+// JSON body parser for API routes
+app.use(express.json());
+
+// API Routes - must come BEFORE static file serving and SPA fallback
+const replayRoutes = require('./src/routes/replayRoutes');
+app.use('/api/replay', replayRoutes);
+
+const roomRoutes = require('./src/routes/roomRoutes');
+app.use('/api/rooms', roomRoutes);
+
 // Serve static files from the appropriate directory
 app.use(express.static(serveDir, {
   extensions: ['html', 'js', 'css', 'json', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ico']

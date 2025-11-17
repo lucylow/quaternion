@@ -6,6 +6,10 @@ import { buildStrategyPrompt } from './promptTemplates.js';
 import { LRUCache, hashPrompt } from './cache.js';
 import MCTS from './planner/MCTS.js';
 import { logAIDecision, recordMetric } from './telemetry.js';
+import { SituationEvaluator } from './situationEvaluator.js';
+import { ScoutingSystem } from './scoutingSystem.js';
+import { FormationSystem } from './formationSystem.js';
+import { StrategicPlanner } from './strategicPlanner.js';
 import commanderConfigData from '../config/commanders.json';
 
 export const AIDifficulty = {
@@ -102,9 +106,17 @@ export class AIController {
     loadCommanderConfig();
     this.personality = COMMANDER_CONFIG[commanderId] || null;
     
-    // Initialize MCTS planner
+    // Initialize MCTS planner with improved rollouts
     const rollouts = difficulty === AIDifficulty.HARD ? 500 : (difficulty === AIDifficulty.MEDIUM ? 200 : 100);
-    this.planner = new MCTS({ rollouts });
+    this.mctsPlanner = new MCTS({ rollouts });
+    
+    // Initialize new AI systems
+    this.scouting = new ScoutingSystem(playerId);
+    this.formations = new FormationSystem();
+    this.strategicPlanner = new StrategicPlanner(playerId);
+    this.situation = null; // Will be updated each tick
+    this.lastSituationUpdate = 0;
+    this.lastPlanUpdate = 0;
   }
 
   getDecisionInterval() {
@@ -159,7 +171,7 @@ export class AIController {
   }
 
   /**
-   * Analyze current game state
+   * Analyze current game state with enhanced evaluation
    */
   analyzeGameState(gameState) {
     const myUnits = gameState.units.filter(u => u.playerId === this.playerId);
@@ -169,6 +181,29 @@ export class AIController {
     this.strategy.armySize = myUnits.filter(u => u.type !== UnitType.WORKER).length;
     this.strategy.baseCount = myBuildings.filter(b => b.type === BuildingType.BASE).length;
 
+    // Update situation evaluation (every 10 ticks for performance)
+    if (gameState.tick - this.lastSituationUpdate >= 10) {
+      this.situation = SituationEvaluator.evaluate(gameState, this.playerId);
+      this.lastSituationUpdate = gameState.tick;
+      
+      // Update strategy based on situation
+      this.updateStrategyFromSituation();
+    }
+
+    // Update strategic plan (every 50 ticks)
+    if (gameState.tick - this.lastPlanUpdate >= 50) {
+      if (this.situation) {
+        this.strategicPlanner.updatePlan(this.situation, gameState);
+        if (!this.strategicPlanner.currentPlan || this.strategicPlanner.isPlanComplete()) {
+          this.strategicPlanner.createPlan(this.situation, gameState);
+        }
+      }
+      this.lastPlanUpdate = gameState.tick;
+    }
+
+    // Update scouting system
+    this.scouting.update(gameState);
+
     const player = gameState.players[this.playerId];
     if (player.minerals > 500) {
       this.strategy.militaryFocus = 0.6;
@@ -177,6 +212,29 @@ export class AIController {
 
     if (this.strategy.workerCount < 5) {
       this.strategy.economyFocus = 0.7;
+    }
+  }
+
+  /**
+   * Update strategy based on situation evaluation
+   */
+  updateStrategyFromSituation() {
+    if (!this.situation) return;
+
+    // Adjust focus based on threats
+    if (this.situation.threat.level > 0.5) {
+      this.strategy.militaryFocus = Math.min(0.9, this.strategy.militaryFocus + 0.2);
+      this.strategy.economyFocus = Math.max(0.1, this.strategy.economyFocus - 0.2);
+    }
+
+    // Adjust based on military advantage
+    if (this.situation.military.advantage < -0.2) {
+      this.strategy.militaryFocus = Math.min(0.8, this.strategy.militaryFocus + 0.15);
+    }
+
+    // Adjust based on economy
+    if (this.situation.economy.saturation < 0.6) {
+      this.strategy.economyFocus = Math.min(0.8, this.strategy.economyFocus + 0.2);
     }
   }
 
@@ -337,42 +395,109 @@ export class AIController {
   }
 
   /**
-   * Generate candidate actions based on current game state
+   * Generate candidate actions based on current game state with situation awareness
    */
   generateCandidateActions(gameState) {
     const candidates = [];
     const player = gameState.players[this.playerId];
+    const situation = this.situation;
 
-    // Economy actions
-    if (this.strategy.workerCount < 12) {
+    // Economy actions - enhanced with situation awareness
+    const optimalWorkers = (situation?.economy.baseCount || 1) * 12;
+    if (this.strategy.workerCount < optimalWorkers) {
+      let score = 0.6;
+      if (situation?.economy.saturation < 0.7) score += 0.2;
+      if (situation?.threat.level > 0.5) score -= 0.2;
+      
       candidates.push({ 
         id: 'build_worker', 
         type: 'econ', 
         action: 'build_unit',
         unitType: UnitType.WORKER,
-        baseScore: 0.6 
+        baseScore: Math.max(0.1, score)
       });
     }
 
-    // Military actions
+    // Expansion actions
+    if (situation?.economy.canExpand && player.minerals >= 400) {
+      candidates.push({
+        id: 'expand_base',
+        type: 'expand',
+        action: 'build_building',
+        buildingType: BuildingType.BASE,
+        baseScore: 0.8
+      });
+    }
+
+    // Military actions - enhanced with threat awareness
     if (player.minerals >= 150 && player.gas >= 100) {
+      let score = 0.7;
+      if (situation?.military.advantage < 0) score += 0.2;
+      if (situation?.threat.level > 0.3) score += 0.15;
+      
       candidates.push({ 
         id: 'build_tank', 
         type: 'attack', 
         action: 'build_unit',
         unitType: UnitType.TANK,
-        baseScore: 0.7 
+        baseScore: Math.min(1, score)
       });
     }
     
     if (player.minerals >= 100) {
+      let score = 0.5;
+      if (situation?.military.advantage < 0) score += 0.2;
+      
       candidates.push({ 
         id: 'build_soldier', 
         type: 'attack', 
         action: 'build_unit',
         unitType: UnitType.SOLDIER,
-        baseScore: 0.5 
+        baseScore: Math.min(1, score)
       });
+    }
+
+    // Production building actions
+    const myBuildings = gameState.buildings.filter(b => b.playerId === this.playerId);
+    if (!myBuildings.some(b => b.type === BuildingType.BARRACKS) && player.minerals >= 100) {
+      candidates.push({
+        id: 'build_barracks',
+        type: 'build',
+        action: 'build_building',
+        buildingType: BuildingType.BARRACKS,
+        baseScore: 0.7
+      });
+    }
+
+    if (!myBuildings.some(b => b.type === BuildingType.FACTORY) && 
+        player.minerals >= 150 && player.gas >= 50) {
+      candidates.push({
+        id: 'build_factory',
+        type: 'build',
+        action: 'build_building',
+        buildingType: BuildingType.FACTORY,
+        baseScore: 0.6
+      });
+    }
+
+    // Scouting actions
+    const scoutTargets = this.scouting.getScoutTargets(gameState, 1);
+    if (scoutTargets.length > 0 && this.strategy.workerCount >= 6) {
+      const idleWorkers = gameState.units.filter(u => 
+        u.playerId === this.playerId && 
+        u.type === UnitType.WORKER && 
+        (u.state === 'idle' || !u.gatherTarget)
+      );
+      
+      if (idleWorkers.length > 0) {
+        candidates.push({
+          id: 'scout',
+          type: 'scout',
+          action: 'scout',
+          target: scoutTargets[0],
+          baseScore: 0.4
+        });
+      }
     }
 
     // Army management actions
@@ -381,18 +506,25 @@ export class AIController {
     );
     
     if (myUnits.length >= 3) {
+      let score = 0.8;
+      if (situation?.military.advantage > 0.2) score += 0.1;
+      if (situation?.threat.level > 0.5) score -= 0.2;
+      
       candidates.push({ 
         id: 'attack_enemy', 
         type: 'attack', 
         action: 'army_attack',
-        baseScore: 0.8 
+        baseScore: Math.max(0.3, score)
       });
     } else {
+      let score = 0.6;
+      if (situation?.threat.level > 0.4) score += 0.2;
+      
       candidates.push({ 
         id: 'defend_base', 
         type: 'defend', 
         action: 'army_defend',
-        baseScore: 0.6 
+        baseScore: Math.min(1, score)
       });
     }
 
@@ -464,6 +596,21 @@ export class AIController {
     switch (action.action) {
       case 'build_unit':
         this.tryBuildUnit(gameState, action.unitType);
+        break;
+      case 'build_building':
+        this.tryBuildBuilding(gameState, action.buildingType);
+        break;
+      case 'scout':
+        if (action.target) {
+          const idleWorkers = gameState.units.filter(u => 
+            u.playerId === this.playerId && 
+            u.type === UnitType.WORKER && 
+            (u.state === 'idle' || !u.gatherTarget)
+          );
+          if (idleWorkers.length > 0) {
+            idleWorkers[0].moveToPosition(action.target.x, action.target.y);
+          }
+        }
         break;
       case 'army_attack':
         this.manageArmy(gameState);
@@ -569,38 +716,127 @@ export class AIController {
       u.playerId === this.playerId && u.type !== UnitType.WORKER
     );
 
+    if (myUnits.length === 0) return;
+
     const enemyUnits = gameState.units.filter(u => u.playerId !== this.playerId);
     const enemyBuildings = gameState.buildings.filter(b => b.playerId !== this.playerId);
 
     const attackThreshold = this.difficulty === AIDifficulty.HARD ? 3 : 5;
     
-    if (myUnits.length >= attackThreshold) {
-      myUnits.forEach(unit => {
-        if (unit.state === 'idle' || unit.state === 'moving') {
+    // Use formations for larger armies
+    if (myUnits.length >= 6) {
+      this.manageArmyWithFormations(gameState, myUnits, enemyUnits, enemyBuildings);
+    } else if (myUnits.length >= attackThreshold) {
+      // Use improved micro for smaller groups
+      this.manageArmyMicro(gameState, myUnits, enemyUnits, enemyBuildings);
+    } else {
+      // Defend base with small army
+      this.defendBase(gameState, myUnits);
+    }
+  }
+
+  /**
+   * Manage army using formations
+   */
+  manageArmyWithFormations(gameState, myUnits, enemyUnits, enemyBuildings) {
+    // Check if we need a new formation
+    const existingFormation = this.formations.formations.values().next().value;
+    
+    if (!existingFormation || existingFormation.units.length !== myUnits.length) {
+      // Create new formation
+      const situation = this.situation || { threat: { level: 0 } };
+      const formationType = situation.threat.level > 0.4 ? 'box' : 'wedge';
+      const target = enemyUnits.length > 0 ? enemyUnits[0] : null;
+      
+      this.formations.createFormation(myUnits, formationType, target);
+    }
+
+    // Update formation and get positions
+    const formation = Array.from(this.formations.formations.values())[0];
+    if (formation) {
+      const positions = this.formations.updateFormation(formation.id);
+      
+      // Assign positions to units
+      positions.forEach(({ unitId, x, y }) => {
+        const unit = myUnits.find(u => u.id === unitId);
+        if (unit && (unit.state === 'idle' || unit.state === 'moving')) {
+          unit.moveToPosition(x, y);
+        }
+      });
+
+      // Attack if enemies are nearby
+      if (enemyUnits.length > 0) {
+        myUnits.forEach(unit => {
           const nearestEnemy = this.findNearestEnemy(unit, enemyUnits, enemyBuildings);
-          if (nearestEnemy) {
+          if (nearestEnemy && unit.distanceTo(nearestEnemy.x, nearestEnemy.y) < unit.range + 5) {
+            if (nearestEnemy.type) {
+              unit.attackUnit(nearestEnemy);
+            }
+          }
+        });
+      }
+    }
+  }
+
+  /**
+   * Improved micro-management for smaller groups
+   */
+  manageArmyMicro(gameState, myUnits, enemyUnits, enemyBuildings) {
+    myUnits.forEach(unit => {
+      if (unit.state === 'idle' || unit.state === 'moving') {
+        const nearestEnemy = this.findNearestEnemy(unit, enemyUnits, enemyBuildings);
+        if (nearestEnemy) {
+          const distance = unit.distanceTo(nearestEnemy.x, nearestEnemy.y);
+          
+          // Kite if we have range advantage
+          if (unit.range > 1 && distance < unit.range + 3 && distance > unit.range) {
+            // Already in range, attack
+            if (nearestEnemy.type) {
+              unit.attackUnit(nearestEnemy);
+            }
+          } else if (distance <= unit.range + 2) {
+            // Close enough to attack
             if (nearestEnemy.type) {
               unit.attackUnit(nearestEnemy);
             } else {
               unit.moveToPosition(nearestEnemy.x, nearestEnemy.y);
             }
+          } else {
+            // Move towards enemy
+            unit.moveToPosition(nearestEnemy.x, nearestEnemy.y);
+          }
+        } else {
+          // No enemies visible, scout or return to base
+          const scoutTargets = this.scouting.getScoutTargets(gameState, 1);
+          if (scoutTargets.length > 0) {
+            const target = scoutTargets[0];
+            unit.moveToPosition(target.x, target.y);
           }
         }
-      });
-    } else {
-      const base = gameState.buildings.find(b => b.playerId === this.playerId && b.type === BuildingType.BASE);
-      if (base) {
-        myUnits.forEach(unit => {
-          if (unit.state === 'idle') {
-            const angle = Math.random() * Math.PI * 2;
-            const distance = 10;
-            unit.moveToPosition(
-              base.x + Math.cos(angle) * distance,
-              base.y + Math.sin(angle) * distance
-            );
-          }
-        });
       }
+    });
+  }
+
+  /**
+   * Defend base with small army
+   */
+  defendBase(gameState, myUnits) {
+    const base = gameState.buildings.find(b => 
+      b.playerId === this.playerId && b.type === BuildingType.BASE
+    );
+    
+    if (base) {
+      myUnits.forEach((unit, index) => {
+        if (unit.state === 'idle') {
+          // Position units around base in defensive formation
+          const angle = (index / myUnits.length) * Math.PI * 2;
+          const distance = 12;
+          unit.moveToPosition(
+            base.x + Math.cos(angle) * distance,
+            base.y + Math.sin(angle) * distance
+          );
+        }
+      });
     }
   }
 

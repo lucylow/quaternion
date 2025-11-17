@@ -6,6 +6,13 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Game from "./pages/Game";
 import QuaternionGame from "./pages/QuaternionGame";
+import Lobby from "./pages/Lobby";
+import About from "./pages/About";
+import Commanders from "./pages/Commanders";
+import HowToPlay from "./pages/HowToPlay";
+import AIFeatures from "./pages/AIFeatures";
+import Replays from "./pages/Replays";
+import TechTree from "./pages/TechTree";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -19,7 +26,14 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/game" element={<Game />} />
+          <Route path="/lobby" element={<Lobby />} />
           <Route path="/quaternion" element={<QuaternionGame />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/commanders" element={<Commanders />} />
+          <Route path="/how-to-play" element={<HowToPlay />} />
+          <Route path="/ai-features" element={<AIFeatures />} />
+          <Route path="/replays" element={<Replays />} />
+          <Route path="/tech-tree" element={<TechTree />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

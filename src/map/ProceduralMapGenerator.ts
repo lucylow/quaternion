@@ -1,7 +1,9 @@
 import { SeededRandom } from '../lib/SeededRandom';
+import { EnhancedProceduralGenerator, GeneratedMap as EnhancedGeneratedMap } from './EnhancedProceduralGenerator';
 
 /**
  * Procedural map generator using quaternion-based approach
+ * Now supports enhanced features via EnhancedProceduralGenerator
  */
 
 export interface MapNode {
@@ -16,6 +18,9 @@ export interface MapConfig {
   height: number;
   seed: number;
   type: 'crystalline_plains' | 'jagged_island' | 'quantum_nexus' | 'void_expanse';
+  useEnhanced?: boolean; // Use enhanced generator
+  personality?: 'aggressive' | 'defensive' | 'economic' | 'puzzle';
+  biome?: 'volcanic' | 'crystalline' | 'organic' | 'mechanical' | 'quantum' | 'void';
 }
 
 export interface GeneratedMap {
@@ -26,6 +31,12 @@ export interface GeneratedMap {
   aiStart: { x: number; y: number };
   centralNode: MapNode | null;
   seed: number;
+  // Enhanced features (optional)
+  strategicPoints?: any[];
+  terrainFeatures?: any[];
+  personality?: string;
+  biome?: string;
+  strategicDNA?: any;
 }
 
 export class ProceduralMapGenerator {
@@ -41,6 +52,11 @@ export class ProceduralMapGenerator {
    * Generate complete map
    */
   public generate(): GeneratedMap {
+    // Use enhanced generator if requested
+    if (this.config.useEnhanced) {
+      return this.generateEnhanced();
+    }
+
     const nodes: MapNode[] = [];
     
     // Generate resource nodes based on map type
@@ -74,6 +90,48 @@ export class ProceduralMapGenerator {
       aiStart,
       centralNode,
       seed: this.config.seed
+    };
+  }
+
+  /**
+   * Generate using enhanced procedural generator
+   */
+  private generateEnhanced(): GeneratedMap {
+    // Map old types to new personalities/biomes
+    const typeMapping: Record<string, { personality?: 'aggressive' | 'defensive' | 'economic' | 'puzzle', biome?: 'volcanic' | 'crystalline' | 'organic' | 'mechanical' | 'quantum' | 'void' }> = {
+      'crystalline_plains': { personality: 'economic', biome: 'crystalline' },
+      'jagged_island': { personality: 'defensive', biome: 'organic' },
+      'quantum_nexus': { personality: 'puzzle', biome: 'quantum' },
+      'void_expanse': { personality: 'aggressive', biome: 'void' }
+    };
+
+    const mapping = typeMapping[this.config.type] || {};
+    
+    const enhancedConfig = {
+      width: this.config.width,
+      height: this.config.height,
+      seed: this.config.seed,
+      personality: this.config.personality || mapping.personality,
+      biome: this.config.biome || mapping.biome
+    };
+
+    const enhancedGenerator = new EnhancedProceduralGenerator(enhancedConfig);
+    const enhancedMap = enhancedGenerator.generate();
+
+    // Convert enhanced map to legacy format
+    return {
+      width: enhancedMap.width,
+      height: enhancedMap.height,
+      nodes: enhancedMap.nodes,
+      playerStart: enhancedMap.playerStart,
+      aiStart: enhancedMap.aiStart,
+      centralNode: enhancedMap.centralNode,
+      seed: enhancedMap.seed,
+      strategicPoints: enhancedMap.strategicPoints,
+      terrainFeatures: enhancedMap.terrainFeatures,
+      personality: enhancedMap.personality,
+      biome: enhancedMap.biome,
+      strategicDNA: enhancedMap.strategicDNA
     };
   }
 

@@ -27,6 +27,8 @@ export interface GameConfig {
   mapType: string;
   aiDifficulty: 'easy' | 'medium' | 'hard';
   commanderId: string;
+  mode?: 'single' | 'multiplayer';
+  roomId?: string;
 }
 
 export interface WinCondition {
@@ -142,7 +144,8 @@ export class QuaternionGameState {
   }
   
   /**
-   * Main game update
+   * Main game update (fixed timestep)
+   * This should be called with a fixed deltaTime for deterministic behavior
    */
   public update(deltaTime: number): void {
     if (!this.isRunning || this.gameOver) return;
@@ -161,6 +164,17 @@ export class QuaternionGameState {
     
     // Check lose conditions
     this.checkLoseConditions();
+  }
+  
+  /**
+   * Variable update (for non-critical systems that don't need determinism)
+   * This can be called with variable deltaTime for smooth animations
+   */
+  public variableUpdate(deltaTime: number): void {
+    if (!this.isRunning || this.gameOver) return;
+    
+    // Non-critical updates that don't affect game logic
+    // For example: particle effects, UI animations, etc.
   }
   
   /**

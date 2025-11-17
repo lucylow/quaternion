@@ -715,35 +715,120 @@ async function seedDatabase() {
     for (const game of insertedGames) {
       if (game.status === 'waiting') continue;
       
-      // Create snapshots at key intervals
-      const snapshotTicks = [0, 25, 50, 75, 100, 125, 150, 175, 200].filter(t => t <= game.tick);
+      // Create snapshots more frequently (every 20-25 ticks)
+      const snapshotInterval = 22;
+      const snapshotTicks = [];
+      for (let t = 0; t <= game.tick; t += snapshotInterval) {
+        snapshotTicks.push(Math.floor(t));
+      }
+      // Always include tick 0 and final tick
+      if (!snapshotTicks.includes(0)) snapshotTicks.unshift(0);
+      if (!snapshotTicks.includes(game.tick)) snapshotTicks.push(game.tick);
+      snapshotTicks.sort((a, b) => a - b);
+      
+      const gameCommanders = insertedCommanders.filter(c => c.game_id === game.id);
+      const commander1 = gameCommanders.find(c => c.player_id === 1);
+      const commander2 = gameCommanders.find(c => c.player_id === 2);
       
       for (const tick of snapshotTicks) {
+        const gameProgress = tick / Math.max(game.tick, 1);
+        
+        // Simulate realistic game state progression
+        const baseResources = 200;
+        const maxResources = 5000;
+        const resources1 = Math.min(maxResources, baseResources + gameProgress * 3000 + Math.random() * 500);
+        const resources2 = Math.min(maxResources, baseResources + gameProgress * 3000 + Math.random() * 500);
+        
+        const baseUnits = 5;
+        const maxUnits = 100;
+        const units1 = Math.min(maxUnits, baseUnits + gameProgress * 80 + Math.random() * 15);
+        const units2 = Math.min(maxUnits, baseUnits + gameProgress * 80 + Math.random() * 15);
+        
+        const baseBuildings = 2;
+        const maxBuildings = 25;
+        const buildings1 = Math.min(maxBuildings, baseBuildings + gameProgress * 20 + Math.random() * 3);
+        const buildings2 = Math.min(maxBuildings, baseBuildings + gameProgress * 20 + Math.random() * 3);
+        
+        // Create more detailed game state
+        const gameState = {
+          tick,
+          timestamp: new Date(Date.now() - (game.tick - tick) * 1000).toISOString(),
+          players: [
+            {
+              id: 1,
+              name: commander1?.name || 'Player 1',
+              commander_id: commander1?.id,
+              commander_archetype: commander1?.archetype,
+              resources: {
+                minerals: Math.floor(resources1),
+                gas: Math.floor(resources1 * 0.3),
+              },
+              units: {
+                total: Math.floor(units1),
+                workers: Math.floor(units1 * 0.4),
+                military: Math.floor(units1 * 0.6),
+              },
+              buildings: {
+                total: Math.floor(buildings1),
+                bases: Math.floor(buildings1 * 0.2) + 1,
+                production: Math.floor(buildings1 * 0.5),
+                economy: Math.floor(buildings1 * 0.3),
+              },
+              supply: {
+                used: Math.floor(units1 * 1.5),
+                max: Math.floor(units1 * 1.5 + 20),
+              },
+              position: {
+                x: Math.floor(game.map_width * 0.2),
+                y: Math.floor(game.map_height * 0.2),
+              },
+            },
+            {
+              id: 2,
+              name: commander2?.name || 'Player 2',
+              commander_id: commander2?.id,
+              commander_archetype: commander2?.archetype,
+              resources: {
+                minerals: Math.floor(resources2),
+                gas: Math.floor(resources2 * 0.3),
+              },
+              units: {
+                total: Math.floor(units2),
+                workers: Math.floor(units2 * 0.4),
+                military: Math.floor(units2 * 0.6),
+              },
+              buildings: {
+                total: Math.floor(buildings2),
+                bases: Math.floor(buildings2 * 0.2) + 1,
+                production: Math.floor(buildings2 * 0.5),
+                economy: Math.floor(buildings2 * 0.3),
+              },
+              supply: {
+                used: Math.floor(units2 * 1.5),
+                max: Math.floor(units2 * 1.5 + 20),
+              },
+              position: {
+                x: Math.floor(game.map_width * 0.8),
+                y: Math.floor(game.map_height * 0.8),
+              },
+            },
+          ],
+          map: {
+            width: game.map_width,
+            height: game.map_height,
+            seed: game.map_seed,
+            terrain: 'procedural',
+          },
+          events: [
+            ...(tick > 0 ? [`Game progressed to tick ${tick}`] : ['Game started']),
+            ...(tick % 50 === 0 ? ['Major strategic event occurred'] : []),
+          ],
+        };
+        
         gameSnapshots.push({
           game_id: game.id,
           tick,
-          state: {
-            tick,
-            players: [
-              {
-                id: 1,
-                resources: Math.floor(Math.random() * 1000) + 100,
-                units: Math.floor(Math.random() * 20) + 5,
-                buildings: Math.floor(Math.random() * 10) + 2,
-              },
-              {
-                id: 2,
-                resources: Math.floor(Math.random() * 1000) + 100,
-                units: Math.floor(Math.random() * 20) + 5,
-                buildings: Math.floor(Math.random() * 10) + 2,
-              },
-            ],
-            map: {
-              width: game.map_width,
-              height: game.map_height,
-              seed: game.map_seed,
-            },
-          },
+          state: gameState,
         });
       }
     }
