@@ -52,19 +52,25 @@ export class MapLoader {
       return this.imageCache.get(imagePath)!;
     }
 
-    // Try both encoded and original paths
+    // Try both encoded and original paths, with and without CORS
     const encodedPath = this.encodeImagePath(imagePath);
-    const pathsToTry = [encodedPath, imagePath];
+    const pathsToTry = [
+      { path: encodedPath, cors: false },
+      { path: imagePath, cors: false },
+      { path: encodedPath, cors: true },  // Try with CORS as fallback
+      { path: imagePath, cors: true }
+    ];
 
     for (let attempt = 0; attempt < retries; attempt++) {
-      for (const path of pathsToTry) {
+      for (const { path, cors } of pathsToTry) {
         try {
-          const img = await this.loadImageWithPath(path);
+          const img = await this.loadImageWithPath(path, cors);
           this.imageCache.set(imagePath, img);
           return img;
         } catch (error) {
-          console.warn(`[MapLoader] Attempt ${attempt + 1}/${retries} failed for path: ${path}`, error);
-          if (attempt === retries - 1 && path === pathsToTry[pathsToTry.length - 1]) {
+          const corsLabel = cors ? 'with CORS' : 'without CORS';
+          console.warn(`[MapLoader] Attempt ${attempt + 1}/${retries} failed for path: ${path} (${corsLabel})`, error);
+          if (attempt === retries - 1 && path === pathsToTry[pathsToTry.length - 1].path && cors === pathsToTry[pathsToTry.length - 1].cors) {
             // Last attempt with last path - throw error
             throw new Error(`Failed to load image after ${retries} attempts: ${imagePath}`);
           }

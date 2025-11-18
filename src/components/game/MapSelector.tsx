@@ -41,14 +41,24 @@ export const MapSelector: React.FC<MapSelectorProps> = ({
         };
 
         const encodedPath = encodePath(path);
-        const pathsToTry = [encodedPath, path];
+        // Try both encoded and original paths, with and without CORS
+        const pathsToTry = [
+          { path: encodedPath, cors: false },
+          { path: path, cors: false },
+          { path: encodedPath, cors: true },  // Try with CORS as fallback
+          { path: path, cors: true }
+        ];
 
         for (let attempt = 0; attempt < retries; attempt++) {
-          for (const tryPath of pathsToTry) {
+          for (const { path: tryPath, cors } of pathsToTry) {
             try {
               await new Promise<void>((resolve, reject) => {
                 const img = new Image();
-                img.crossOrigin = 'anonymous';
+                
+                // Only set crossOrigin if needed (for external sources like GitHub)
+                if (cors || tryPath.startsWith('http://') || tryPath.startsWith('https://')) {
+                  img.crossOrigin = 'anonymous';
+                }
                 
                 const timeout = setTimeout(() => {
                   reject(new Error('Timeout'));
@@ -69,7 +79,7 @@ export const MapSelector: React.FC<MapSelectorProps> = ({
               });
               return; // Success, exit function
             } catch (error) {
-              if (attempt === retries - 1 && tryPath === pathsToTry[pathsToTry.length - 1]) {
+              if (attempt === retries - 1 && tryPath === pathsToTry[pathsToTry.length - 1].path && cors === pathsToTry[pathsToTry.length - 1].cors) {
                 // Last attempt failed
                 console.warn(`Failed to load preview for map: ${map.id} after ${retries} attempts`);
               } else {

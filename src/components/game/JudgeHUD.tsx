@@ -96,8 +96,8 @@ export function JudgeHUD({ seed, commanderId, mapConfig, outcome }: JudgeHUDProp
                 <div className="flex items-start gap-2">
                   <AlertTriangle className="w-4 h-4 text-yellow-500 mt-0.5" />
                   <div className="text-sm">
-                    <div className="font-semibold text-yellow-500">Partial Replay</div>
-                    <div className="text-yellow-500/80">
+                    <div className="font-semibold text-base text-yellow-300 text-readable-neon">Partial Replay</div>
+                    <div className="text-sm text-yellow-200 text-readable">
                       {metadata.meta.nonDeterminism?.reason || 'Some ticks were summarized'}
                     </div>
                   </div>
@@ -108,15 +108,15 @@ export function JudgeHUD({ seed, commanderId, mapConfig, outcome }: JudgeHUDProp
             {/* Summary */}
             {metadata?.summary && (
               <div className="space-y-2">
-                <h4 className="text-sm font-semibold text-foreground">Summary</h4>
-                <p className="text-sm text-muted-foreground leading-relaxed">{metadata.summary}</p>
+                <h4 className="text-base font-semibold text-foreground text-readable-neon">Summary</h4>
+                <p className="text-sm text-muted-foreground leading-relaxed text-readable">{metadata.summary}</p>
               </div>
             )}
 
             {/* AI Highlights */}
             {metadata?.aiHighlights && metadata.aiHighlights.length > 0 && (
               <div className="space-y-2">
-                <h4 className="text-sm font-semibold text-foreground">Top AI Highlights</h4>
+                <h4 className="text-base font-semibold text-foreground text-readable-neon">Top AI Highlights</h4>
                 <ScrollArea className="h-32">
                   <div className="space-y-2">
                     {metadata.aiHighlights.slice(0, 3).map((highlight, idx) => (
@@ -144,7 +144,7 @@ export function JudgeHUD({ seed, commanderId, mapConfig, outcome }: JudgeHUDProp
             {/* Recent Actions */}
             {metadata?.actions && metadata.actions.length > 0 && (
               <div className="space-y-2">
-                <h4 className="text-sm font-semibold text-foreground">Recent Actions</h4>
+                <h4 className="text-base font-semibold text-foreground text-readable-neon">Recent Actions</h4>
                 <ScrollArea className="h-24">
                   <div className="space-y-1">
                     {metadata.actions.slice(0, 8).map((action, idx) => (

@@ -21,7 +21,7 @@ export const BuildMenu = ({ resources, onBuild, onClose }: BuildMenuProps) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-gray-800 border-2 border-cyan-400 rounded-lg p-6 max-w-2xl w-full mx-4" onClick={e => e.stopPropagation()}>
-        <h2 className="text-2xl font-bold text-cyan-400 mb-4">CONSTRUCTION MENU</h2>
+        <h2 className="text-3xl font-bold text-cyan-300 mb-4 text-readable-neon">CONSTRUCTION MENU</h2>
         
         <div className="grid grid-cols-2 gap-3 mb-4">
           {Object.values(BUILDINGS).map(building => {
@@ -32,66 +32,66 @@ export const BuildMenu = ({ resources, onBuild, onClose }: BuildMenuProps) => {
                 key={building.id}
                 className={`bg-gray-700 rounded p-4 border ${
                   affordable 
-                    ? 'border-cyan-400 hover:bg-cyan-400/10 cursor-pointer' 
+                    ? 'border-cyan-400/50 hover:bg-cyan-400/20 cursor-pointer' 
                     : 'border-gray-600 opacity-50'
                 } transition-all`}
                 onClick={() => affordable && onBuild(building.id)}
               >
-                <h3 className="font-bold mb-1 text-white">{building.name}</h3>
-                <p className="text-xs text-gray-400 mb-2">{building.description}</p>
+                <h3 className="font-bold mb-1 text-base text-cyan-200 text-readable-neon">{building.name}</h3>
+                <p className="text-sm text-cyan-100 mb-2 text-readable">{building.description}</p>
                 
                 <div className="space-y-1">
-                  <div className="flex gap-2 text-xs flex-wrap">
-                    <span className="text-gray-400">Cost:</span>
+                  <div className="flex gap-2 text-sm flex-wrap">
+                    <span className="text-cyan-200 text-readable">Cost:</span>
                     {building.cost.matter && (
-                      <span className="flex items-center gap-1 text-blue-400">
-                        <Box className="w-3 h-3" />{building.cost.matter}
+                      <span className="flex items-center gap-1 text-orange-300 text-readable-neon">
+                        <Box className="w-4 h-4" />{building.cost.matter}
                       </span>
                     )}
                     {building.cost.energy && (
-                      <span className="flex items-center gap-1 text-yellow-400">
-                        <Zap className="w-3 h-3" />{building.cost.energy}
+                      <span className="flex items-center gap-1 text-yellow-300 text-readable-neon">
+                        <Zap className="w-4 h-4" />{building.cost.energy}
                       </span>
                     )}
                     {building.cost.life && (
-                      <span className="flex items-center gap-1 text-green-400">
-                        <Leaf className="w-3 h-3" />{building.cost.life}
+                      <span className="flex items-center gap-1 text-green-300 text-readable-neon">
+                        <Leaf className="w-4 h-4" />{building.cost.life}
                       </span>
                     )}
                     {building.cost.knowledge && (
-                      <span className="flex items-center gap-1 text-purple-400">
-                        <Brain className="w-3 h-3" />{building.cost.knowledge}
+                      <span className="flex items-center gap-1 text-purple-300 text-readable-neon">
+                        <Brain className="w-4 h-4" />{building.cost.knowledge}
                       </span>
                     )}
                   </div>
                   
                   {building.produces && (
-                    <div className="flex gap-2 text-xs text-green-500 flex-wrap">
+                    <div className="flex gap-2 text-sm text-green-300 flex-wrap text-readable-neon">
                       <span>Produces:</span>
                       {building.produces.matter && (
                         <span className="flex items-center gap-1">
-                          <Box className="w-3 h-3" />+{building.produces.matter}/s
+                          <Box className="w-4 h-4" />+{building.produces.matter}/s
                         </span>
                       )}
                       {building.produces.energy && (
                         <span className="flex items-center gap-1">
-                          <Zap className="w-3 h-3" />+{building.produces.energy}/s
+                          <Zap className="w-4 h-4" />+{building.produces.energy}/s
                         </span>
                       )}
                       {building.produces.life && (
                         <span className="flex items-center gap-1">
-                          <Leaf className="w-3 h-3" />+{building.produces.life}/s
+                          <Leaf className="w-4 h-4" />+{building.produces.life}/s
                         </span>
                       )}
                       {building.produces.knowledge && (
                         <span className="flex items-center gap-1">
-                          <Brain className="w-3 h-3" />+{building.produces.knowledge}/s
+                          <Brain className="w-4 h-4" />+{building.produces.knowledge}/s
                         </span>
                       )}
                     </div>
                   )}
                   
-                  <div className="text-xs text-gray-400">
+                  <div className="text-sm text-cyan-200 text-readable">
                     Build time: {building.buildTime}s
                   </div>
                 </div>

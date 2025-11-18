@@ -18,7 +18,7 @@ export const CommandPanel = ({ selectedUnits, onCommand }: CommandPanelProps) =>
       icon: Move,
       shortcut: 'M',
       description: 'Move selected units to target location',
-      color: 'text-blue-400 border-blue-400/30 hover:bg-blue-400/10'
+      color: 'text-cyan-300 border-cyan-400/50 hover:bg-cyan-400/20'
     },
     {
       id: 'attack',
@@ -26,7 +26,7 @@ export const CommandPanel = ({ selectedUnits, onCommand }: CommandPanelProps) =>
       icon: Swords,
       shortcut: 'A',
       description: 'Attack move to target location',
-      color: 'text-red-400 border-red-400/30 hover:bg-red-400/10'
+      color: 'text-red-300 border-red-400/50 hover:bg-red-400/20'
     },
     {
       id: 'patrol',
@@ -34,7 +34,7 @@ export const CommandPanel = ({ selectedUnits, onCommand }: CommandPanelProps) =>
       icon: Target,
       shortcut: 'P',
       description: 'Patrol between two points',
-      color: 'text-yellow-400 border-yellow-400/30 hover:bg-yellow-400/10'
+      color: 'text-yellow-300 border-yellow-400/50 hover:bg-yellow-400/20'
     },
     {
       id: 'special',
@@ -42,7 +42,7 @@ export const CommandPanel = ({ selectedUnits, onCommand }: CommandPanelProps) =>
       icon: Sparkles,
       shortcut: 'S',
       description: 'Use special ability',
-      color: 'text-purple-400 border-purple-400/30 hover:bg-purple-400/10'
+      color: 'text-purple-300 border-purple-400/50 hover:bg-purple-400/20'
     },
     {
       id: 'stop',
@@ -50,7 +50,7 @@ export const CommandPanel = ({ selectedUnits, onCommand }: CommandPanelProps) =>
       icon: Square,
       shortcut: 'H',
       description: 'Stop all orders',
-      color: 'text-gray-400 border-gray-400/30 hover:bg-gray-400/10'
+      color: 'text-cyan-200 border-cyan-400/30 hover:bg-cyan-400/10'
     }
   ];
 
@@ -76,14 +76,14 @@ export const CommandPanel = ({ selectedUnits, onCommand }: CommandPanelProps) =>
                       border min-w-[60px] flex flex-col items-center gap-1 h-auto py-2
                     `}
                   >
-                    <Icon className="w-4 h-4" />
-                    <span className="text-xs">{cmd.label}</span>
-                    <span className="text-[10px] opacity-60">{cmd.shortcut}</span>
+                    <Icon className="w-5 h-5" />
+                    <span className="text-sm font-semibold text-readable-neon">{cmd.label}</span>
+                    <span className="text-xs opacity-70 text-readable">{cmd.shortcut}</span>
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>{cmd.description}</p>
-                  <p className="text-xs text-gray-400 mt-1">Shortcut: {cmd.shortcut}</p>
+                  <p className="text-sm text-readable">{cmd.description}</p>
+                  <p className="text-xs text-cyan-200 mt-1 text-readable">Shortcut: {cmd.shortcut}</p>
                 </TooltipContent>
               </Tooltip>
             );

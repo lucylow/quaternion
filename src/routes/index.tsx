@@ -41,6 +41,7 @@ export const LazyNotFound = lazy(() => import("../pages/NotFound"));
 export const routes = [
   { path: "/", name: "Home", component: "Index" },
   { path: "/game", name: "Game", component: "Game" },
+  { path: "/game/neural-frontier", name: "Neural Frontier", component: "Game" },
   { path: "/lobby", name: "Lobby", component: "Lobby" },
   { path: "/quaternion", name: "Quaternion Game", component: "QuaternionGame" },
   { path: "/about", name: "About", component: "About" },

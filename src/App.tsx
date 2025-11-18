@@ -119,6 +119,7 @@ const App = () => (
               <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/game" element={<LazyGame />} />
+                <Route path="/game/neural-frontier" element={<LazyGame />} />
                 <Route path="/lobby" element={<LazyLobby />} />
                 <Route path="/quaternion" element={<LazyQuaternionGame />} />
                 <Route path="/about" element={<LazyAbout />} />

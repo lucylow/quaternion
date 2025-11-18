@@ -6,9 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, Search, Sparkles, Star, Zap, Crown, Gem, Filter, Grid3x3, List, ShoppingCart, TrendingUp } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Loader2, Search, Sparkles, Star, Zap, Crown, Gem, Filter, Grid3x3, List, ShoppingCart, TrendingUp, Eye, X, Plus, Minus } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
 
 interface Cosmetic {
   id: string;
@@ -18,12 +20,16 @@ interface Cosmetic {
   category: string;
   rarity: string;
   preview: string;
+  image?: string;
+  tags?: string[];
+  stats?: Record<string, any>;
 }
 
 type SortOption = 'price-asc' | 'price-desc' | 'rarity' | 'name';
 type ViewMode = 'grid' | 'list';
 
 export function CosmeticShop() {
+  const navigate = useNavigate();
   const [cosmetics, setCosmetics] = useState<Cosmetic[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
@@ -32,6 +38,9 @@ export function CosmeticShop() {
   const [selectedRarity, setSelectedRarity] = useState<string>('all');
   const [sortBy, setSortBy] = useState<SortOption>('price-asc');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [selectedCosmetic, setSelectedCosmetic] = useState<Cosmetic | null>(null);
+  const [cart, setCart] = useState<Cosmetic[]>([]);
+  const [showCart, setShowCart] = useState(false);
 
   useEffect(() => {
     fetchCosmetics();

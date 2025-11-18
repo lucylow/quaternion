@@ -20,6 +20,61 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
+// Game asset mappings for battle pass rewards
+const MONSTER_ASSETS = [
+  '/assets/monsters/DALL·E 2024-11-20 16.27.04 - Create a dramatic, horror-themed scene from the celestial-themed game WOOHOO, where the Celestial Monster is attacking all the characters. The monster.webp',
+  '/assets/monsters/DALL·E 2024-11-20 16.27.14 - Create an AI-generated image of a Celestial Monster character from a celestial-themed game. The monster is chaotic and otherworldly, with glowing cosm.webp',
+  '/assets/monsters/DALL·E 2024-11-20 16.27.15 - Create an AI-generated image of a Celestial Monster character from a celestial-themed game. The monster is chaotic and otherworldly, with glowing cosm.webp',
+  '/assets/monsters/DALL·E 2024-11-22 18.35.00 - Design a cinematic, ultra-high-quality sci-fi movie poster for \'Quaternion.\' The composition features a massive, glowing monster emanating the four po.webp',
+  '/assets/monsters/DALL·E 2024-11-22 18.36.36 - Create a visually striking and highly detailed sci-fi movie poster for \'Quaternion.\' At the center, a colossal, glowing monster radiates four distinct.webp',
+  '/assets/monsters/DALL·E 2024-11-22 18.40.56 - Design a highly cinematic sci-fi movie poster for \'Quaternion,\' featuring a towering monster radiating four distinct powers_ Time (blue), Space (green.webp',
+  '/assets/monsters/DALL·E 2024-11-22 18.42.21 - Create a visually striking sci-fi movie poster for \'Quaternion.\' The central focus is a towering, glowing monster radiating four powers_ Time (blue, s.webp',
+  '/assets/monsters/DALL·E 2024-11-22 18.44.15 - Design an enhanced sci-fi movie poster for \'Quaternion,\' focusing on the battle between a colossal monster and three futuristic starships. The monster.webp',
+  '/assets/monsters/DALL·E 2024-11-22 18.49.09 - Create an original and highly detailed sci-fi illustration of a colossal elemental monster formed from four floating islands, each representing a dist.webp',
+  '/assets/monsters/DALL·E 2024-11-22 18.54.19 - Design a breathtaking sci-fi illustration for \'Quaternion_ Defend the Dimensions.\' Depict a massive elemental monster formed from four floating island.webp',
+  '/assets/monsters/DALL·E 2024-11-22 19.02.15 - Create a visually striking and highly original sci-fi illustration for \'Quaternion_ Defend the Dimensions.\' Center the image on a colossal monster for.webp',
+];
+
+const MAP_ASSETS = [
+  '/assets/maps/DALL·E 2024-11-20 16.22.21 - Create a unique 2D and 3D map design for a twilight biome for a StarCraft-inspired mobile game titled \'Eclipse Down.\' The map should feature glowing a.webp',
+  '/assets/maps/DALL·E 2024-11-20 16.22.24 - Create a unique 2D and 3D map design for an urban battlefield for a StarCraft-inspired mobile game titled \'Eclipse Down.\' The map should feature dense.webp',
+  '/assets/maps/DALL·E 2024-11-20 16.22.28 - Create a unique 2D and 3D map design for an underwater biome for a StarCraft-inspired mobile game titled \'Eclipse Down.\' The map should feature glowin.webp',
+  '/assets/maps/DALL·E 2024-11-20 16.22.32 - Create a unique 2D and 3D map design for a mountainous terrain for a StarCraft-inspired mobile game titled \'Eclipse Down.\' The map should feature laye.webp',
+  '/assets/maps/DALL·E 2024-11-20 16.22.35 - Create a unique 2D and 3D map design for a desert terrain for a StarCraft-inspired mobile game titled \'Eclipse Down.\' The map should feature shifting .webp',
+  '/assets/maps/DALL·E 2024-11-20 16.22.38 - Create a unique 2D and 3D map design for an icy wasteland for a StarCraft-inspired mobile game titled \'Eclipse Down.\' The map should feature slippery .webp',
+  '/assets/maps/DALL·E 2024-11-20 16.22.41 - Create a unique 2D and 3D map design for a volcanic terrain for a StarCraft-inspired mobile game titled \'Eclipse Down.\' The map should feature glowing.webp',
+  '/assets/maps/DALL·E 2024-11-20 16.22.45 - Create a unique 2D and 3D map design for a lush alien jungle for a StarCraft-inspired mobile game titled \'Eclipse Down.\' The map should feature glowin.webp',
+];
+
+const COUNTRY_ASSETS = [
+  '/assets/countries/DALL·E 2024-11-20 16.24.01 - Create an AI-generated image of a massive Zerg-inspired monster, the Zyrithon, in a VR perspective, destroying the Burj Khalifa in Dubai, UAE. The sce.webp',
+  '/assets/countries/DALL·E 2024-11-20 16.24.05 - Create an AI-generated image of a massive Zerg-inspired monster, the Zyrithon, in a VR perspective, destroying the Great Wall of China. The scene shou.webp',
+  '/assets/countries/DALL·E 2024-11-20 16.24.07 - Create an AI-generated image of a massive Zerg-inspired monster, the Zyrithon, in a VR perspective, destroying the Statue of Liberty in New York, USA.webp',
+  '/assets/countries/DALL·E 2024-11-20 16.24.09 - Create an AI-generated image of a massive Zerg-inspired monster, the Zyrithon, in a VR perspective, destroying the Eiffel Tower in Paris, France. The .webp',
+];
+
+// Get asset for reward type and level
+const getRewardAsset = (rewardType: string, level: number): string | null => {
+  const index = (level - 1) % 20; // Cycle through assets
+  
+  switch (rewardType) {
+    case 'monster':
+    case 'cosmetic':
+      return MONSTER_ASSETS[index % MONSTER_ASSETS.length];
+    case 'map':
+    case 'level':
+      return MAP_ASSETS[index % MAP_ASSETS.length];
+    case 'country':
+    case 'location':
+      return COUNTRY_ASSETS[index % COUNTRY_ASSETS.length];
+    default:
+      // Mix of assets for other types
+      if (index % 3 === 0) return MONSTER_ASSETS[index % MONSTER_ASSETS.length];
+      if (index % 3 === 1) return MAP_ASSETS[index % MAP_ASSETS.length];
+      return COUNTRY_ASSETS[index % COUNTRY_ASSETS.length];
+  }
+};
+
 interface BattlePass {
   id: string;
   name: string;
