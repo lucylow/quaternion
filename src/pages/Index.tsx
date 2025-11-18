@@ -11,6 +11,17 @@ import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/quaternion-hero.webp";
 import mapImage from "@/assets/game-maps.webp";
 
+// Helper function to encode image paths with special characters
+const encodeImagePath = (path: string): string => {
+  if (!path) return path;
+  // Split path and encode each segment separately to preserve slashes
+  const normalizedPath = path.startsWith('/') ? path : '/' + path;
+  return normalizedPath.split('/').map(segment => {
+    if (!segment) return segment; // Preserve empty segments (leading/trailing slashes)
+    return encodeURIComponent(segment);
+  }).join('/');
+};
+
 const Index = () => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -130,7 +141,14 @@ const Index = () => {
                 <ShoppingCart className="w-5 h-5" />
               </Button>
               <Button 
-                onClick={() => navigate('/lobby')}
+                onClick={() => {
+                  try {
+                    navigate('/lobby');
+                  } catch (error) {
+                    console.error('Navigation error:', error);
+                    window.location.href = '/lobby';
+                  }
+                }}
                 className="hidden sm:flex bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:shadow-neon focus:ring-2 focus:ring-primary focus:ring-offset-2 text-sm px-3 py-1.5"
               >
                 Play Now
@@ -171,7 +189,15 @@ const Index = () => {
                   Checkout
                 </a>
                 <Button 
-                  onClick={() => { navigate('/lobby'); setMobileMenuOpen(false); }}
+                  onClick={() => {
+                    try {
+                      navigate('/lobby');
+                      setMobileMenuOpen(false);
+                    } catch (error) {
+                      console.error('Navigation error:', error);
+                      window.location.href = '/lobby';
+                    }
+                  }}
                   className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:shadow-neon mt-2"
                 >
                   Play Now
@@ -195,15 +221,27 @@ const Index = () => {
             </p>
             <div className="relative mt-6 rounded-lg overflow-hidden border border-primary/30 shadow-neon">
               <img 
-                src="/assets/monsters/DALL·E 2024-11-22 18.35.00 - Design a cinematic, ultra-high-quality sci-fi movie poster for 'Quaternion.' The composition features a massive, glowing monster emanating the four po.webp"
+                src={encodeImagePath("/assets/monsters/DALL·E 2024-11-22 18.35.00 - Design a cinematic, ultra-high-quality sci-fi movie poster for 'Quaternion.' The composition features a massive, glowing monster emanating the four po.webp")}
                 alt="Quaternion Game"
                 className="w-full h-auto object-cover"
+                onError={(e) => {
+                  console.error('Failed to load hero image:', e.currentTarget.src);
+                  e.currentTarget.style.display = 'none';
+                }}
               />
             </div>
             <div className="flex flex-wrap gap-3 sm:gap-4">
               <Button 
                 size="lg" 
-                onClick={() => navigate('/lobby')}
+                onClick={() => {
+                  try {
+                    navigate('/lobby');
+                  } catch (error) {
+                    console.error('Navigation error:', error);
+                    // Fallback: try direct navigation
+                    window.location.href = '/lobby';
+                  }
+                }}
                 className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:shadow-neon focus:ring-2 focus:ring-primary focus:ring-offset-2 text-sm sm:text-base"
               >
                 Play Free Demo
@@ -327,9 +365,12 @@ const Index = () => {
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group">
               <div className="aspect-video relative overflow-hidden">
                 <img 
-                  src="/assets/maps/DALL·E 2024-11-20 16.22.41 - Create a unique 2D and 3D map design for a volcanic terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowing.webp"
+                  src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.41 - Create a unique 2D and 3D map design for a volcanic terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowing.webp")}
                   alt="Volcanic Terrain Map"
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  onError={(e) => {
+                    console.error('Failed to load map image:', e.currentTarget.src);
+                  }}
                 />
               </div>
               <CardContent className="p-4">
@@ -340,9 +381,12 @@ const Index = () => {
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '100ms' }}>
               <div className="aspect-video relative overflow-hidden">
                 <img 
-                  src="/assets/maps/DALL·E 2024-11-20 16.22.45 - Create a unique 2D and 3D map design for a lush alien jungle for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowin.webp"
+                  src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.45 - Create a unique 2D and 3D map design for a lush alien jungle for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowin.webp")}
                   alt="Alien Jungle Map"
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  onError={(e) => {
+                    console.error('Failed to load map image:', e.currentTarget.src);
+                  }}
                 />
               </div>
               <CardContent className="p-4">
@@ -353,9 +397,12 @@ const Index = () => {
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '200ms' }}>
               <div className="aspect-video relative overflow-hidden">
                 <img 
-                  src="/assets/maps/DALL·E 2024-11-20 16.22.38 - Create a unique 2D and 3D map design for an icy wasteland for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature slippery .webp"
+                  src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.38 - Create a unique 2D and 3D map design for an icy wasteland for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature slippery .webp")}
                   alt="Icy Wasteland Map"
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  onError={(e) => {
+                    console.error('Failed to load map image:', e.currentTarget.src);
+                  }}
                 />
               </div>
               <CardContent className="p-4">
@@ -366,9 +413,12 @@ const Index = () => {
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '300ms' }}>
               <div className="aspect-video relative overflow-hidden">
                 <img 
-                  src="/assets/maps/DALL·E 2024-11-20 16.22.35 - Create a unique 2D and 3D map design for a desert terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature shifting .webp"
+                  src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.35 - Create a unique 2D and 3D map design for a desert terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature shifting .webp")}
                   alt="Desert Terrain Map"
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  onError={(e) => {
+                    console.error('Failed to load map image:', e.currentTarget.src);
+                  }}
                 />
               </div>
               <CardContent className="p-4">
@@ -379,9 +429,12 @@ const Index = () => {
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group">
               <div className="aspect-video relative overflow-hidden">
                 <img 
-                  src="/assets/maps/DALL·E 2024-11-20 16.22.32 - Create a unique 2D and 3D map design for a mountainous terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature laye.webp"
+                  src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.32 - Create a unique 2D and 3D map design for a mountainous terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature laye.webp")}
                   alt="Mountainous Terrain Map"
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  onError={(e) => {
+                    console.error('Failed to load map image:', e.currentTarget.src);
+                  }}
                 />
               </div>
               <CardContent className="p-4">
@@ -392,9 +445,12 @@ const Index = () => {
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '100ms' }}>
               <div className="aspect-video relative overflow-hidden">
                 <img 
-                  src="/assets/maps/DALL·E 2024-11-20 16.22.24 - Create a unique 2D and 3D map design for an urban battlefield for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature dense.webp"
+                  src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.24 - Create a unique 2D and 3D map design for an urban battlefield for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature dense.webp")}
                   alt="Urban Battlefield Map"
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  onError={(e) => {
+                    console.error('Failed to load map image:', e.currentTarget.src);
+                  }}
                 />
               </div>
               <CardContent className="p-4">
@@ -405,9 +461,12 @@ const Index = () => {
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '200ms' }}>
               <div className="aspect-video relative overflow-hidden">
                 <img 
-                  src="/assets/maps/DALL·E 2024-11-20 16.22.21 - Create a unique 2D and 3D map design for a twilight biome for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowing a.webp"
+                  src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.21 - Create a unique 2D and 3D map design for a twilight biome for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowing a.webp")}
                   alt="Twilight Biome Map"
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  onError={(e) => {
+                    console.error('Failed to load map image:', e.currentTarget.src);
+                  }}
                 />
               </div>
               <CardContent className="p-4">
@@ -418,9 +477,12 @@ const Index = () => {
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '300ms' }}>
               <div className="aspect-video relative overflow-hidden">
                 <img 
-                  src="/assets/maps/DALL·E 2024-11-20 16.22.28 - Create a unique 2D and 3D map design for an underwater biome for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowin.webp"
+                  src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.28 - Create a unique 2D and 3D map design for an underwater biome for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowin.webp")}
                   alt="Underwater Biome Map"
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  onError={(e) => {
+                    console.error('Failed to load map image:', e.currentTarget.src);
+                  }}
                 />
               </div>
               <CardContent className="p-4">
@@ -441,9 +503,12 @@ const Index = () => {
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group">
               <div className="aspect-[4/3] relative overflow-hidden">
                 <img 
-                  src="/assets/monsters/DALL·E 2024-11-22 19.02.15 - Create a visually striking and highly original sci-fi illustration for 'Quaternion_ Defend the Dimensions.' Center the image on a colossal monster for.webp"
+                  src={encodeImagePath("/assets/monsters/DALL·E 2024-11-22 19.02.15 - Create a visually striking and highly original sci-fi illustration for 'Quaternion_ Defend the Dimensions.' Center the image on a colossal monster for.webp")}
                   alt="Colossal Monster"
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  onError={(e) => {
+                    console.error('Failed to load monster image:', e.currentTarget.src);
+                  }}
                 />
               </div>
               <CardContent className="p-6">
@@ -455,9 +520,12 @@ const Index = () => {
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '100ms' }}>
               <div className="aspect-[4/3] relative overflow-hidden">
                 <img 
-                  src="/assets/monsters/DALL·E 2024-11-22 18.44.15 - Design an enhanced sci-fi movie poster for 'Quaternion,' focusing on the battle between a colossal monster and three futuristic starships. The monster.webp"
+                  src={encodeImagePath("/assets/monsters/DALL·E 2024-11-22 18.44.15 - Design an enhanced sci-fi movie poster for 'Quaternion,' focusing on the battle between a colossal monster and three futuristic starships. The monster.webp")}
                   alt="Battle Scene Monster"
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  onError={(e) => {
+                    console.error('Failed to load monster image:', e.currentTarget.src);
+                  }}
                 />
               </div>
               <CardContent className="p-6">
@@ -469,9 +537,12 @@ const Index = () => {
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '200ms' }}>
               <div className="aspect-[4/3] relative overflow-hidden">
                 <img 
-                  src="/assets/monsters/DALL·E 2024-11-20 16.27.15 - Create an AI-generated image of a Celestial Monster character from a celestial-themed game. The monster is chaotic and otherworldly, with glowing cosm.webp"
+                  src={encodeImagePath("/assets/monsters/DALL·E 2024-11-20 16.27.15 - Create an AI-generated image of a Celestial Monster character from a celestial-themed game. The monster is chaotic and otherworldly, with glowing cosm.webp")}
                   alt="Celestial Monster"
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  onError={(e) => {
+                    console.error('Failed to load monster image:', e.currentTarget.src);
+                  }}
                 />
               </div>
               <CardContent className="p-6">
@@ -592,7 +663,14 @@ const Index = () => {
                   <h3 className="text-xl sm:text-2xl font-bold mb-2">WebGL Game Demo</h3>
                   <p className="text-sm sm:text-base text-muted-foreground mb-4">Play directly in your browser - no downloads required</p>
                   <Button 
-                    onClick={() => navigate('/lobby')}
+                    onClick={() => {
+                      try {
+                        navigate('/lobby');
+                      } catch (error) {
+                        console.error('Navigation error:', error);
+                        window.location.href = '/lobby';
+                      }
+                    }}
                     className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:shadow-neon text-sm sm:text-base"
                   >
                     Launch Game

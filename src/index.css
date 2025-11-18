@@ -166,14 +166,17 @@ All colors MUST be HSL.
     background: linear-gradient(180deg, #04102a, #020214) !important;
   }
 
+  /* PATCHED BY CURSOR - 2024-12-19 - safe bootstrap & debug */
   /* ensure canvas is visible and fills background */
   #game-canvas {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 1;
-    background: linear-gradient(180deg, #04102a, #020214);
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 1 !important;
+    background: linear-gradient(180deg, #04102a, #020214) !important;
+    display: block !important;
+    pointer-events: auto !important;
   }
 
   /* Game container styles */
@@ -197,11 +200,17 @@ All colors MUST be HSL.
     height: 100% !important;
   }
 
+  /* PATCHED BY CURSOR - 2024-12-19 - safe bootstrap & debug */
   /* Ensure UI overlays don't block canvas */
   .game-ui-overlay {
     position: absolute;
     z-index: 10;
     pointer-events: none; /* Let clicks pass through to canvas */
+  }
+
+  /* Debug overlays should be above everything */
+  [data-debug-overlay] {
+    z-index: 9999 !important;
   }
 
   /* Make specific UI elements clickable */

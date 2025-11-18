@@ -1,11 +1,9 @@
-// PATCHED BY CURSOR - phaser hitArea fix - 2024-11-18
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
-import { applyPhaserInputShims } from "./engine/phaserShim";
-
-// Apply Phaser input shims early, before any Phaser scenes initialize
-applyPhaserInputShims();
+// PATCHED BY CURSOR - 2024-12-19 - safe bootstrap & debug
+// Import Phaser shim early to patch input system before Phaser is used
+import "./engine/phaserShim";
 
 // Enable debug mode
 window.__QUAT_DEBUG__ = true;

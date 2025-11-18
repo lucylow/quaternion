@@ -1,15 +1,29 @@
+// PATCHED BY CURSOR - 2024-12-19 - safe bootstrap & debug
 // src/engine/startup.ts
-
+//
 // Robust engine initializer. Tries multiple known entry points and falls back to sample replay loader.
 // Adds verbose debug logging with [QUAT DEBUG] prefix.
+// Ensures global window.quaternionEngine exists.
 
 import Phaser from 'phaser';
 
 export async function initEngine(canvasEl: HTMLCanvasElement | HTMLElement | null): Promise<void> {
-  console.log('[QUAT DEBUG] initEngine called', { canvasEl });
+  console.log('[QUAT DEBUG] initEngine called', { canvasEl, hasCanvas: !!canvasEl });
   
   if (!canvasEl) {
     throw new Error('initEngine: canvas element missing');
+  }
+
+  // Ensure canvas has proper attributes
+  if (canvasEl instanceof HTMLCanvasElement) {
+    if (!canvasEl.id) canvasEl.id = 'game-canvas';
+    console.log('[QUAT DEBUG] canvas element prepared', {
+      id: canvasEl.id,
+      width: canvasEl.width,
+      height: canvasEl.height,
+      clientWidth: canvasEl.clientWidth,
+      clientHeight: canvasEl.clientHeight,
+    });
   }
 
   // Helper to attempt a function and log result
@@ -26,16 +40,20 @@ export async function initEngine(canvasEl: HTMLCanvasElement | HTMLElement | nul
   }
 
   // 1) try global init function (legacy)
-  if (window.initQuaternionEngine && typeof window.initQuaternionEngine === 'function') {
-    if (await tryCall('window.initQuaternionEngine', window.initQuaternionEngine.bind(window))) {
+  if ((window as any).initQuaternionEngine && typeof (window as any).initQuaternionEngine === 'function') {
+    if (await tryCall('window.initQuaternionEngine', (window as any).initQuaternionEngine.bind(window))) {
+      // Ensure engine is on window
+      if (!(window as any).quaternionEngine) {
+        console.warn('[QUAT DEBUG] initQuaternionEngine succeeded but window.quaternionEngine not set');
+      }
       return;
     }
   }
 
   // 2) try a known global engine object
-  if (window.quaternionEngine && typeof (window.quaternionEngine as any).attachCanvas === 'function') {
+  if ((window as any).quaternionEngine && typeof ((window as any).quaternionEngine as any).attachCanvas === 'function') {
     try {
-      (window.quaternionEngine as any).attachCanvas(canvasEl);
+      ((window as any).quaternionEngine as any).attachCanvas(canvasEl);
       console.log('[QUAT DEBUG] window.quaternionEngine.attachCanvas called');
       return;
     } catch (e) {
@@ -51,13 +69,13 @@ export async function initEngine(canvasEl: HTMLCanvasElement | HTMLElement | nul
       const engine = (mod as any).createEngine();
       if (typeof engine.attachCanvas === 'function') {
         engine.attachCanvas(canvasEl);
-        window.quaternionEngine = engine;
+        (window as any).quaternionEngine = engine;
         console.log('[QUAT DEBUG] createEngine -> engine.attachCanvas ok');
         return;
       }
       if (typeof engine.start === 'function') {
         engine.start({ canvas: canvasEl });
-        window.quaternionEngine = engine;
+        (window as any).quaternionEngine = engine;
         console.log('[QUAT DEBUG] createEngine -> engine.start ok');
         return;
       }
@@ -77,7 +95,54 @@ export async function initEngine(canvasEl: HTMLCanvasElement | HTMLElement | nul
     }
   }
 
-  // 5) last resort: load sample replay for debugging so something displays
+  // 5) Create minimal engine shim if nothing else worked
+  console.warn('[QUAT DEBUG] engine init: no engine found, creating minimal shim');
+  const minimalEngine = {
+    attachCanvas: (canvas: HTMLElement) => {
+      console.log('[QUAT DEBUG] minimalEngine.attachCanvas called', canvas);
+    },
+    step: (deltaTime: number) => {
+      // No-op
+    },
+    render: (interpolation: number) => {
+      // No-op, fallback renderer will handle it
+    },
+    getEntityCount: async () => {
+      return 0;
+    },
+    loadReplay: (data: any) => {
+      console.log('[QUAT DEBUG] minimalEngine.loadReplay called', data);
+    },
+    ensureDemoState: async () => {
+      // Try to call ensureDemoState on actual game state if available
+      try {
+        const mod = await import('../game/QuaternionGameState').catch(() => null);
+        if (mod && (window as any).quaternionEngine && typeof ((window as any).quaternionEngine as any).ensureDemoState === 'function') {
+          ((window as any).quaternionEngine as any).ensureDemoState();
+        }
+      } catch (e) {
+        console.warn('[QUAT DEBUG] ensureDemoState failed', e);
+      }
+    },
+  };
+  (window as any).quaternionEngine = minimalEngine;
+  console.log('[QUAT DEBUG] minimal engine shim installed on window.quaternionEngine');
+
+  // 5.5) Try to ensure demo state if env flag is set
+  if (import.meta.env.REACT_APP_USE_SAMPLE_DEMO === 'true' || (window as any).__QUAT_FORCE_DEMO__) {
+    console.log('[QUAT DEBUG] REACT_APP_USE_SAMPLE_DEMO flag set, ensuring demo state');
+    setTimeout(async () => {
+      try {
+        if ((window as any).quaternionEngine && typeof ((window as any).quaternionEngine as any).ensureDemoState === 'function') {
+          await ((window as any).quaternionEngine as any).ensureDemoState();
+        }
+      } catch (e) {
+        console.warn('[QUAT DEBUG] auto ensureDemoState failed', e);
+      }
+    }, 1000);
+  }
+
+  // 6) last resort: load sample replay for debugging so something displays
   try {
     console.warn('[QUAT DEBUG] engine init failed — loading sample fallback');
     const url = '/fixtures/sample-replay.json';
@@ -104,5 +169,6 @@ export async function initEngine(canvasEl: HTMLCanvasElement | HTMLElement | nul
 
   // If we get here, Phaser should handle rendering (it's initialized in QuaternionGame.tsx)
   console.log('[QUAT DEBUG] initEngine: Phaser game will handle rendering via QuaternionGame component');
+  console.log('[QUAT DEBUG] initEngine: window.quaternionEngine is', typeof (window as any).quaternionEngine);
 }
 

@@ -1,41 +1,75 @@
+// PATCHED BY CURSOR - 2024-12-19 - safe bootstrap & debug
 // scripts/check_canvas.js
-// Node script: fetches root page and reports presence of canvas id (basic smoke)
+//
+// Small tool to validate canvas id in returned HTML.
 
 const http = require('http');
 const https = require('https');
+const { URL } = require('url');
 
-(async () => {
-  const url = process.argv[2] || 'http://localhost:3000';
-  console.log('[QUAT DEBUG] checking', url);
-  
-  const fetchUrl = (urlString) => {
-    return new Promise((resolve, reject) => {
-      const urlObj = new URL(urlString);
-      const client = urlObj.protocol === 'https:' ? https : http;
-      
-      client.get(urlString, (res) => {
-        let data = '';
-        res.on('data', (chunk) => {
-          data += chunk;
-        });
-        res.on('end', () => {
-          resolve(data);
-        });
-      }).on('error', (err) => {
-        reject(err);
-      });
-    });
-  };
-  
-  try {
-    const txt = await fetchUrl(url);
-    if (txt.indexOf('game-canvas') !== -1) {
-      console.log('[QUAT DEBUG] page contains marker #game-canvas');
-    } else {
-      console.warn('[QUAT DEBUG] marker not found — canvas likely mounted client-side');
+const url = process.argv[2] || 'http://localhost:3000';
+
+console.log('[QUAT DEBUG] Checking canvas at', url);
+
+const urlObj = new URL(url);
+const client = urlObj.protocol === 'https:' ? https : http;
+
+const options = {
+  hostname: urlObj.hostname,
+  port: urlObj.port || (urlObj.protocol === 'https:' ? 443 : 80),
+  path: urlObj.pathname + urlObj.search,
+  method: 'GET',
+  headers: {
+    'User-Agent': 'Quaternion-Canvas-Checker/1.0',
+  },
+};
+
+const req = client.request(options, (res) => {
+  let data = '';
+
+  res.on('data', (chunk) => {
+    data += chunk;
+  });
+
+  res.on('end', () => {
+    if (res.statusCode !== 200) {
+      console.error(`ERROR: Server returned ${res.statusCode}`);
+      process.exit(1);
     }
-  } catch (e) {
-    console.error('[QUAT DEBUG] fetch failed', e.message);
-  }
-})();
 
+    console.log('✓ Server responded with status', res.statusCode);
+
+    // Check for canvas
+    if (data.includes('id="game-canvas"')) {
+      console.log('✓ Canvas element with id="game-canvas" found in HTML');
+    } else if (data.toLowerCase().includes('canvas')) {
+      console.log('⚠ Canvas element found but without id="game-canvas"');
+    } else {
+      console.log('⚠ No canvas element in initial HTML (may be created by React)');
+    }
+
+    // Check for React root
+    if (data.includes('id="root"')) {
+      console.log('✓ React root element found');
+    } else {
+      console.log('⚠ React root element not found');
+    }
+
+    // Check for main script
+    if (data.includes('/src/main')) {
+      console.log('✓ Main script reference found');
+    } else {
+      console.log('⚠ Main script reference not found');
+    }
+
+    console.log('\nCanvas check complete.');
+  });
+});
+
+req.on('error', (e) => {
+  console.error(`ERROR: ${e.message}`);
+  console.error('Make sure dev server is running: npm run dev');
+  process.exit(1);
+});
+
+req.end();

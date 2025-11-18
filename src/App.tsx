@@ -8,7 +8,6 @@ import Index from "./pages/Index";
 // Import QuaternionGame directly instead of lazy loading to fix Phaser initialization
 import QuaternionGame from "./pages/QuaternionGame";
 import {
-  LazyGame,
   LazyLobby,
   LazyAbout,
   LazyCommanders,

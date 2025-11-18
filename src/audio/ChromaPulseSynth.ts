@@ -290,14 +290,17 @@ export default class ChromaPulseSynth {
       this.filter.connect(this.distortionGain);
       this.distortionGain.connect(this.distortion);
       
-      // Second oscillator path: osc2 -> filter2 -> distortion
-      this.oscillator2.connect(this.filter2);
+      // Second oscillator path: osc2 -> gain2 -> filter2 -> distortion
+      this.oscillator2.connect(this.gain2);
+      this.gain2.connect(this.filter2);
       this.filter2.connect(this.distortionGain);
       
-      // Third oscillator path: osc3 -> filter -> distortion
-      this.oscillator3.connect(this.filter);
+      // Third oscillator path: osc3 -> gain3 -> filter -> distortion
+      this.oscillator3.connect(this.gain3);
+      this.gain3.connect(this.filter);
       
-      // Continue main path: distortion -> phaser chain
+      // Continue main path: distortion -> phaser chain -> delay -> gain
+      // All oscillators feed into the same distortion node, then through phaser
       this.distortion.connect(this.phaser[0]);
       let lastPhaser = this.phaser[0];
       for (let i = 1; i < this.phaser.length; i++) {
@@ -310,12 +313,6 @@ export default class ChromaPulseSynth {
       lastPhaser.connect(this.delay);
       this.delay.connect(this.delayGain);
       this.delayGain.connect(this.gain);
-
-      // Connect second and third oscillators to main gain
-      this.oscillator2.connect(this.gain2);
-      this.gain2.connect(this.gain);
-      this.oscillator3.connect(this.gain3);
-      this.gain3.connect(this.gain);
 
       // Add reverb
       this.gain.connect(this.reverbGain);

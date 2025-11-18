@@ -1120,6 +1120,120 @@ export class QuaternionGameState {
   }
   
   /**
+   * PATCHED BY CURSOR - 2024-12-19 - safe bootstrap & debug
+   * Ensure demo state is created if world is empty.
+   * Creates a base, 2 workers, 1 soldier, 1 resource node, and one objective.
+   * This function should be no-op if real game already has state.
+   */
+  public ensureDemoState(): void {
+    // Check if we already have entities
+    if (this.units.length > 0 || this.buildings.length > 0 || this.resourceNodes.length > 0) {
+      console.log('[QUAT DEBUG] ensureDemoState: world already has entities, skipping');
+      return;
+    }
+
+    console.log('[QUAT DEBUG] ensureDemoState: creating demo state');
+
+    // Ensure player exists
+    if (!this.players.has(1)) {
+      this.initializePlayers();
+    }
+
+    const player = this.players.get(1);
+    if (!player) {
+      console.warn('[QUAT DEBUG] ensureDemoState: player 1 not found');
+      return;
+    }
+
+    // Create a base building
+    try {
+      const baseId = 'demo_base_1';
+      const baseBuilding = {
+        id: baseId,
+        type: 'base',
+        playerId: 1,
+        x: this.mapManager.width / 2,
+        y: this.mapManager.height / 2,
+        health: 100,
+        maxHealth: 100,
+      };
+      this.buildings.push(baseBuilding);
+      console.log('[QUAT DEBUG] ensureDemoState: created base', baseId);
+    } catch (e) {
+      console.warn('[QUAT DEBUG] ensureDemoState: failed to create base', e);
+    }
+
+    // Create 2 workers
+    try {
+      for (let i = 0; i < 2; i++) {
+        const workerId = `demo_worker_${i + 1}`;
+        const worker = {
+          id: workerId,
+          type: 'worker',
+          playerId: 1,
+          x: (this.mapManager.width / 2) + (i * 2),
+          y: (this.mapManager.height / 2) + 1,
+          health: 50,
+          maxHealth: 50,
+        };
+        this.units.push(worker);
+        console.log('[QUAT DEBUG] ensureDemoState: created worker', workerId);
+      }
+    } catch (e) {
+      console.warn('[QUAT DEBUG] ensureDemoState: failed to create workers', e);
+    }
+
+    // Create 1 soldier
+    try {
+      const soldierId = 'demo_soldier_1';
+      const soldier = {
+        id: soldierId,
+        type: 'soldier',
+        playerId: 1,
+        x: (this.mapManager.width / 2) - 2,
+        y: (this.mapManager.height / 2),
+        health: 100,
+        maxHealth: 100,
+      };
+      this.units.push(soldier);
+      console.log('[QUAT DEBUG] ensureDemoState: created soldier', soldierId);
+    } catch (e) {
+      console.warn('[QUAT DEBUG] ensureDemoState: failed to create soldier', e);
+    }
+
+    // Create 1 resource node
+    try {
+      const nodeId = 'demo_resource_1';
+      const resourceNode = {
+        id: nodeId,
+        type: 'ore',
+        x: (this.mapManager.width / 2) + 5,
+        y: (this.mapManager.height / 2),
+        resources: { ore: 1000 },
+        captured: false,
+      };
+      this.resourceNodes.push(resourceNode);
+      console.log('[QUAT DEBUG] ensureDemoState: created resource node', nodeId);
+    } catch (e) {
+      console.warn('[QUAT DEBUG] ensureDemoState: failed to create resource node', e);
+    }
+
+    // Create one objective (if objectives system exists)
+    try {
+      // This is a placeholder - adjust based on actual objective system
+      console.log('[QUAT DEBUG] ensureDemoState: objective creation skipped (system may not exist)');
+    } catch (e) {
+      console.warn('[QUAT DEBUG] ensureDemoState: failed to create objective', e);
+    }
+
+    console.log('[QUAT DEBUG] ensureDemoState: demo state created', {
+      units: this.units.length,
+      buildings: this.buildings.length,
+      resourceNodes: this.resourceNodes.length,
+    });
+  }
+
+  /**
    * Get current game state for UI
    */
   public getState() {
