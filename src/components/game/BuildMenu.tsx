@@ -1,6 +1,8 @@
 import { Button } from '@/components/ui/button';
 import { BUILDINGS } from '@/data/quaternionData';
 import { Box, Zap, Leaf, Brain } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { InteractionAudio } from '@/audio/InteractionAudio';
 
 interface BuildMenuProps {
   resources: { matter: number; energy: number; life: number; knowledge: number };
@@ -9,6 +11,18 @@ interface BuildMenuProps {
 }
 
 export const BuildMenu = ({ resources, onBuild, onClose }: BuildMenuProps) => {
+  const [interactionAudio, setInteractionAudio] = useState<InteractionAudio | null>(null);
+  const [hoveredBuilding, setHoveredBuilding] = useState<string | null>(null);
+
+  useEffect(() => {
+    const initAudio = async () => {
+      const audio = InteractionAudio.instance();
+      await audio.init();
+      setInteractionAudio(audio);
+    };
+    initAudio();
+  }, []);
+
   const canBuild = (building: typeof BUILDINGS[string]) => {
     return (
       (!building.cost.matter || resources.matter >= building.cost.matter) &&
@@ -32,10 +46,26 @@ export const BuildMenu = ({ resources, onBuild, onClose }: BuildMenuProps) => {
                 key={building.id}
                 className={`bg-gray-700 rounded p-4 border ${
                   affordable 
-                    ? 'border-cyan-400/50 hover:bg-cyan-400/20 cursor-pointer' 
-                    : 'border-gray-600 opacity-50'
-                } transition-all`}
-                onClick={() => affordable && onBuild(building.id)}
+                    ? 'border-cyan-400/50 hover:bg-cyan-400/20 cursor-pointer hover:scale-105 hover:shadow-lg hover:shadow-cyan-400/50' 
+                    : 'border-gray-600 opacity-50 cursor-not-allowed'
+                } transition-all duration-200 ${
+                  hoveredBuilding === building.id ? 'ring-2 ring-cyan-400 scale-105' : ''
+                }`}
+                onMouseEnter={() => {
+                  if (affordable) {
+                    setHoveredBuilding(building.id);
+                    interactionAudio?.play('hover', { volume: 0.3 });
+                  }
+                }}
+                onMouseLeave={() => setHoveredBuilding(null)}
+                onClick={() => {
+                  if (affordable) {
+                    interactionAudio?.play('build', { volume: 0.7 });
+                    onBuild(building.id);
+                  } else {
+                    interactionAudio?.play('error', { volume: 0.5 });
+                  }
+                }}
               >
                 <h3 className="font-bold mb-1 text-base text-cyan-200 text-readable-neon">{building.name}</h3>
                 <p className="text-sm text-cyan-100 mb-2 text-readable">{building.description}</p>
@@ -100,7 +130,15 @@ export const BuildMenu = ({ resources, onBuild, onClose }: BuildMenuProps) => {
           })}
         </div>
 
-        <Button onClick={onClose} className="w-full">Close</Button>
+        <Button 
+          onClick={() => {
+            interactionAudio?.play('click', { volume: 0.4 });
+            onClose();
+          }}
+          className="w-full hover:scale-105 transition-transform duration-150"
+        >
+          Close
+        </Button>
       </div>
     </div>
   );

@@ -17,11 +17,27 @@ export const useSelectionManager = () => {
   const interactivityManagerRef = useRef<InteractivityManager | null>(null);
   const interactionAudioRef = useRef<InteractionAudio | null>(null);
 
-  const setupSelection = (
+  const setupSelection = async (
     scene: Phaser.Scene,
     playerUnits: Phaser.Physics.Arcade.Sprite[],
     onSelectionChange?: (units: Phaser.Physics.Arcade.Sprite[]) => void
   ) => {
+    // Initialize interactivity manager
+    if (!interactivityManagerRef.current) {
+      interactivityManagerRef.current = new InteractivityManager(scene, {
+        enableHoverEffects: true,
+        enableClickAnimations: true,
+        enableSelectionPulse: true,
+        enableHapticFeedback: true
+      });
+    }
+
+    // Initialize interaction audio
+    if (!interactionAudioRef.current) {
+      interactionAudioRef.current = InteractionAudio.instance();
+      await interactionAudioRef.current.init();
+    }
+
     // Create selection graphics
     const selectionGraphics = scene.add.graphics();
     selectionGraphicsRef.current = selectionGraphics;
@@ -29,6 +45,25 @@ export const useSelectionManager = () => {
     let isSelecting = false;
     const selectionStart = { x: 0, y: 0 };
     const selected: Phaser.Physics.Arcade.Sprite[] = [];
+
+    // Make all player units interactive with enhanced feedback
+    playerUnits.forEach(unit => {
+      if (interactivityManagerRef.current) {
+        interactivityManagerRef.current.makeInteractive(unit, {
+          onHover: () => {
+            interactionAudioRef.current?.play('hover', { volume: 0.3 });
+          },
+          onClick: () => {
+            interactionAudioRef.current?.play('click', { volume: 0.5 });
+          },
+          onSelect: () => {
+            interactionAudioRef.current?.play('select', { volume: 0.6 });
+          },
+          hoverScale: 1.15,
+          selectionColor: 0x00ffea
+        });
+      }
+    });
 
     // Left click - start selection
     scene.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
@@ -46,14 +81,17 @@ export const useSelectionManager = () => {
             if (!pointer.isDown || !pointer.shiftKey) {
               // Clear selection if not shift-clicking
               selected.forEach(u => {
-                const ring = u.getData('selectionRing') as Phaser.GameObjects.Ellipse | undefined;
-                if (ring) ring.setVisible(false);
+                if (interactivityManagerRef.current) {
+                  interactivityManagerRef.current.deselectObject(u);
+                }
               });
               selected.length = 0;
             }
             selected.push(unit);
-            const ring = unit.getData('selectionRing') as Phaser.GameObjects.Ellipse | undefined;
-            if (ring) ring.setVisible(true);
+            if (interactivityManagerRef.current) {
+              interactivityManagerRef.current.selectObject(unit, 0x00ffea);
+            }
+            interactionAudioRef.current?.play('select', { volume: 0.6 });
             unitClicked = true;
           }
         });
@@ -93,8 +131,9 @@ export const useSelectionManager = () => {
         if (!pointer.shiftKey) {
           // Clear previous selection
           selected.forEach(u => {
-            const ring = u.getData('selectionRing') as Phaser.GameObjects.Ellipse | undefined;
-            if (ring) ring.setVisible(false);
+            if (interactivityManagerRef.current) {
+              interactivityManagerRef.current.deselectObject(u);
+            }
           });
           selected.length = 0;
         }
@@ -105,16 +144,24 @@ export const useSelectionManager = () => {
         const minY = Math.min(selectionStart.y, pointer.worldY);
         const maxY = Math.max(selectionStart.y, pointer.worldY);
 
+        let unitsSelected = 0;
         playerUnits.forEach(unit => {
           if (!unit.active) return;
           if (unit.x >= minX && unit.x <= maxX && unit.y >= minY && unit.y <= maxY) {
             if (!selected.includes(unit)) {
               selected.push(unit);
-              const ring = unit.getData('selectionRing') as Phaser.GameObjects.Ellipse | undefined;
-              if (ring) ring.setVisible(true);
+              if (interactivityManagerRef.current) {
+                interactivityManagerRef.current.selectObject(unit, 0x00ffea);
+              }
+              unitsSelected++;
             }
           }
         });
+
+        // Play selection sound if units were selected
+        if (unitsSelected > 0) {
+          interactionAudioRef.current?.play('select', { volume: 0.5 });
+        }
 
         // Update selection state
         setSelectedUnits([...selected]);
@@ -154,8 +201,9 @@ export const useSelectionManager = () => {
           if (group && group.units.length > 0) {
             // Clear current selection
             selected.forEach(u => {
-              const ring = u.getData('selectionRing') as Phaser.GameObjects.Ellipse | undefined;
-              if (ring) ring.setVisible(false);
+              if (interactivityManagerRef.current) {
+                interactivityManagerRef.current.deselectObject(u);
+              }
             });
             selected.length = 0;
 
@@ -163,10 +211,13 @@ export const useSelectionManager = () => {
             group.units.forEach(unit => {
               if (unit.active) {
                 selected.push(unit);
-                const ring = unit.getData('selectionRing') as Phaser.GameObjects.Ellipse | undefined;
-                if (ring) ring.setVisible(true);
+                if (interactivityManagerRef.current) {
+                  interactivityManagerRef.current.selectObject(unit, 0x00ffea);
+                }
               }
             });
+
+            interactionAudioRef.current?.play('select', { volume: 0.5 });
 
             // Remove inactive units from group
             controlGroupsRef.current.set(groupNum, {
@@ -196,8 +247,9 @@ export const useSelectionManager = () => {
       selectedUnits: selected,
       clearSelection: () => {
         selected.forEach(u => {
-          const ring = u.getData('selectionRing') as Phaser.GameObjects.Ellipse | undefined;
-          if (ring) ring.setVisible(false);
+          if (interactivityManagerRef.current) {
+            interactivityManagerRef.current.deselectObject(u);
+          }
         });
         selected.length = 0;
         setSelectedUnits([]);
@@ -208,12 +260,20 @@ export const useSelectionManager = () => {
       addToSelection: (unit: Phaser.Physics.Arcade.Sprite) => {
         if (!selected.includes(unit)) {
           selected.push(unit);
-          const ring = unit.getData('selectionRing') as Phaser.GameObjects.Ellipse | undefined;
-          if (ring) ring.setVisible(true);
+          if (interactivityManagerRef.current) {
+            interactivityManagerRef.current.selectObject(unit, 0x00ffea);
+          }
+          interactionAudioRef.current?.play('select', { volume: 0.4 });
           setSelectedUnits([...selected]);
           if (onSelectionChange) {
             onSelectionChange([...selected]);
           }
+        }
+      },
+      update: () => {
+        // Update selection rings positions
+        if (interactivityManagerRef.current) {
+          interactivityManagerRef.current.updateSelectionRings();
         }
       }
     };

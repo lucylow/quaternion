@@ -189,8 +189,46 @@ export class ResponsiveMobileUI {
       text.setScrollFactor(0);
       text.setDepth(1001);
 
+      button.on('pointerover', () => {
+        // Hover effect
+        this.scene.tweens.add({
+          targets: button,
+          scaleX: 1.1,
+          scaleY: 1.1,
+          duration: 100,
+          ease: 'Back.easeOut'
+        });
+      });
+
+      button.on('pointerout', () => {
+        // Reset scale
+        this.scene.tweens.add({
+          targets: button,
+          scaleX: 1,
+          scaleY: 1,
+          duration: 100,
+          ease: 'Back.easeIn'
+        });
+      });
+
       button.on('pointerdown', () => {
+        // Press animation
+        this.scene.tweens.add({
+          targets: button,
+          scaleX: 0.9,
+          scaleY: 0.9,
+          duration: 50,
+          yoyo: true,
+          ease: 'Power2'
+        });
+        
         button.setFillStyle(0xff6600, 0.9);
+        
+        // Haptic feedback
+        if ('vibrate' in navigator) {
+          navigator.vibrate(20);
+        }
+        
         this.scene.events.emit(`button_${btn.name}_pressed`);
       });
 

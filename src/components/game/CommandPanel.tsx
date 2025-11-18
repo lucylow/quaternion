@@ -2,6 +2,8 @@ import { Button } from '@/components/ui/button';
 import { Move, Swords, Sparkles, Square, Target } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import Phaser from 'phaser';
+import { useEffect, useState } from 'react';
+import { InteractionAudio } from '@/audio/InteractionAudio';
 
 interface CommandPanelProps {
   selectedUnits: Phaser.Physics.Arcade.Sprite[];
@@ -10,6 +12,51 @@ interface CommandPanelProps {
 
 export const CommandPanel = ({ selectedUnits, onCommand }: CommandPanelProps) => {
   const hasSelection = selectedUnits && selectedUnits.length > 0;
+  const [pressedKey, setPressedKey] = useState<string | null>(null);
+  const [interactionAudio, setInteractionAudio] = useState<InteractionAudio | null>(null);
+
+  useEffect(() => {
+    // Initialize interaction audio
+    const initAudio = async () => {
+      const audio = InteractionAudio.instance();
+      await audio.init();
+      setInteractionAudio(audio);
+    };
+    initAudio();
+
+    // Keyboard shortcut listeners
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const key = e.key.toUpperCase();
+      const shortcuts: Record<string, string> = {
+        'M': 'move',
+        'A': 'attack',
+        'P': 'patrol',
+        'S': 'special',
+        'H': 'stop'
+      };
+
+      const command = shortcuts[key];
+      if (command && (command === 'stop' || hasSelection)) {
+        setPressedKey(key);
+        if (interactionAudio) {
+          interactionAudio.play('command', { volume: 0.6 });
+        }
+        onCommand(command);
+      }
+    };
+
+    const handleKeyUp = () => {
+      setPressedKey(null);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, [hasSelection, onCommand, interactionAudio]);
 
   const commands = [
     {
@@ -68,12 +115,19 @@ export const CommandPanel = ({ selectedUnits, onCommand }: CommandPanelProps) =>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => onCommand(cmd.id)}
+                    onClick={() => {
+                      if (!disabled && interactionAudio) {
+                        interactionAudio.play('command', { volume: 0.6 });
+                      }
+                      onCommand(cmd.id);
+                    }}
                     disabled={disabled}
                     className={`
                       ${cmd.color}
                       ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+                      ${pressedKey === cmd.shortcut ? 'ring-2 ring-cyan-400 scale-105' : ''}
                       border min-w-[60px] flex flex-col items-center gap-1 h-auto py-2
+                      transition-all duration-150 hover:scale-105 active:scale-95
                     `}
                   >
                     <Icon className="w-5 h-5" />
