@@ -115,6 +115,30 @@ export class AssetManager {
   }
 
   /**
+   * Encode URL path to handle special characters robustly
+   * Handles Unicode characters, spaces, special symbols, and edge cases
+   */
+  private encodePath(path: string): string {
+    // If path already starts with /, keep it; otherwise ensure it does
+    const normalizedPath = path.startsWith('/') ? path : '/' + path;
+    
+    // Split path and encode each segment separately to preserve slashes
+    // This ensures proper encoding of special characters like · (middle dot), spaces, colons, etc.
+    const encoded = normalizedPath.split('/').map(segment => {
+      if (!segment) return segment; // Preserve empty segments (leading/trailing slashes)
+      
+      // Use encodeURIComponent which properly handles:
+      // - Unicode characters (like · middle dot)
+      // - Spaces (encoded as %20)
+      // - Special characters (colons, periods, apostrophes, etc.)
+      // - All non-ASCII characters
+      return encodeURIComponent(segment);
+    }).join('/');
+    
+    return encoded;
+  }
+
+  /**
    * Load monster sprites and animations
    * Maps actual file names to simplified keys
    */
@@ -136,16 +160,18 @@ export class AssetManager {
 
     for (const [key, fileName] of Object.entries(monsterFileMap)) {
       const basePath = `${this.assetPaths.monsters}${fileName}`;
+      const encodedPath = this.encodePath(basePath);
       const assetKey = `monster_${key}`;
 
       // Load image (since we have webp files, not spritesheets)
-      this.scene.load.image(assetKey, basePath);
+      // Use encoded path to handle special characters in filenames
+      this.scene.load.image(assetKey, encodedPath);
 
       // Cache metadata (stats will be loaded asynchronously if needed)
       this.assets.set(assetKey, {
         type: 'monster',
         name: key,
-        path: basePath,
+        path: encodedPath, // Store encoded path for consistency
         stats: this.getDefaultMonsterStats(), // Use default stats for now
       });
     }
@@ -166,25 +192,26 @@ export class AssetManager {
 
     for (const [country, fileName] of Object.entries(countryFileMap)) {
       const basePath = `${this.assetPaths.countries}${fileName}`;
+      const encodedPath = this.encodePath(basePath);
 
-      // Load country image
-      this.scene.load.image(`country_${country}`, basePath);
+      // Load country image (use encoded path to handle special characters)
+      this.scene.load.image(`country_${country}`, encodedPath);
 
       // Load as tileset alternative
-      this.scene.load.image(`tileset_${country}`, basePath);
+      this.scene.load.image(`tileset_${country}`, encodedPath);
 
       // Load as terrain texture
-      this.scene.load.image(`terrain_${country}`, basePath);
+      this.scene.load.image(`terrain_${country}`, encodedPath);
 
       // For parallax, we'll use the same image with different scroll factors
       for (let i = 1; i <= 3; i++) {
-        this.scene.load.image(`parallax_${country}_${i}`, basePath);
+        this.scene.load.image(`parallax_${country}_${i}`, encodedPath);
       }
 
       this.assets.set(`country_${country}`, {
         type: 'country',
         name: country,
-        path: basePath,
+        path: encodedPath, // Store encoded path for consistency
         metadata: this.getDefaultCountryMetadata(), // Use default metadata for now
       });
     }

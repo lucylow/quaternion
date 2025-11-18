@@ -45,28 +45,36 @@ window.addEventListener('unhandledrejection', (ev) => {
 // PATCHED BY CURSOR - phaser hitArea fix - 2024-11-18
 // Handle window.postMessage events (e.g., from iframes)
 // Gracefully handle iframe-pos and other known message types without warnings
+// This handler only processes window.postMessage events and does NOT interfere with button clicks
 window.addEventListener('message', (ev) => {
   try {
+    // Only process messages with data and type properties
     const data = ev && ev.data;
-    if (!data) return;
+    if (!data || typeof data !== 'object') return;
 
-    // If it's a known shape, we handle; else ignore quietly to avoid polluting logs
-    if (data && data.type === 'iframe-pos') {
-      // silently accept or update a debug overlay if you want
-      // Optional: store last seen iframe pos for debug:
+    // Handle iframe-related messages (from embedded content, not from game buttons)
+    // These should NEVER interfere with click events or game functionality
+    if (data.type === 'iframe-pos' || data.type === 'iframe-resize' || data.type === 'iframe-scroll') {
+      // Silently store for debug if needed
       window.__QUAT_LAST_IFRAME_POS__ = data;
-      // do not log loudly unless debug mode
+      // Only log in debug mode, and do it quietly
       if (window.__QUAT_DEBUG__) {
-        console.log('[QUAT DEBUG] received iframe-pos message', data);
+        console.log('[QUAT DEBUG] received iframe message', data.type);
       }
+      // Return early - do NOT stop propagation or prevent default
+      // This is just a passive listener for iframe messages
       return;
     }
 
-    // otherwise existing message handlers should handle it; fallthrough
+    // For other message types, let them fall through to other handlers
+    // We don't stop propagation here - button clicks work independently
   } catch (err) {
-    console.warn('[QUAT DEBUG] message handler error', err);
+    // Log errors but don't let them break anything
+    if (window.__QUAT_DEBUG__) {
+      console.warn('[QUAT DEBUG] message handler error', err);
+    }
   }
-});
+}, { passive: true }); // Use passive listener to ensure it doesn't block UI events
 
 console.log('[QUAT DEBUG] main.tsx loaded');
 

@@ -209,6 +209,12 @@ class MultiplayerGameServer extends EventEmitter {
       // Ignore messages without a valid type
       if (!type || typeof type !== 'string') return;
 
+      // Ignore iframe-pos and other non-game message types silently
+      // These are window.postMessage events that shouldn't be sent via WebSocket
+      if (type === 'iframe-pos' || type === 'iframe-resize' || type === 'iframe-scroll') {
+        return; // Silently ignore - these are DOM-level messages, not game messages
+      }
+
       switch (type) {
         case 'auth':
           this.authenticatePlayer(playerConnection, payload);
