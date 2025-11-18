@@ -55,24 +55,105 @@ export const simpleGameConfig: Phaser.Types.Core.GameConfig = {
 let simpleGame: Phaser.Game | null = null;
 
 export function initSimpleGame(): Phaser.Game {
-  if (!simpleGame) {
-    simpleGame = new Phaser.Game(simpleGameConfig);
+  console.log('[QUAT DEBUG] initSimpleGame called');
+  
+  if (simpleGame) {
+    console.log('[QUAT DEBUG] Game already exists, returning existing instance');
+    return simpleGame;
+  }
+
+  // Verify parent container exists
+  const parent = document.getElementById('game-container');
+  if (!parent) {
+    console.error('[QUAT DEBUG] game-container element not found!');
+    throw new Error('game-container element not found in DOM');
+  }
+
+  console.log('[QUAT DEBUG] Parent container found:', {
+    id: parent.id,
+    width: parent.clientWidth,
+    height: parent.clientHeight,
+    offsetWidth: parent.offsetWidth,
+    offsetHeight: parent.offsetHeight
+  });
+
+  // Update config with current dimensions
+  const config = {
+    ...simpleGameConfig,
+    width: parent.clientWidth || window.innerWidth,
+    height: parent.clientHeight || window.innerHeight,
+  };
+
+  console.log('[QUAT DEBUG] Creating Phaser game with config:', {
+    width: config.width,
+    height: config.height,
+    parent: config.parent,
+    type: config.type
+  });
+
+  try {
+    simpleGame = new Phaser.Game(config);
+    console.log('[QUAT DEBUG] Phaser game created successfully');
+    console.log('[QUAT DEBUG] Game canvas:', simpleGame.canvas);
+    console.log('[QUAT DEBUG] Game scenes:', simpleGame.scene.scenes.map(s => s.scene.key));
+
+    // Verify canvas was created
+    const canvas = parent.querySelector('canvas');
+    if (canvas) {
+      console.log('[QUAT DEBUG] Canvas verified in DOM:', {
+        width: canvas.width,
+        height: canvas.height,
+        style: {
+          display: canvas.style.display,
+          position: canvas.style.position,
+          zIndex: canvas.style.zIndex
+        }
+      });
+    } else {
+      console.warn('[QUAT DEBUG] Canvas not found in parent after game creation');
+      // Wait a bit and check again
+      setTimeout(() => {
+        const canvas2 = parent.querySelector('canvas');
+        if (canvas2) {
+          console.log('[QUAT DEBUG] Canvas found on retry');
+        } else {
+          console.error('[QUAT DEBUG] Canvas still not found after delay');
+        }
+      }, 100);
+    }
 
     // Handle window resize
-    window.addEventListener('resize', () => {
+    const resizeHandler = () => {
       if (simpleGame) {
+        console.log('[QUAT DEBUG] Window resized, refreshing scale');
         simpleGame.scale.refresh();
       }
-    });
+    };
+    window.addEventListener('resize', resizeHandler);
+
+    // Store resize handler for cleanup
+    (simpleGame as any).__resizeHandler = resizeHandler;
+  } catch (error) {
+    console.error('[QUAT DEBUG] Error creating Phaser game:', error);
+    throw error;
   }
 
   return simpleGame;
 }
 
 export function destroySimpleGame(): void {
+  console.log('[QUAT DEBUG] destroySimpleGame called');
   if (simpleGame) {
+    // Remove resize handler
+    const resizeHandler = (simpleGame as any).__resizeHandler;
+    if (resizeHandler) {
+      window.removeEventListener('resize', resizeHandler);
+    }
+    
+    console.log('[QUAT DEBUG] Destroying Phaser game');
     simpleGame.destroy(true);
     simpleGame = null;
+    console.log('[QUAT DEBUG] Phaser game destroyed');
   }
 }
 

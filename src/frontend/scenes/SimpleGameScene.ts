@@ -60,65 +60,99 @@ export class SimpleGameScene extends Phaser.Scene {
   }
 
   create(): void {
-    // Initialize game state
-    this.gameState = new SimpleQuaternionGameState({
-      mapWidth: 64,
-      mapHeight: 64,
-      seed: Math.floor(Math.random() * 1000000)
+    console.log('[QUAT DEBUG] SimpleGameScene.create() called');
+    console.log('[QUAT DEBUG] Scene camera:', {
+      width: this.cameras.main.width,
+      height: this.cameras.main.height,
+      scrollX: this.cameras.main.scrollX,
+      scrollY: this.cameras.main.scrollY
+    });
+    console.log('[QUAT DEBUG] Scene game:', {
+      width: this.game.scale.width,
+      height: this.game.scale.height,
+      canvas: !!this.game.canvas
     });
 
-    // Initialize game loop
-    this.gameLoop = new GameLoop({
-      fixedTimestep: 1 / 60,
-      maxFrameSkip: 5,
-      maxDeltaTime: 0.1,
-      targetFPS: 60,
-      enablePerformanceMonitoring: true,
-      enableAdaptiveQuality: false,
-      enableFrameRateLimiting: false,
-      pauseOnFocusLoss: false,
-      autoResume: true
-    }, {
-      fixedUpdate: (delta) => {
-        if (this.gameState) {
-          this.gameState.fixedUpdate(delta);
+    try {
+      // Initialize game state
+      console.log('[QUAT DEBUG] Creating game state...');
+      this.gameState = new SimpleQuaternionGameState({
+        mapWidth: 64,
+        mapHeight: 64,
+        seed: Math.floor(Math.random() * 1000000)
+      });
+      console.log('[QUAT DEBUG] Game state created');
+
+      // Initialize game loop
+      console.log('[QUAT DEBUG] Creating game loop...');
+      this.gameLoop = new GameLoop({
+        fixedTimestep: 1 / 60,
+        maxFrameSkip: 5,
+        maxDeltaTime: 0.1,
+        targetFPS: 60,
+        enablePerformanceMonitoring: true,
+        enableAdaptiveQuality: false,
+        enableFrameRateLimiting: false,
+        pauseOnFocusLoss: false,
+        autoResume: true
+      }, {
+        fixedUpdate: (delta) => {
+          if (this.gameState) {
+            this.gameState.fixedUpdate(delta);
+          }
+        },
+        variableUpdate: () => {},
+        render: () => {
+          // Rendering is handled by Phaser's update loop
         }
-      },
-      variableUpdate: () => {},
-      render: () => {
-        // Rendering is handled by Phaser's update loop
-      }
-    });
+      });
 
-    this.gameLoop.initialize().then(() => {
-      this.gameLoop?.start();
-    });
+      this.gameLoop.initialize().then(() => {
+        console.log('[QUAT DEBUG] Game loop initialized, starting...');
+        this.gameLoop?.start();
+        console.log('[QUAT DEBUG] Game loop started');
+      }).catch((err) => {
+        console.error('[QUAT DEBUG] Game loop initialization failed:', err);
+      });
 
-    // Setup camera with smooth follow
-    const mapWidth = 64 * 32;
-    const mapHeight = 64 * 32;
-    this.cameras.main.setBounds(0, 0, mapWidth, mapHeight);
-    this.cameras.main.centerOn(mapWidth / 2, mapHeight / 2);
-    this.cameras.main.setZoom(1);
-    this.cameras.main.setDeadzone(0, 0);
+      // Setup camera with smooth follow
+      const mapWidth = 64 * 32;
+      const mapHeight = 64 * 32;
+      this.cameras.main.setBounds(0, 0, mapWidth, mapHeight);
+      this.cameras.main.centerOn(mapWidth / 2, mapHeight / 2);
+      this.cameras.main.setZoom(1);
+      this.cameras.main.setDeadzone(0, 0);
+      console.log('[QUAT DEBUG] Camera configured:', {
+        bounds: { width: mapWidth, height: mapHeight },
+        center: { x: mapWidth / 2, y: mapHeight / 2 }
+      });
 
-    // Create rendering layers for proper depth sorting
-    this.mapLayer = this.add.layer();
-    this.resourceLayer = this.add.layer();
-    this.buildingLayer = this.add.layer();
-    this.unitLayer = this.add.layer();
-    this.uiLayer = this.add.layer();
+      // Create rendering layers for proper depth sorting
+      console.log('[QUAT DEBUG] Creating rendering layers...');
+      this.mapLayer = this.add.layer();
+      this.resourceLayer = this.add.layer();
+      this.buildingLayer = this.add.layer();
+      this.unitLayer = this.add.layer();
+      this.uiLayer = this.add.layer();
+      console.log('[QUAT DEBUG] Rendering layers created');
 
-    // Setup input
-    this.setupInput();
+      // Setup input
+      this.setupInput();
+      console.log('[QUAT DEBUG] Input setup complete');
 
-    // Create UI
-    this.createUI();
+      // Create UI
+      this.createUI();
+      console.log('[QUAT DEBUG] UI created');
 
-    // Initialize map tiles (static, only render once)
-    this.initializeMap();
+      // Initialize map tiles (static, only render once)
+      this.initializeMap();
+      console.log('[QUAT DEBUG] Map initialized');
 
-    console.log('✅ Game initialized and running');
+      console.log('[QUAT DEBUG] ✅ Game initialized and running');
+    } catch (error) {
+      console.error('[QUAT DEBUG] Error in SimpleGameScene.create():', error);
+      throw error;
+    }
   }
 
   private setupInput(): void {

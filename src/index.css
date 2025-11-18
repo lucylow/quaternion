@@ -160,16 +160,30 @@ All colors MUST be HSL.
     -webkit-user-select: none !important;
     -moz-user-select: none !important;
     -ms-user-select: none !important;
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
   }
 
   /* Game container styles */
+  .game-container {
+    position: relative !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow: hidden !important;
+  }
+
   .game-container canvas,
+  #game-container canvas,
   [ref="gameRef"] canvas,
   div[ref="gameRef"] canvas {
     position: relative !important;
     z-index: 1 !important;
     pointer-events: auto !important;
     touch-action: none !important;
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
   }
 
   /* Ensure UI overlays don't block canvas */

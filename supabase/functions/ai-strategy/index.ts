@@ -144,6 +144,8 @@ function shouldUseLLM(gameState: GameState): boolean {
 async function getLLMDecision(gameState: GameState): Promise<StrategyDecision> {
   const secrets = getSecrets();
   
+  // This function should only be called when enableLLM is true (which requires the API key)
+  // But add a safety check anyway
   if (!secrets.lovableApiKey) {
     throw new Error('LOVABLE_API_KEY not configured. Please set it in Lovable Cloud secrets or Supabase Edge Function environment variables.');
   }
