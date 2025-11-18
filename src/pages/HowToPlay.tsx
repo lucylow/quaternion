@@ -267,7 +267,7 @@ const HowToPlay = () => {
           {/* CTA */}
           <div className="text-center">
             <Button
-              onClick={() => navigate('/quaternion')}
+              onClick={() => navigate('/game')}
               size="lg"
               className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:shadow-neon"
             >

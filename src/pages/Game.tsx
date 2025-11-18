@@ -1,7 +1,11 @@
 /**
  * Route: /game
- * Main game page with Phaser game engine.
- * Edit this file to modify the game page.
+ * DEPRECATED: This file is no longer used.
+ * The main game is now in QuaternionGame.tsx
+ * Route /game now points to QuaternionGame component
+ * 
+ * This file is kept for reference but should not be used.
+ * TODO: Remove this file once all references are updated.
  */
 import { useEffect, useRef, useState } from 'react';
 import Phaser from 'phaser';
@@ -186,6 +190,13 @@ const Game = () => {
       // Disable unnecessary features for better performance
       disableContextMenu: true,
       banner: false,
+      // Ensure input is enabled
+      input: {
+        activePointers: 3,
+        keyboard: true,
+        mouse: true,
+        touch: true,
+      },
     };
 
     function preload(this: Phaser.Scene) {
@@ -582,7 +593,11 @@ const Game = () => {
           <div className="grid grid-cols-12 gap-4">
             {/* Main Game Area */}
             <div className="col-span-12 lg:col-span-9">
-              <div ref={gameRef} className="relative border-2 border-game-panel-border rounded-lg overflow-hidden shadow-game-panel bg-background" style={{ height: '700px' }} />
+              <div 
+                ref={gameRef} 
+                className="relative border-2 border-game-panel-border rounded-lg overflow-hidden shadow-game-panel bg-background" 
+                style={{ height: '700px', pointerEvents: 'auto', cursor: 'default' }} 
+              />
             </div>
 
             {/* Right Sidebar */}

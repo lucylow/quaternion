@@ -40,10 +40,10 @@ export const LazyNotFound = lazy(() => import("../pages/NotFound"));
 // Route configuration for Lovable
 export const routes = [
   { path: "/", name: "Home", component: "Index" },
-  { path: "/game", name: "Game", component: "Game" },
-  { path: "/game/neural-frontier", name: "Neural Frontier", component: "Game" },
+  { path: "/game", name: "Game", component: "QuaternionGame" },
+  { path: "/game/neural-frontier", name: "Neural Frontier", component: "QuaternionGame" },
   { path: "/lobby", name: "Lobby", component: "Lobby" },
-  { path: "/quaternion", name: "Quaternion Game", component: "QuaternionGame" },
+  { path: "/quaternion", name: "Quaternion Game (Redirect)", component: "QuaternionGame" }, // Deprecated: redirects to /game
   { path: "/about", name: "About", component: "About" },
   { path: "/commanders", name: "Commanders", component: "Commanders" },
   { path: "/how-to-play", name: "How to Play", component: "HowToPlay" },

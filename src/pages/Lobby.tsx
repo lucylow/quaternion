@@ -199,7 +199,7 @@ const Lobby = () => {
       return;
     }
     
-    navigate('/quaternion', {
+    navigate('/game', {
       state: {
         config
       }
@@ -267,7 +267,7 @@ const Lobby = () => {
         });
         
         // Navigate to game with full config
-        navigate('/quaternion', {
+        navigate('/game', {
           state: {
             config: {
               ...multiplayerConfig,
@@ -342,7 +342,7 @@ const Lobby = () => {
         });
         
         // Navigate to game with full config
-        navigate('/quaternion', {
+        navigate('/game', {
           state: {
             config: {
               ...multiplayerConfig,
@@ -581,7 +581,7 @@ const Lobby = () => {
                     </p>
                   </div>
                   <Button
-                    onClick={() => navigate('/quaternion', {
+                    onClick={() => navigate('/game', {
                       state: { config: quickStartConfig }
                     })}
                     size="lg"

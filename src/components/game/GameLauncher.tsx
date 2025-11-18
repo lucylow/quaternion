@@ -44,7 +44,7 @@ const gameModes: GameMode[] = [
     id: 'quaternion',
     name: 'Quaternion Strategy',
     description: 'The full 4-axis strategy experience with complex resource puzzles and multiple victory paths',
-    route: '/quaternion',
+    route: '/game',
     features: [
       '4-resource system (Matter, Energy, Life, Knowledge)',
       'Resource puzzles & black market',

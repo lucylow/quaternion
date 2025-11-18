@@ -121,8 +121,9 @@ const App = () => (
                 <Route path="/" element={<Index />} />
                 <Route path="/game" element={<QuaternionGame />} />
                 <Route path="/game/neural-frontier" element={<QuaternionGame />} />
+                {/* /quaternion route redirects to /game for backward compatibility */}
+                <Route path="/quaternion" element={<QuaternionGame />} />
                 <Route path="/lobby" element={<LazyLobby />} />
-                {/* /quaternion route removed - consolidated to /game */}
                 <Route path="/about" element={<LazyAbout />} />
                 <Route path="/commanders" element={<LazyCommanders />} />
                 <Route path="/how-to-play" element={<LazyHowToPlay />} />
