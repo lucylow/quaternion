@@ -3,18 +3,43 @@
 
 import AudioManager from './AudioManager';
 import MusicManager from './MusicManager';
+import SFXManager from './SFXManager';
+import AdaptiveEffects from './AdaptiveEffects';
+import AdvisorVoiceFilter from './AdvisorVoiceFilter';
+import ChromaPulseSynth from './ChromaPulseSynth';
 
 export async function initializeAudio() {
   try {
-    // Initialize AudioManager
+    // Initialize core audio manager
     await AudioManager.instance().init({ enableAnalyzer: false });
 
-    // Preload common SFX (add your actual asset paths)
-    await AudioManager.instance().preload([
-      { key: 'ui_click', url: '/assets/sfx/ui_click.ogg' },
-      { key: 'boom', url: '/assets/sfx/boom.ogg' },
-      // Add more SFX as needed
-    ]);
+    // Initialize SFX Manager
+    const sfxManager = SFXManager.instance();
+    await sfxManager.init();
+    
+    // Preload essential SFX (priority queues first)
+    // Start with UI sounds (always needed)
+    await sfxManager.preloadCategory('ui');
+    
+    // Then preload combat sounds (frequent)
+    await sfxManager.preloadCategory('combat');
+    
+    // Preload all remaining SFX in background (can be async)
+    sfxManager.preloadAll().catch(err => {
+      console.warn('Background SFX preload failed:', err);
+    });
+
+    // Initialize adaptive effects
+    const adaptiveEffects = AdaptiveEffects.instance();
+    await adaptiveEffects.init();
+
+    // Initialize advisor voice filter
+    const voiceFilter = AdvisorVoiceFilter.instance();
+    await voiceFilter.init();
+
+    // Initialize chroma pulse synth (procedural)
+    const chromaSynth = ChromaPulseSynth.instance();
+    await chromaSynth.init();
 
     // Preload music stems (add your actual asset paths)
     await MusicManager.instance().loadStems([
@@ -26,7 +51,11 @@ export async function initializeAudio() {
     // Start baseline music
     MusicManager.instance().playBase(['ambient', 'pulse']);
 
-    console.log('Audio system initialized');
+    // Start chroma pulse synth (procedural ambient)
+    // Uncomment when ready:
+    // chromaSynth.start();
+
+    console.log('Audio system initialized with SFX & adaptive effects');
   } catch (error) {
     console.warn('Audio initialization failed (non-critical):', error);
     // Don't throw - audio is optional

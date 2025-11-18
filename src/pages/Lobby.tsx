@@ -129,9 +129,13 @@ const Lobby = () => {
       if (response.ok) {
         const data = await response.json();
         setRooms(data.rooms || []);
+      } else {
+        console.error('Failed to fetch rooms:', response.statusText);
+        toast.error('Failed to load rooms');
       }
     } catch (error) {
       console.error('Failed to fetch rooms:', error);
+      toast.error('Network error: Could not load rooms');
     } finally {
       setLoadingRooms(false);
     }
@@ -144,6 +148,13 @@ const Lobby = () => {
       return () => clearInterval(interval);
     }
   }, [activeTab]);
+  
+  // Also fetch rooms when component mounts
+  useEffect(() => {
+    if (activeTab === 'multiplayer') {
+      fetchRooms();
+    }
+  }, []);
 
   const handleStartSinglePlayer = () => {
     const config = { ...singlePlayerConfig };
@@ -289,32 +300,65 @@ const Lobby = () => {
     
     setJoiningRoom(roomId);
     try {
+      // Get existing playerId from localStorage if available (for reconnection)
+      const existingPlayerId = localStorage.getItem('quaternion_playerId');
+      
       const response = await fetch(`/api/rooms/${roomId}/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          commanderId: multiplayerConfig.commanderId,
-          quaternionAxis: multiplayerConfig.quaternionAxis
+          commanderId: multiplayerConfig.commanderId || 'AUREN',
+          quaternionAxis: multiplayerConfig.quaternionAxis,
+          playerId: existingPlayerId // Include for reconnection
         })
       });
 
       if (response.ok) {
         const data = await response.json();
+        
+        // Store playerId and roomId in localStorage
+        if (data.playerId) {
+          localStorage.setItem('quaternion_playerId', data.playerId);
+        }
+        if (data.roomId) {
+          localStorage.setItem('quaternion_roomId', data.roomId);
+        }
+        
+        // Store room data for game loading
+        if (data.room) {
+          localStorage.setItem('quaternion_roomData', JSON.stringify(data.room));
+        }
+        
+        toast.success(`Joined room "${data.room?.name || roomId}"!`, {
+          description: `Players: ${data.room?.players || 0}/${data.room?.maxPlayers || 4}`
+        });
+        
+        // Navigate to game with full config
         navigate('/quaternion', {
           state: {
             config: {
               ...multiplayerConfig,
-              roomId: data.roomId
+              mode: 'multiplayer',
+              roomId: data.roomId,
+              playerId: data.playerId,
+              seed: data.room?.seed,
+              mapType: data.room?.mapType,
+              mapWidth: data.room?.mapWidth,
+              mapHeight: data.room?.mapHeight,
+              cooperativeMode: data.room?.cooperativeMode,
+              quaternionAxis: multiplayerConfig.quaternionAxis,
+              difficulty: data.room?.difficulty
             }
           }
         });
       } else {
-        const error = await response.json();
-        toast.error(error.message || 'Failed to join room');
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+        toast.error(error.error || error.message || 'Failed to join room');
+        console.error('Join room error:', error);
       }
     } catch (error) {
-      toast.error('Failed to join room');
-      console.error(error);
+      toast.error('Failed to join room: Network error');
+      console.error('Join room network error:', error);
     } finally {
       setJoiningRoom(null);
     }

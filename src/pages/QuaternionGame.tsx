@@ -84,16 +84,44 @@ const QuaternionGame = () => {
   const location = useLocation();
   const routeConfig = (location.state as any)?.config;
   
-  // Game metadata - use config from route state or defaults
-  const [gameSeed] = useState(routeConfig?.seed || Math.floor(Math.random() * 1000000));
-  const [commanderId] = useState(routeConfig?.commanderId || 'AUREN');
+  // Try to load room data from localStorage if not in route state (for page refresh/reconnection)
+  const loadRoomDataFromStorage = () => {
+    try {
+      const storedRoomData = localStorage.getItem('quaternion_roomData');
+      if (storedRoomData) {
+        return JSON.parse(storedRoomData);
+      }
+    } catch (error) {
+      console.warn('Failed to load room data from storage:', error);
+    }
+    return null;
+  };
+  
+  const storedRoomData = loadRoomDataFromStorage();
+  const effectiveConfig = routeConfig || (storedRoomData ? {
+    mode: 'multiplayer',
+    roomId: localStorage.getItem('quaternion_roomId'),
+    playerId: localStorage.getItem('quaternion_playerId'),
+    seed: storedRoomData.seed,
+    mapType: storedRoomData.mapType,
+    mapWidth: storedRoomData.mapWidth,
+    mapHeight: storedRoomData.mapHeight,
+    cooperativeMode: storedRoomData.cooperativeMode,
+    difficulty: storedRoomData.difficulty,
+    commanderId: storedRoomData.playersList?.find((p: any) => p.id === localStorage.getItem('quaternion_playerId'))?.commanderId || 'AUREN'
+  } : null);
+  
+  // Game metadata - use config from route state, localStorage, or defaults
+  const [gameSeed] = useState(effectiveConfig?.seed || Math.floor(Math.random() * 1000000));
+  const [commanderId] = useState(effectiveConfig?.commanderId || 'AUREN');
   const [mapConfig] = useState({
-    type: routeConfig?.mapType || 'Crystalline Plains',
-    width: routeConfig?.mapWidth || 40,
-    height: routeConfig?.mapHeight || 30
+    type: effectiveConfig?.mapType || 'Crystalline Plains',
+    width: effectiveConfig?.mapWidth || 40,
+    height: effectiveConfig?.mapHeight || 30
   });
-  const gameMode = routeConfig?.mode || 'single';
-  const roomId = routeConfig?.roomId;
+  const gameMode = effectiveConfig?.mode || 'single';
+  const roomId = effectiveConfig?.roomId;
+  const playerId = effectiveConfig?.playerId;
   
   const navigate = useNavigate();
 
@@ -122,12 +150,24 @@ const QuaternionGame = () => {
       seed: gameSeed,
       mapWidth: mapConfig.width,
       mapHeight: mapConfig.height,
-      mapType: routeConfig?.mapType || 'crystalline_plains',
-      aiDifficulty: routeConfig?.difficulty || 'medium',
+      mapType: effectiveConfig?.mapType || 'crystalline_plains',
+      aiDifficulty: effectiveConfig?.difficulty || 'medium',
       commanderId: commanderId,
       mode: gameMode,
-      roomId: roomId
+      roomId: roomId,
+      playerId: playerId
     });
+    
+    // Log multiplayer connection info
+    if (gameMode === 'multiplayer' && roomId) {
+      console.log('Multiplayer game initialized:', {
+        roomId,
+        playerId,
+        seed: gameSeed,
+        mapType: effectiveConfig?.mapType,
+        cooperativeMode: effectiveConfig?.cooperativeMode
+      });
+    }
 
     // Initialize Resource Puzzle Manager
     if (gameStateRef.current && gameStateRef.current.resourceManager) {

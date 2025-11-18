@@ -1,210 +1,229 @@
 /**
  * Visual Integration System
- * Connects visual effects with game state (resources, instability, etc.)
+ * Integrates all visual systems (Neo-Biotech graphics, lighting, effects)
+ * with the game state
  */
 
-import { VisualEffects } from './VisualEffects';
-import { ProceduralFloraPlacer } from './ProceduralFlora';
-import { QuaternionArtPalette } from './ArtPalette';
+import Phaser from 'phaser';
 import type { Scene } from 'phaser';
-import type { QuaternionGameState } from '@/game/QuaternionGameState';
-
-export interface VisualState {
-  instability: number; // 0-1
-  resources: {
-    matter?: number;
-    energy?: number;
-    life?: number;
-    knowledge?: number;
-  };
-  dominance: 'matter' | 'energy' | 'life' | 'knowledge' | 'neutral';
-  tension: number; // 0-1
-}
+import { NeoBiotechGraphics, type WorldStabilityState } from './NeoBiotechGraphics';
+import { DynamicLightingController } from './DynamicLightingController';
+import { VisualEffects } from './VisualEffects';
+import type { QuaternionState } from '../strategic/QuaternionState';
 
 export class VisualIntegration {
+  private scene: Phaser.Scene;
+  private graphics: NeoBiotechGraphics;
+  private lighting: DynamicLightingController;
   private visualEffects: VisualEffects;
-  private floraPlacer: ProceduralFloraPlacer;
-  private activeVeins: Map<string, any> = new Map();
-  private currentPalette: ReturnType<typeof QuaternionArtPalette.getPalette>;
+  
+  // Terrain vein graphics cache
+  private terrainVeins: Map<string, Phaser.GameObjects.Graphics> = new Map();
 
-  constructor(
-    private scene: Scene,
-    private gameState?: QuaternionGameState
-  ) {
+  constructor(scene: Phaser.Scene) {
+    this.scene = scene;
     this.visualEffects = new VisualEffects(scene);
-    this.floraPlacer = new ProceduralFloraPlacer(scene);
-    this.currentPalette = QuaternionArtPalette.NEUTRAL;
+    this.graphics = new NeoBiotechGraphics(scene, this.visualEffects);
+    this.lighting = new DynamicLightingController(scene, this.graphics);
   }
 
   /**
-   * Update visuals based on game state
+   * Update visual systems based on game state
    */
-  updateVisuals(state: VisualState): void {
-    // Update palette based on dominance
-    this.currentPalette = QuaternionArtPalette.getPalette(state.dominance);
+  update(deltaTime: number, gameState: QuaternionState): void {
+    // Calculate world stability from quaternion state
+    const worldState = this.calculateWorldState(gameState);
+    
+    // Update lighting
+    this.lighting.update(deltaTime, worldState);
+    
+    // Update terrain veins based on faction control
+    this.updateTerrainVeins(gameState);
+  }
 
-    // Update vein intensities based on instability
-    this.updateVeinIntensities(state.instability);
-
-    // Spawn particle effects on high instability
-    if (state.instability > 0.6) {
-      this.triggerInstabilityEffects(state);
+  /**
+   * Calculate world stability state from quaternion game state
+   */
+  private calculateWorldState(gameState: QuaternionState): WorldStabilityState {
+    // Calculate stability from balance
+    // Perfect balance (all axes equal) = high stability
+    const { w, x, y, z } = gameState;
+    const total = Math.abs(w) + Math.abs(x) + Math.abs(y) + Math.abs(z);
+    
+    if (total === 0) {
+      return {
+        stability: 0.5,
+        factionBlend: 0.5,
+        pulseIntensity: 0.5
+      };
     }
 
-    // Update flora based on resources
-    this.updateFlora(state.resources);
-
-    // Update background color based on dominance
-    this.updateBackgroundColor(state.dominance);
-  }
-
-  /**
-   * Update vein effect intensities
-   */
-  private updateVeinIntensities(instability: number): void {
-    // Scale vein intensity with instability
-    const intensity = Math.min(1, instability * 1.5);
+    // Calculate how balanced the state is
+    const avg = total / 4;
+    const variance = Math.sqrt(
+      (Math.pow(Math.abs(w) - avg, 2) +
+       Math.pow(Math.abs(x) - avg, 2) +
+       Math.pow(Math.abs(y) - avg, 2) +
+       Math.pow(Math.abs(z) - avg, 2)) / 4
+    );
     
-    // Could update existing veins here if we track them
-    // For now, veins are created per-tile as needed
+    // Lower variance = higher stability
+    const stability = Math.max(0, Math.min(1, 1 - (variance / avg)));
+
+    // Calculate faction blend
+    // Quaternion = Life + Knowledge (y + z)
+    // Corp = Matter + Energy (w + x)
+    const quaternionPower = Math.abs(y) + Math.abs(z);
+    const corpPower = Math.abs(w) + Math.abs(x);
+    const totalPower = quaternionPower + corpPower;
+    
+    const factionBlend = totalPower > 0 ? corpPower / totalPower : 0.5;
+
+    // Pulse intensity increases with instability
+    const pulseIntensity = 1 - stability;
+
+    return {
+      stability,
+      factionBlend,
+      pulseIntensity
+    };
   }
 
   /**
-   * Create vein effect on a tile
+   * Update terrain veins based on faction control
    */
-  createTileVeinEffect(
+  private updateTerrainVeins(gameState: QuaternionState): void {
+    // This would be called when terrain tiles change ownership
+    // For now, it's a placeholder that would integrate with the terrain system
+  }
+
+  /**
+   * Add bioluminescent veins to a terrain tile
+   */
+  addTerrainVeins(
     tileX: number,
     tileY: number,
     tileSize: number,
-    resourceType: 'matter' | 'energy' | 'life' | 'knowledge',
-    instability: number = 0
+    intensity: number = 1.0
   ): void {
-    const palette = QuaternionArtPalette.getPalette(resourceType);
-    const color = QuaternionArtPalette.toPhaserColor(palette.emissive);
-    const key = `${tileX},${tileY}`;
-
-    // Remove existing vein if present
-    if (this.activeVeins.has(key)) {
-      const existing = this.activeVeins.get(key);
-      if (existing._updateTimer) {
-        existing._updateTimer.remove();
+    const key = `${tileX}_${tileY}`;
+    
+    // Remove existing veins if any
+    if (this.terrainVeins.has(key)) {
+      const existing = this.terrainVeins.get(key)!;
+      if ((existing as any)._updateTimer) {
+        (existing as any)._updateTimer.remove();
       }
       existing.destroy();
     }
 
-    // Create new vein effect
-    const vein = this.visualEffects.createVeinEffect(
+    // Create new veins
+    const veins = this.graphics.createBioluminescentVeins(
       tileX * tileSize,
       tileY * tileSize,
-      {
-        intensity: 0.3 + instability * 0.7,
-        flowSpeed: 10 + instability * 20,
-        color,
-        tileSize
-      }
+      tileSize,
+      intensity
     );
 
-    this.activeVeins.set(key, vein);
+    this.terrainVeins.set(key, veins);
   }
 
   /**
-   * Trigger instability effects
+   * Remove terrain veins from a tile
    */
-  private triggerInstabilityEffects(state: VisualState): void {
-    // Random chance to spawn particle effect
-    if (Math.random() < 0.01) { // 1% chance per frame
-      const dominant = state.dominance;
-      
-      // Find a random position on screen
-      const x = Math.random() * this.scene.scale.width;
-      const y = Math.random() * this.scene.scale.height;
-
-      this.visualEffects.spawnParticleEffect({
-        position: { x, y },
-        type: dominant === 'neutral' ? 'energy' : dominant,
-        intensity: state.instability,
-        duration: 2000
-      });
+  removeTerrainVeins(tileX: number, tileY: number): void {
+    const key = `${tileX}_${tileY}`;
+    const veins = this.terrainVeins.get(key);
+    
+    if (veins) {
+      if ((veins as any)._updateTimer) {
+        (veins as any)._updateTimer.remove();
+      }
+      veins.destroy();
+      this.terrainVeins.delete(key);
     }
   }
 
   /**
-   * Update flora based on resources
+   * Trigger ultimate ability cinematic effect
    */
-  private updateFlora(resources: VisualState['resources']): void {
-    // Flora placement would be handled during map generation
-    // This could trigger flora updates based on resource changes
+  triggerUltimateEffect(
+    focusPoint: { x: number; y: number },
+    duration: number = 2000,
+    onComplete?: () => void
+  ): void {
+    this.graphics.triggerUltimateEffect(focusPoint, duration, onComplete);
   }
 
   /**
-   * Update background color
+   * Create holographic UI panel
    */
-  private updateBackgroundColor(dominance: 'matter' | 'energy' | 'life' | 'knowledge' | 'neutral'): void {
-    const palette = QuaternionArtPalette.getPalette(dominance);
-    const bgColor = QuaternionArtPalette.toPhaserColor(palette.dark);
-    
-    // Set camera background color
-    this.scene.cameras.main.setBackgroundColor(bgColor);
-  }
-
-  /**
-   * Create AI thought visualization at position
-   */
-  createAIThoughtVisual(
-    x: number,
-    y: number,
-    type: 'matter' | 'energy' | 'life' | 'knowledge'
-  ): Phaser.GameObjects.Graphics {
-    return this.visualEffects.createAIThoughtVisual(x, y, type);
-  }
-
-  /**
-   * Place procedural flora
-   */
-  placeFlora(
+  createHolographicPanel(
     x: number,
     y: number,
     width: number,
-    height: number,
-    biome: 'desert' | 'forest' | 'plains' | 'tech',
-    seed: number
-  ) {
-    return this.floraPlacer.placeByBiome(x, y, width, height, biome, seed);
+    height: number
+  ): Phaser.GameObjects.Graphics {
+    return this.graphics.createHolographicPanel(x, y, width, height);
   }
 
   /**
-   * Create dissolve/corrupt effect
+   * Create UI glow pulse effect
    */
-  dissolveObject(
-    target: Phaser.GameObjects.Image | Phaser.GameObjects.Sprite,
-    duration: number = 1000
+  createUIGlowPulse(
+    target: Phaser.GameObjects.Image | Phaser.GameObjects.Container,
+    speed: number = 3.0
   ): Phaser.Tweens.Tween {
-    return this.visualEffects.createDissolveEffect(target, duration);
+    return this.graphics.createUIGlowPulse(target, undefined, speed);
   }
 
   /**
-   * Get current palette
+   * Get current faction color
    */
-  getCurrentPalette(): ReturnType<typeof QuaternionArtPalette.getPalette> {
-    return this.currentPalette;
+  getFactionColor(blend?: number): number {
+    return this.graphics.getFactionColor(blend);
   }
 
   /**
-   * Cleanup
+   * Trigger dramatic lighting shift
+   */
+  triggerDramaticLightingShift(
+    targetStability: number,
+    duration: number = 1000,
+    onComplete?: () => void
+  ): void {
+    this.lighting.triggerDramaticShift(targetStability, duration, onComplete);
+  }
+
+  /**
+   * Cleanup all visual systems
    */
   cleanup(): void {
-    // Cleanup all veins
-    this.activeVeins.forEach(vein => {
-      if (vein._updateTimer) {
-        vein._updateTimer.remove();
+    // Cleanup terrain veins
+    this.terrainVeins.forEach((veins) => {
+      if ((veins as any)._updateTimer) {
+        (veins as any)._updateTimer.remove();
       }
-      vein.destroy();
+      veins.destroy();
     });
-    this.activeVeins.clear();
+    this.terrainVeins.clear();
 
-    // Cleanup effects
+    // Cleanup graphics systems
+    this.graphics.cleanup();
     this.visualEffects.cleanup();
-    this.floraPlacer.cleanup();
+  }
+
+  /**
+   * Get graphics system (for advanced usage)
+   */
+  getGraphics(): NeoBiotechGraphics {
+    return this.graphics;
+  }
+
+  /**
+   * Get lighting controller (for advanced usage)
+   */
+  getLighting(): DynamicLightingController {
+    return this.lighting;
   }
 }
-
