@@ -47,8 +47,7 @@ export default defineConfig(({ mode }) => ({
         },
         // Optimize asset file names for better caching
         assetFileNames: (assetInfo) => {
-          const name = assetInfo.name || 'asset';
-          const info = name.split('.');
+          const info = assetInfo.name.split('.');
           const ext = info[info.length - 1];
           if (/png|jpe?g|svg|gif|tiff|bmp|ico/i.test(ext)) {
             return `assets/images/[name]-[hash][extname]`;

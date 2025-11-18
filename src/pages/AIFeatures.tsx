@@ -88,7 +88,7 @@ const AIFeatures = () => {
       integration: "Video generation → frame extraction → sprite sequences"
     },
     { 
-      name: "Google AI", 
+      name: "Google Gemini 2.5 Flash", 
       description: "Strategic AI decision-making for commanders",
       icon: "🤖",
       useCases: [
@@ -162,7 +162,7 @@ const AIFeatures = () => {
     {
       name: "Player Experience Modeling & Adaptive Difficulty",
       delivery: "AI models player skill, emotional state, and engagement in real-time to dynamically adjust game difficulty. Maintains optimal flow state, reducing frustration and boredom through predictive adaptation.",
-      tools: "Google AI (RL agent), Custom TypeScript implementation (player modeling, emotion recognition, flow state optimization)",
+      tools: "Google Gemini 2.5 Flash (RL agent), Custom TypeScript implementation (player modeling, emotion recognition, flow state optimization)",
       evidence: "Real-time difficulty adjustment system with multi-dimensional player profiling, hardware-free emotion recognition, and RL-based adaptation that preserves game immersion"
     }
   ];
@@ -408,7 +408,7 @@ const AIFeatures = () => {
                     <h3 className="text-2xl font-bold text-primary">Strategic Commander AI</h3>
                   </div>
                   <p className="text-muted-foreground mb-4">
-                    Powered by Google AI, commanders analyze game state and provide strategic
+                    Powered by Google Gemini 2.5 Flash, commanders analyze game state and provide strategic
                     recommendations. The system uses a hybrid approach:
                   </p>
                   <ul className="space-y-2 text-sm text-muted-foreground ml-4">
@@ -1211,7 +1211,7 @@ const bestAction = actions.reduce((best, action) =>
                   <h4 className="font-bold text-primary mb-3">Tools Used (For Devpost Submission)</h4>
                   <p className="text-sm text-muted-foreground mb-2">
                     ElevenLabs (voice), OpenArt (art), Luma AI (3D), Dreamina (lip-sync), LTX Studio (cinematics), 
-                    Fuser (music), Google AI (strategic AI), Mago Studio (style transfer), 
+                    Fuser (music), Google Gemini 2.5 Flash (strategic AI), Mago Studio (style transfer), 
                     CapCut/Veed (video editing)
                   </p>
                   <p className="text-xs text-muted-foreground mt-3 italic">

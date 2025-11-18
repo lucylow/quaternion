@@ -308,7 +308,7 @@ export class TechTreeSolver {
     turns: number = 2
   ): string[] {
     const sequence: string[] = [];
-    const projectedResources = { ...context.currentResources };
+    let projectedResources = { ...context.currentResources };
     const projectedResearched = [...context.researchedTech];
 
     for (let turn = 0; turn < turns; turn++) {

@@ -19,10 +19,6 @@ import { MoralVerdictSystem } from './MoralVerdictSystem';
 import { KaijuEventSystem } from './KaijuEventSystem';
 import { UnitQuirkSystem } from './UnitQuirkSystem';
 import { CinematicCameraSystem } from './CinematicCameraSystem';
-import { MonsterSpawner, SpawnConfig } from '../engine/spawning/MonsterSpawner';
-import { MonsterAI, AIAction } from '../engine/ai/MonsterAI';
-import { Monster } from '../engine/entities/Monster';
-import { Vector2 } from '../engine/math/Vector2';
 
 export interface Resources {
   ore: number;
@@ -74,7 +70,6 @@ export class QuaternionGameState {
   public units: any[] = [];
   public buildings: any[] = [];
   public resourceNodes: any[] = [];
-  public monsters: any[] = []; // Monster entities
   
   // Resource stability tracking
   public instability: number = 0;
@@ -117,10 +112,6 @@ export class QuaternionGameState {
   public puzzleConfig: any | null = null;
   public puzzleConstraints: PuzzleConstraint[] = [];
   public puzzleStartTime: number = 0;
-  
-  // Monster system
-  public monsterSpawner: MonsterSpawner | null = null;
-  private monsterAIs: Map<string, MonsterAI> = new Map();
   
   constructor(config: GameConfig) {
     this.id = this.generateId();
@@ -181,37 +172,6 @@ export class QuaternionGameState {
     
     // Set up resource change callbacks
     this.setupResourceCallbacks();
-    
-    // Initialize monster system
-    this.initializeMonsterSystem();
-  }
-  
-  /**
-   * Initialize monster spawner and system
-   */
-  private initializeMonsterSystem(): void {
-    const spawnConfig: SpawnConfig = {
-      minDistance: 100,
-      maxDistance: 800,
-      maxConcurrentMonsters: 50,
-      spawnChance: 0.3,
-      respawnDelay: 1000
-    };
-    
-    this.monsterSpawner = new MonsterSpawner(this, spawnConfig, this.seed);
-    
-    // Set spawn points at map edges
-    const mapWidth = (this.config.mapWidth || 9) * 100; // Approximate pixel width
-    const mapHeight = (this.config.mapHeight || 9) * 100; // Approximate pixel height
-    
-    const spawnPoints = [
-      new Vector2(50, 50),
-      new Vector2(mapWidth - 50, 50),
-      new Vector2(50, mapHeight - 50),
-      new Vector2(mapWidth - 50, mapHeight - 50)
-    ];
-    
-    this.monsterSpawner.setSpawnPoints(spawnPoints);
   }
   
   /**
@@ -344,20 +304,17 @@ export class QuaternionGameState {
     this.tick++;
     this.gameTime += deltaTime;
     
-    // Process enhanced managers (pass deltaTime for unit movement)
-    this.processManagers(deltaTime);
+    // Process enhanced managers
+    this.processManagers();
     
     // Update resources (passive generation and consumption)
     this.updateResources(deltaTime);
     
-    // Calculate instability (now handled by ResourceManager)
-    this.instability = this.resourceManager.getInstability();
+    // Calculate instability
+    this.updateInstability();
     
     // Update fun experience systems
     this.updateFunSystems(deltaTime);
-    
-    // Update monster system
-    this.updateMonsterSystem(deltaTime);
     
     // Update win conditions
     this.checkWinConditions();
@@ -367,76 +324,9 @@ export class QuaternionGameState {
   }
   
   /**
-   * Update monster system (spawning, AI, cleanup)
-   */
-  private updateMonsterSystem(deltaTime: number): void {
-    if (!this.monsterSpawner) return;
-    
-    const currentTime = Date.now();
-    
-    // Update spawner
-    this.monsterSpawner.update(deltaTime, currentTime);
-    
-    // Get all active monsters
-    const activeMonsters = this.monsters.filter(m => m instanceof Monster && m.isAlive());
-    
-    // Collect all entities for AI to consider
-    const allEntities = [
-      ...activeMonsters,
-      ...this.units,
-      ...this.buildings
-    ];
-    
-    // Update AI for each monster
-    activeMonsters.forEach((monster: Monster) => {
-      // Get or create AI
-      let ai = this.monsterAIs.get(monster.id);
-      if (!ai) {
-        ai = new MonsterAI(monster, (action: AIAction) => {
-          this.logMonsterAction(monster, action);
-        });
-        this.monsterAIs.set(monster.id, ai);
-      }
-      
-      // Update AI
-      ai.update(deltaTime, allEntities);
-    });
-    
-    // Remove dead monsters and their AI
-    const deadMonsterIds: string[] = [];
-    this.monsters = this.monsters.filter((m: any) => {
-      if (m instanceof Monster && !m.isAlive()) {
-        deadMonsterIds.push(m.id);
-        return false;
-      }
-      return true;
-    });
-    
-    // Clean up AI for dead monsters
-    deadMonsterIds.forEach(id => {
-      this.monsterAIs.delete(id);
-    });
-  }
-  
-  /**
-   * Log monster action for replay
-   */
-  private logMonsterAction(monster: Monster, action: AIAction): void {
-    this.logAction('monster_action', {
-      monsterId: monster.id,
-      monsterType: monster.monsterType,
-      actionType: action.type,
-      targetId: action.target?.id || null,
-      reason: action.reason,
-      healthPercent: monster.getHealthPercent(),
-      position: { x: monster.position.x, y: monster.position.y }
-    });
-  }
-  
-  /**
    * Process all enhanced managers
    */
-  private processManagers(deltaTime: number = 1/60): void {
+  private processManagers(): void {
     // Get resource generation from map nodes
     const resourceGeneration = this.mapManager.getResourceGeneration();
     const controlledNodes = new Map<ResourceType, number>();
@@ -463,20 +353,8 @@ export class QuaternionGameState {
       }
     });
     
-    // Update buildings first (so they can generate resources)
-    this.mapManager.updateBuildings(deltaTime);
-    
-    // Get building resource generation
-    const buildingProduction = this.mapManager.getBuildingResourceGeneration();
-    
-    // Convert building production to ResourceType map
-    const buildingProductionMap = new Map<ResourceType, number>();
-    buildingProduction.forEach((amount, type) => {
-      buildingProductionMap.set(type, amount);
-    });
-    
-    // Process resource tick (includes node generation and building production)
-    this.resourceManager.processResourceTick(controlledNodes, buildingProductionMap);
+    // Process resource tick
+    this.resourceManager.processResourceTick(controlledNodes, new Map());
     
     // Process unit production
     const completedUnits = this.unitManager.processProductionTicks();
@@ -484,8 +362,8 @@ export class QuaternionGameState {
       this.units.push(unit);
     });
     
-    // Process unit ticks (with deltaTime for movement)
-    this.unitManager.processUnitTicks(deltaTime);
+    // Process unit ticks
+    this.unitManager.processUnitTicks();
     
     // Process research
     this.techTreeManager.processResearchTick();
@@ -618,11 +496,24 @@ export class QuaternionGameState {
   /**
    * Calculate system instability based on resource imbalance
    */
-  // Instability is now calculated by ResourceManager
-  // This method is kept for backwards compatibility but does nothing
   private updateInstability(): void {
-    // Instability is now handled by ResourceManager.getInstability()
-    // This method is deprecated but kept to avoid breaking existing code
+    const player = this.players.get(1);
+    if (!player) return;
+    
+    const { ore, energy, biomass, data } = player.resources;
+    const avg = (ore + energy + biomass + data) / 4;
+    
+    // Calculate variance from average
+    const variance = [ore, energy, biomass, data]
+      .reduce((sum, val) => sum + Math.abs(val - avg), 0) / 4;
+    
+    // Instability increases with imbalance
+    this.instability = (variance / avg) * 100;
+    
+    // Check for critical resources at zero
+    if (ore === 0 || energy === 0 || biomass === 0 || data === 0) {
+      this.instability = this.maxInstability;
+    }
   }
   
   /**
@@ -733,7 +624,7 @@ export class QuaternionGameState {
     const winCond = this.puzzleConfig.winCondition;
     
     switch (winCond.type) {
-      case 'equilibrium': {
+      case 'equilibrium':
         // Check if resources are balanced
         const { ore, energy, biomass, data } = player.resources;
         const avg = (ore + energy + biomass + data) / 4;
@@ -769,7 +660,6 @@ export class QuaternionGameState {
           this.winConditions.set(winCondKey, { type: 'equilibrium', achieved: false, progress: 0 });
           return { won: false, progress: 0, max: (winCond.duration || 15) * 60 };
         }
-      }
         
       case 'technological':
         if (player.researchedTechs.has(winCond.techId || 'quantum_ascendancy')) {
@@ -777,24 +667,22 @@ export class QuaternionGameState {
         }
         return { won: false, progress: 0, max: 1 };
         
-      case 'resource_target': {
+      case 'resource_target':
         const targetResource = player.resources[(winCond.target as any) || 'ore'] || 0;
         const targetValue = winCond.target || 0;
         if (targetResource >= targetValue) {
           return { won: true, progress: targetValue, max: targetValue };
         }
         return { won: false, progress: targetResource, max: targetValue };
-      }
         
-      case 'survival': {
+      case 'survival':
         const survivalTime = (winCond.duration || 420) * 60; // Convert to ticks
         if (this.gameTime >= survivalTime) {
           return { won: true, progress: survivalTime, max: survivalTime };
         }
         return { won: false, progress: this.gameTime * 60, max: survivalTime };
-      }
         
-      case 'territorial': {
+      case 'territorial':
         const centralNodeControlled = this.mapManager.isCentralNodeControlledByPlayer();
         if (centralNodeControlled) {
           const durationRequired = (winCond.duration || 30) * 60;
@@ -812,7 +700,6 @@ export class QuaternionGameState {
           this.winConditions.set(winCondKey, { type: 'territorial', achieved: false, progress: 0 });
           return { won: false, progress: 0, max: (winCond.duration || 30) * 60 };
         }
-      }
         
       default:
         return { won: false, progress: 0, max: 0 };

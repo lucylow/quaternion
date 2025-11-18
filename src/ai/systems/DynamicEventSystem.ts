@@ -77,7 +77,7 @@ export class DynamicEventSystem {
       condition: (gameState) => {
         const player = gameState.players?.get(1);
         if (!player) return false;
-        const totalResources = Object.values(player.resources || {}).reduce((a: number, b: any) => a + (typeof b === 'number' ? b : 0), 0) as number;
+        const totalResources = Object.values(player.resources || {}).reduce((a: number, b: any) => a + (typeof b === 'number' ? b : 0), 0);
         return totalResources < 100;
       },
       cooldown: 120000, // 2 minutes
@@ -260,7 +260,7 @@ export class DynamicEventSystem {
           this.modifyTerrain(gameState, effect);
           break;
 
-        case 'resource_boost': {
+        case 'resource_boost':
           // Add resources to player
           const player = gameState.players?.get(1);
           if (player && player.resources) {
@@ -271,7 +271,6 @@ export class DynamicEventSystem {
             });
           }
           break;
-        }
 
         case 'unit_spawn':
           // Spawn units (implementation depends on unit system)

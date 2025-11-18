@@ -30,10 +30,8 @@ interface GameState {
     units: number;
     buildings: number;
     resources: {
-      ore: number;
-      energy: number;
-      biomass: number;
-      data: number;
+      minerals: number;
+      gas: number;
     };
   }>;
 }
@@ -199,13 +197,7 @@ export class GameClient {
           case 'player_update':
             // Update resources, supply, etc.
             if (this.gameState && this.gameState.players[delta.playerSlot]) {
-              // Ensure resources use quaternion system (ore/energy/biomass/data)
-              this.gameState.players[delta.playerSlot].resources = {
-                ore: delta.resources.ore || delta.resources.minerals || 0,
-                energy: delta.resources.energy || delta.resources.gas || 0,
-                biomass: delta.resources.biomass || 0,
-                data: delta.resources.data || 0
-              };
+              this.gameState.players[delta.playerSlot].resources = delta.resources;
             }
             break;
         }

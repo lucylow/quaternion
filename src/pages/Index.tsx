@@ -10,51 +10,19 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/quaternion-hero.webp";
 import mapImage from "@/assets/game-maps.webp";
-import { OptimizedImage } from "@/components/ui/OptimizedImage";
-import { getLandingPageAudio } from "@/audio/LandingPageAudio";
 
 const Index = () => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const audioInitialized = useRef(false);
-  const audio = getLandingPageAudio();
-
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
       setMobileMenuOpen(false);
-      audio.playClick();
-    }
-  };
-
-  // Initialize audio on first user interaction
-  const initializeAudioOnInteraction = async () => {
-    if (audioInitialized.current) return;
-    
-    try {
-      await audio.initialize();
-      await audio.startBackgroundMusic();
-      audioInitialized.current = true;
-    } catch (error) {
-      console.warn('Audio initialization failed:', error);
     }
   };
 
   useEffect(() => {
-    // Initialize audio on any user interaction
-    const handleUserInteraction = () => {
-      initializeAudioOnInteraction();
-      // Remove listeners after first interaction
-      document.removeEventListener('click', handleUserInteraction);
-      document.removeEventListener('touchstart', handleUserInteraction);
-      document.removeEventListener('keydown', handleUserInteraction);
-    };
-
-    document.addEventListener('click', handleUserInteraction, { once: true });
-    document.addEventListener('touchstart', handleUserInteraction, { once: true });
-    document.addEventListener('keydown', handleUserInteraction, { once: true });
-
     // Scroll progress bar
     const progressBar = document.createElement('div');
     progressBar.className = 'fixed top-0 left-0 h-1 bg-gradient-to-r from-primary to-secondary z-[100] transition-all';
@@ -109,13 +77,6 @@ const Index = () => {
     };
   }, [mobileMenuOpen]);
 
-  // Cleanup audio on unmount
-  useEffect(() => {
-    return () => {
-      audio.stopBackgroundMusic();
-    };
-  }, []);
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       {/* Header */}
@@ -128,30 +89,22 @@ const Index = () => {
               <span className="sm:hidden">Q<span className="text-secondary">:</span>NF</span>
             </a>
             <div className="hidden md:flex items-center gap-6">
-              <a href="#overview" onClick={(e) => { e.preventDefault(); scrollToSection('overview'); }} onMouseEnter={() => audio.playHover()} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">Overview</a>
-              <a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection('features'); }} onMouseEnter={() => audio.playHover()} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">Features</a>
-              <a href="/about" onClick={(e) => { e.preventDefault(); audio.playClick(); navigate('/about'); }} onMouseEnter={() => audio.playHover()} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">About</a>
-              <a href="/commanders" onClick={(e) => { e.preventDefault(); audio.playClick(); navigate('/commanders'); }} onMouseEnter={() => audio.playHover()} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">Commanders</a>
-              <a href="/how-to-play" onClick={(e) => { e.preventDefault(); audio.playClick(); navigate('/how-to-play'); }} onMouseEnter={() => audio.playHover()} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">How to Play</a>
-              <a href="/ai-features" onClick={(e) => { e.preventDefault(); audio.playClick(); navigate('/ai-features'); }} onMouseEnter={() => audio.playHover()} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">AI Features</a>
+              <a href="#overview" onClick={(e) => { e.preventDefault(); scrollToSection('overview'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">Overview</a>
+              <a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection('features'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">Features</a>
+              <a href="/about" onClick={(e) => { e.preventDefault(); navigate('/about'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">About</a>
+              <a href="/commanders" onClick={(e) => { e.preventDefault(); navigate('/commanders'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">Commanders</a>
+              <a href="/how-to-play" onClick={(e) => { e.preventDefault(); navigate('/how-to-play'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">How to Play</a>
+              <a href="/ai-features" onClick={(e) => { e.preventDefault(); navigate('/ai-features'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">AI Features</a>
             </div>
             <div className="flex items-center gap-2">
               <Button 
-                onClick={() => {
-                  audio.playClick();
-                  initializeAudioOnInteraction();
-                  navigate('/lobby');
-                }}
-                onMouseEnter={() => audio.playHover()}
+                onClick={() => navigate('/lobby')}
                 className="hidden sm:flex bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:shadow-neon focus:ring-2 focus:ring-primary focus:ring-offset-2 text-sm px-3 py-1.5"
               >
                 Play Now
               </Button>
               <Button 
-                onClick={() => {
-                  audio.playClick();
-                  setMobileMenuOpen(!mobileMenuOpen);
-                }}
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 variant="ghost"
                 size="icon"
                 className="md:hidden text-primary"
@@ -186,18 +139,7 @@ const Index = () => {
       {/* Hero Section */}
       <section className="min-h-screen flex items-center pt-20 pb-8 sm:pb-0 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-radial from-primary/10 via-transparent to-transparent opacity-30" />
-        {/* Hero Image Background */}
-        <div className="absolute inset-0 z-0 opacity-20">
-          <OptimizedImage
-            src={heroImage}
-            alt="Quaternion Hero - AI-generated strategy game"
-            className="w-full h-full"
-            loading="eager"
-            priority={true}
-            objectFit="cover"
-          />
-        </div>
-        <div className="container mx-auto px-4 grid md:grid-cols-2 gap-8 md:gap-12 items-center relative z-10">
+        <div className="container mx-auto px-4 grid md:grid-cols-2 gap-8 md:gap-12 items-center">
           <div className="space-y-4 sm:space-y-6 z-10">
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent leading-tight">
               QUATERNION: NEURAL FRONTIER
@@ -208,23 +150,12 @@ const Index = () => {
             <div className="flex flex-wrap gap-3 sm:gap-4">
               <Button 
                 size="lg" 
-                onClick={() => {
-                  audio.playClick();
-                  initializeAudioOnInteraction();
-                  navigate('/lobby');
-                }}
-                onMouseEnter={() => audio.playHover()}
+                onClick={() => navigate('/lobby')}
                 className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:shadow-neon focus:ring-2 focus:ring-primary focus:ring-offset-2 text-sm sm:text-base"
               >
                 Play Free Demo
               </Button>
-              <Button 
-                size="lg" 
-                variant="outline" 
-                onClick={() => audio.playClick()}
-                onMouseEnter={() => audio.playHover()}
-                className="border-primary text-primary hover:bg-primary hover:text-primary-foreground focus:ring-2 focus:ring-primary focus:ring-offset-2 text-sm sm:text-base"
-              >
+              <Button size="lg" variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground focus:ring-2 focus:ring-primary focus:ring-offset-2 text-sm sm:text-base">
                 Watch Gameplay
               </Button>
             </div>
@@ -250,7 +181,7 @@ const Index = () => {
               <span className="sm:hidden">Chroma Awards 2025</span>
             </div>
             <div className="text-xs sm:text-sm text-muted-foreground mt-2">
-              <p>Tools Used: ElevenLabs, OpenArt, LTX Studio, Fuser, Luma AI, SAGA, Google AI</p>
+              <p>Tools Used: ElevenLabs, OpenArt, LTX Studio, Fuser, Luma AI, SAGA, Google Gemini 2.5 Flash</p>
               <p className="mt-1">Visit <a href="https://www.ChromaAwards.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">www.ChromaAwards.com</a> for more information</p>
             </div>
           </div>
@@ -276,7 +207,6 @@ const Index = () => {
         </div>
         <button 
           onClick={() => scrollToSection('overview')} 
-          onMouseEnter={() => audio.playHover()}
           className="absolute bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 animate-bounce z-10"
           aria-label="Scroll to overview"
         >
@@ -444,26 +374,13 @@ const Index = () => {
           <Card className="bg-card/70 border-primary shadow-neon overflow-hidden">
             <CardContent className="p-4 sm:p-8">
               <div className="bg-background/50 h-64 sm:h-96 rounded-lg flex items-center justify-center mb-6 sm:mb-8 relative overflow-hidden">
-                {/* Map Image Background */}
-                <OptimizedImage
-                  src={mapImage}
-                  alt="Procedurally generated game maps"
-                  className="absolute inset-0 w-full h-full opacity-30"
-                  loading="lazy"
-                  objectFit="cover"
-                />
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/10 to-transparent animate-shimmer" />
-                <div className="text-center z-10 px-4 relative">
+                <div className="text-center z-10 px-4">
                   <Gamepad2 className="w-12 h-12 sm:w-16 sm:h-16 text-primary mx-auto mb-4" />
                   <h3 className="text-xl sm:text-2xl font-bold mb-2">WebGL Game Demo</h3>
                   <p className="text-sm sm:text-base text-muted-foreground mb-4">Play directly in your browser - no downloads required</p>
                   <Button 
-                    onClick={() => {
-                      audio.playClick();
-                      initializeAudioOnInteraction();
-                      navigate('/lobby');
-                    }}
-                    onMouseEnter={() => audio.playHover()}
+                    onClick={() => navigate('/lobby')}
                     className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:shadow-neon text-sm sm:text-base"
                   >
                     Launch Game

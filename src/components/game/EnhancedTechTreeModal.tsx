@@ -78,17 +78,16 @@ export const EnhancedTechTreeModal = ({
 
   // Generate advisor recommendation
   useEffect(() => {
-    const enemyComp = enemyComposition || { hasAir: false, hasHeavy: false, hasStealth: false, unitCount: 0 };
     const context: PuzzleContext = {
       currentResources: resources,
       researchedTech: Array.from(researchedTechs),
       availableTech,
       gamePhase,
-      enemyComposition: {
-        hasAir: enemyComp.hasAir,
-        hasHeavy: enemyComp.hasHeavy,
-        hasStealth: enemyComp.hasStealth,
-        unitCount: enemyComp.unitCount ?? 0
+      enemyComposition: enemyComposition || {
+        hasAir: false,
+        hasHeavy: false,
+        hasStealth: false,
+        unitCount: 0
       }
     };
 
@@ -99,17 +98,16 @@ export const EnhancedTechTreeModal = ({
   // Update sequence preview when hovering
   useEffect(() => {
     if (hoveredNode) {
-      const enemyComp = enemyComposition || { hasAir: false, hasHeavy: false, hasStealth: false, unitCount: 0 };
       const context: PuzzleContext = {
         currentResources: resources,
         researchedTech: Array.from(researchedTechs),
         availableTech,
         gamePhase,
-        enemyComposition: {
-          hasAir: enemyComp.hasAir,
-          hasHeavy: enemyComp.hasHeavy,
-          hasStealth: enemyComp.hasStealth,
-          unitCount: enemyComp.unitCount ?? 0
+        enemyComposition: enemyComposition || {
+          hasAir: false,
+          hasHeavy: false,
+          hasStealth: false,
+          unitCount: 0
         }
       };
 

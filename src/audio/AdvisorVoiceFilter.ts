@@ -196,67 +196,6 @@ export default class AdvisorVoiceFilter {
   }
 
   /**
-   * Process audio buffer for specific advisor (with advisor-specific effects)
-   */
-  async processAudio(
-    audioBuffer: ArrayBuffer,
-    advisor: 'Auren' | 'Virel' | 'Lira' | 'Kor' | 'Core'
-  ): Promise<ArrayBuffer> {
-    // Decode audio
-    const buffer = await this.audioContext.decodeAudioData(audioBuffer.slice(0));
-    
-    // Apply advisor-specific processing
-    switch (advisor) {
-      case 'Auren':
-        // Metallic echo for engineer
-        this.setEmotion('neutral');
-        if (this.echoDelay && this.echoGain) {
-          this.echoDelay.delayTime.value = 0.08; // 80ms echo
-          this.echoGain.gain.value = 0.3;
-        }
-        break;
-        
-      case 'Virel':
-        // Slight distortion for passion/anger
-        this.setEmotion('angry');
-        break;
-        
-      case 'Lira':
-        // Low-pass + reverb for warm, breathy
-        this.setEmotion('calm');
-        if (this.lowpassFilter) {
-          this.lowpassFilter.frequency.value = 6000; // Softer
-        }
-        break;
-        
-      case 'Kor':
-        // Vocoder effect (bitcrush + echo)
-        this.setEmotion('neutral');
-        if (this.distortion) {
-          this.distortion.curve = this.makeDistortionCurve(15); // Bitcrush
-        }
-        if (this.echoDelay && this.echoGain) {
-          this.echoDelay.delayTime.value = 0.12; // Slight echo
-          this.echoGain.gain.value = 0.25;
-        }
-        break;
-        
-      case 'Core':
-        // Layered/blended effect
-        this.setEmotion('neutral');
-        if (this.echoDelay && this.echoGain) {
-          this.echoDelay.delayTime.value = 0.15; // Longer echo
-          this.echoGain.gain.value = 0.4; // More reverb
-        }
-        break;
-    }
-
-    // For now, return original buffer (processing happens in real-time)
-    // In a full implementation, you'd render the processed audio
-    return audioBuffer;
-  }
-
-  /**
    * Get input node for connecting external sources
    */
   getInputNode(): AudioNode {

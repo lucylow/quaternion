@@ -2,13 +2,6 @@
  * Narrative System Exports
  */
 
-// AI Creative Characters System
-export * from './AICreativeCharacters';
-export * from './CharacterEvolutionSystem';
-export * from './QuaternionCoreNarrative';
-export * from './VoiceSynthesisIntegration';
-
-// Legacy narrative systems
 export { NarrativeManager } from './NarrativeManager';
 export type {
   WorldLore,
@@ -73,37 +66,3 @@ export type {
   Battle
 } from './WorldStateNarrative';
 export { WorldEventType, InterventionType } from './WorldStateNarrative';
-
-export { AIStoryGenerator } from './AIStoryGenerator';
-export type {
-  NarrativeAxis,
-  NarrativeTimeline,
-  NarrativeEvent,
-  NarrativeContext,
-  PlayerPhilosophy,
-  ChronicleExport
-} from './AIStoryGenerator';
-
-// Enhanced Narrative Systems for Chroma Awards
-export { WorldBuilder } from './WorldBuilder';
-export type {
-  WorldBackstory,
-  FactionLore,
-  LocationLore,
-  ArtifactLore,
-  TimelineEvent
-} from './WorldBuilder';
-
-export { EnvironmentalStorytelling } from './EnvironmentalStorytelling';
-export type {
-  EnvironmentalDetail,
-  TerrainStory
-} from './EnvironmentalStorytelling';
-
-export { EnhancedNarrativeSystem } from './EnhancedNarrativeSystem';
-export type {
-  NarrativeEvent as EnhancedNarrativeEvent,
-  NarrativeChoice,
-  NarrativeConsequence,
-  FactionDialogue
-} from './EnhancedNarrativeSystem';

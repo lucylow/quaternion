@@ -93,7 +93,7 @@ const event = await narrativeSystem.generateEvent({
 import { VoiceLineManager } from './game/campaigns/VoiceLineManager';
 
 const voiceManager = new VoiceLineManager({
-  apiKey: process.env.ElevenLabs_API_key
+  apiKey: process.env.ELEVENLABS_API_KEY
 });
 
 await voiceManager.playVoiceLine('mara_warning');

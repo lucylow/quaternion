@@ -1,7 +1,0 @@
-<speak>
-  <voice name="Patch">
-    <prosody rate="1.08">Scanning... nothing helpful. Sending passive judgement.</prosody>
-    <break time="100ms"/>
-  </voice>
-</speak>
-

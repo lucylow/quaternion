@@ -168,16 +168,14 @@ export function CosmeticShop() {
         case 'name':
           return a.name.localeCompare(b.name);
         case 'rarity':
-          {
-            const rarityOrder: Record<string, number> = {
-              legendary: 4,
-              epic: 3,
-              rare: 2,
-              uncommon: 1,
-              common: 0
-            };
-            return (rarityOrder[b.rarity] || 0) - (rarityOrder[a.rarity] || 0);
-          }
+          const rarityOrder: Record<string, number> = {
+            legendary: 4,
+            epic: 3,
+            rare: 2,
+            uncommon: 1,
+            common: 0
+          };
+          return (rarityOrder[b.rarity] || 0) - (rarityOrder[a.rarity] || 0);
         default:
           return 0;
       }

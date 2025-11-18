@@ -53,16 +53,11 @@ class MultiplayerGameState {
     const playerData = this.gameState.players[slot + 1]; // GameState uses 1-based indexing
     if (!playerData) return null;
 
-    // Map old resource system (minerals/gas) to quaternion system (ore/energy/biomass/data)
-    // For backward compatibility, map minerals -> ore, gas -> energy
-    // Initialize biomass and data to 0 if not present
     return {
       slot,
       resources: {
-        ore: playerData.ore || playerData.minerals || 0,
-        energy: playerData.energy || playerData.gas || 0,
-        biomass: playerData.biomass || 0,
-        data: playerData.data || 0
+        minerals: playerData.minerals || 0,
+        gas: playerData.gas || 0
       },
       supply: {
         current: playerData.supply || 0,
@@ -190,24 +185,9 @@ class MultiplayerGameState {
     
     if (building && player) {
       const cost = this.getUnitCost(unitType);
-      // Support both old (minerals/gas) and new (ore/energy/biomass/data) resource systems
-      const hasResources = 
-        (player.ore !== undefined ? player.ore >= (cost.ore || 0) : player.minerals >= (cost.minerals || 0)) &&
-        (player.energy !== undefined ? player.energy >= (cost.energy || 0) : player.gas >= (cost.gas || 0)) &&
-        (player.biomass !== undefined ? player.biomass >= (cost.biomass || 0) : true) &&
-        (player.data !== undefined ? player.data >= (cost.data || 0) : true);
-      
-      if (hasResources) {
-        // Deduct resources - support both systems
-        if (player.ore !== undefined) {
-          player.ore -= cost.ore || 0;
-          player.energy -= cost.energy || 0;
-          player.biomass -= cost.biomass || 0;
-          player.data -= cost.data || 0;
-        } else {
-          player.minerals -= cost.minerals || 0;
-          player.gas -= cost.gas || 0;
-        }
+      if (player.minerals >= cost.minerals && player.gas >= cost.gas) {
+        player.minerals -= cost.minerals;
+        player.gas -= cost.gas;
         building.producing = unitType;
         building.productionProgress = 0;
       }
@@ -218,24 +198,9 @@ class MultiplayerGameState {
     const player = this.gameState.players[slot + 1];
     const cost = this.getBuildingCost(buildingType);
     
-    // Support both old (minerals/gas) and new (ore/energy/biomass/data) resource systems
-    const hasResources = 
-      (player.ore !== undefined ? player.ore >= (cost.ore || 0) : player.minerals >= (cost.minerals || 0)) &&
-      (player.energy !== undefined ? player.energy >= (cost.energy || 0) : player.gas >= (cost.gas || 0)) &&
-      (player.biomass !== undefined ? player.biomass >= (cost.biomass || 0) : true) &&
-      (player.data !== undefined ? player.data >= (cost.data || 0) : true);
-    
-    if (player && hasResources) {
-      // Deduct resources - support both systems
-      if (player.ore !== undefined) {
-        player.ore -= cost.ore || 0;
-        player.energy -= cost.energy || 0;
-        player.biomass -= cost.biomass || 0;
-        player.data -= cost.data || 0;
-      } else {
-        player.minerals -= cost.minerals || 0;
-        player.gas -= cost.gas || 0;
-      }
+    if (player && player.minerals >= cost.minerals && player.gas >= cost.gas) {
+      player.minerals -= cost.minerals;
+      player.gas -= cost.gas;
 
       // Use GameState's createBuilding method
       this.gameState.createBuilding(
@@ -328,7 +293,7 @@ class MultiplayerGameState {
           slot,
           units: player ? player.units.length : 0,
           buildings: player ? player.buildings.length : 0,
-          resources: player ? player.resources : { ore: 0, energy: 0, biomass: 0, data: 0 }
+          resources: player ? player.resources : { minerals: 0, gas: 0 }
         };
       })
     };
@@ -341,25 +306,23 @@ class MultiplayerGameState {
   }
 
   getUnitCost(unitType) {
-    // Use quaternion resource system (ore/energy/biomass/data)
     const costs = {
-      worker: { ore: 50, energy: 0, biomass: 0, data: 0 },
-      soldier: { ore: 100, energy: 0, biomass: 0, data: 0 },
-      tank: { ore: 150, energy: 100, biomass: 0, data: 0 },
-      air_unit: { ore: 125, energy: 75, biomass: 0, data: 0 }
+      worker: { minerals: 50, gas: 0 },
+      soldier: { minerals: 100, gas: 0 },
+      tank: { minerals: 150, gas: 100 },
+      air_unit: { minerals: 125, gas: 75 }
     };
-    return costs[unitType] || { ore: 0, energy: 0, biomass: 0, data: 0 };
+    return costs[unitType] || { minerals: 0, gas: 0 };
   }
 
   getBuildingCost(buildingType) {
-    // Use quaternion resource system (ore/energy/biomass/data)
     const costs = {
-      barracks: { ore: 150, energy: 0, biomass: 0, data: 0 },
-      factory: { ore: 200, energy: 100, biomass: 0, data: 0 },
-      airfield: { ore: 150, energy: 100, biomass: 0, data: 0 },
-      refinery: { ore: 100, energy: 0, biomass: 0, data: 0 }
+      barracks: { minerals: 150, gas: 0 },
+      factory: { minerals: 200, gas: 100 },
+      airfield: { minerals: 150, gas: 100 },
+      refinery: { minerals: 100, gas: 0 }
     };
-    return costs[buildingType] || { ore: 0, energy: 0, biomass: 0, data: 0 };
+    return costs[buildingType] || { minerals: 0, gas: 0 };
   }
 }
 

@@ -3,11 +3,11 @@
  * Main game page with Phaser game engine.
  * Edit this file to modify the game page.
  */
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Phaser from 'phaser';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Brain, Zap, Leaf, Box, Building, Swords, MessageCircle } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Minimap } from '@/components/game/Minimap';
 import { BuildQueue } from '@/components/game/BuildQueue';
 import { TechTreeModal } from '@/components/game/TechTreeModal';
@@ -15,8 +15,6 @@ import { BuildMenu } from '@/components/game/BuildMenu';
 import { JudgeHUD } from '@/components/game/JudgeHUD';
 import { COMMANDERS, AI_SUGGESTIONS, BUILDINGS, TECH_TREE } from '@/data/gameData';
 import { toast } from 'sonner';
-import { ImageAssetLoader } from '@/game/ImageAssetLoader';
-import { AICommanderArchetypes, CommanderProfile } from '@/ai/opponents/AICommanderArchetypes';
 
 interface GameResources {
   ore: number;
@@ -46,132 +44,12 @@ const Game = () => {
   const [researchedTechs, setResearchedTechs] = useState<Set<string>>(new Set());
   const [aiMessages, setAiMessages] = useState<Array<{ commander: string; message: string; id: number }>>([]);
   
-  const location = useLocation();
-  const routeConfig = (location.state as any)?.config;
-  
   // Game metadata for Judge HUD replay generation
-  const [gameSeed] = useState(routeConfig?.seed || Math.floor(Math.random() * 1000000));
-  const [commanderId] = useState(routeConfig?.commanderId || 'AUREN');
-  const [mapConfig] = useState({ 
-    type: routeConfig?.mapType || routeConfig?.mapId || 'Crystalline Plains', 
-    width: routeConfig?.mapWidth || 40, 
-    height: routeConfig?.mapHeight || 30,
-    mapId: routeConfig?.mapId,
-    mapImagePath: routeConfig?.mapImagePath
-  });
-  const [selectedMapKey, setSelectedMapKey] = useState<string | null>(routeConfig?.mapId ? ImageAssetLoader.getMapKeyByMapId(routeConfig.mapId) : null);
-  
-  // AI Commander Profile
-  const [commanderProfile] = useState<CommanderProfile>(() => {
-    const archetype = routeConfig?.archetype || 'THE_TACTICIAN';
-    const seed = gameSeed;
-    return AICommanderArchetypes.createCommander(archetype as any, seed);
-  });
+  const [gameSeed] = useState(Math.floor(Math.random() * 1000000));
+  const [commanderId] = useState('AUREN');
+  const [mapConfig] = useState({ type: 'Crystalline Plains', width: 40, height: 30 });
   
   const navigate = useNavigate();
-  
-  // Context-aware AI suggestion generator
-  const generateContextualAISuggestion = (
-    currentResources: GameResources,
-    currentPopulation: { current: number; max: number },
-    researchedTechs: Set<string>,
-    buildQueueLength: number
-  ): { commander: string; message: string } | null => {
-    const suggestions: Array<{ commander: string; message: string; priority: number }> = [];
-    
-    // Resource-based suggestions
-    if (currentResources.ore < 100) {
-      suggestions.push({
-        commander: 'AUREN',
-        message: 'Ore reserves critically low. Build ore extractors immediately.',
-        priority: 9
-      });
-    } else if (currentResources.ore > 800 && currentResources.energy < 100) {
-      suggestions.push({
-        commander: 'VIREL',
-        message: 'Ore surplus detected. Invest in energy reactors to balance production.',
-        priority: 8
-      });
-    }
-    
-    if (currentResources.energy < 50) {
-      suggestions.push({
-        commander: 'VIREL',
-        message: 'Energy reserves depleted. Prioritize power generation before expansion.',
-        priority: 9
-      });
-    }
-    
-    if (currentResources.biomass < 50 && researchedTechs.size > 0) {
-      suggestions.push({
-        commander: 'LIRA',
-        message: 'Biomass levels low. Consider building bio labs for sustainable growth.',
-        priority: 7
-      });
-    }
-    
-    if (currentResources.data < 30 && researchedTechs.size < 3) {
-      suggestions.push({
-        commander: 'KOR',
-        message: 'Data production insufficient. Build data centers to unlock advanced tech.',
-        priority: 8
-      });
-    }
-    
-    // Population-based suggestions
-    if (currentPopulation.current >= currentPopulation.max * 0.9) {
-      suggestions.push({
-        commander: 'AUREN',
-        message: 'Population near capacity. Expand infrastructure or upgrade units.',
-        priority: 7
-      });
-    }
-    
-    // Tech-based suggestions
-    if (researchedTechs.size === 0 && currentResources.data >= 50) {
-      suggestions.push({
-        commander: 'KOR',
-        message: 'Research opportunities available. Start with Data Analysis for faster research.',
-        priority: 8
-      });
-    }
-    
-    if (researchedTechs.has('quantum_core') && !researchedTechs.has('advanced_refinery')) {
-      suggestions.push({
-        commander: 'AUREN',
-        message: 'Quantum Core complete. Research Advanced Refinery to boost ore production.',
-        priority: 7
-      });
-    }
-    
-    // Build queue suggestions
-    if (buildQueueLength === 0 && currentResources.ore >= 150) {
-      suggestions.push({
-        commander: 'VIREL',
-        message: 'Resources available. Consider building barracks or expanding production.',
-        priority: 6
-      });
-    }
-    
-    // Commander personality-based suggestions (using archetype)
-    const catchphrase = commanderProfile.voiceProfile.catchphrases[
-      Math.floor(Math.random() * commanderProfile.voiceProfile.catchphrases.length)
-    ];
-    
-    if (suggestions.length === 0) {
-      // Use commander's catchphrase or general advice
-      const commanderName = COMMANDERS.find(c => c.id.toLowerCase() === commanderId.toLowerCase())?.name || 'AUREN';
-      suggestions.push({
-        commander: commanderName,
-        message: catchphrase || 'Continue building your strategic advantage.',
-        priority: 5
-      });
-    }
-    
-    // Sort by priority and return highest priority suggestion
-    suggestions.sort((a, b) => b.priority - a.priority);
-    return suggestions.length > 0 ? { commander: suggestions[0].commander, message: suggestions[0].message } : null;
-  };
 
   useEffect(() => {
     if (!gameRef.current || phaserGameRef.current) return;
@@ -232,92 +110,23 @@ const Game = () => {
         setLoadingProgress(value * 100);
       });
 
-      // Load map assets
-      ImageAssetLoader.loadMaps(this);
-      
-      // If we have a specific map selected, ensure it's loaded
-      if (selectedMapKey) {
-        const mapAsset = ImageAssetLoader.getMapKeys().find(key => key === selectedMapKey);
-        if (mapAsset) {
-          console.log(`[Game] Preloading selected map: ${selectedMapKey}`);
-        }
-      }
-
-      this.load.on('complete', () => {
-        setTimeout(() => {
-          setLoading(false);
-        }, 500);
-      });
+      setTimeout(() => {
+        setLoading(false);
+      }, 1000);
     }
 
     function create(this: Phaser.Scene) {
       const { width, height } = this.cameras.main;
 
-      // Try to load map background image if available
-      let mapBackground: Phaser.GameObjects.Image | null = null;
-      let mapKey: string | null = selectedMapKey;
-      
-      // If we have a map ID, try to get the corresponding key
-      if (!mapKey && mapConfig.mapId) {
-        mapKey = ImageAssetLoader.getMapKeyByMapId(mapConfig.mapId);
-      }
-      
-      // If still no key, try to get a random map or use the first available
-      if (!mapKey) {
-        const availableMaps = ImageAssetLoader.getMapKeys();
-        if (availableMaps.length > 0) {
-          // Try to find a map that's loaded
-          for (const key of availableMaps) {
-            if (this.textures.exists(key)) {
-              mapKey = key;
-              break;
-            }
-          }
-        }
-      }
-      
-      // Create map background if available
-      if (mapKey && this.textures.exists(mapKey)) {
-        try {
-          const texture = this.textures.get(mapKey);
-          if (texture && texture.source && texture.source[0]) {
-            const textureWidth = texture.source[0].width;
-            const textureHeight = texture.source[0].height;
-            
-            if (textureWidth > 0 && textureHeight > 0) {
-              mapBackground = this.add.image(0, 0, mapKey);
-              mapBackground.setOrigin(0, 0);
-              mapBackground.setDepth(-100); // Behind everything
-              
-              // Scale to cover the game area
-              const scaleX = (width * 2) / textureWidth;
-              const scaleY = (height * 2) / textureHeight;
-              const scale = Math.max(scaleX, scaleY);
-              mapBackground.setScale(scale);
-              
-              // Add a dark overlay to make game elements more visible
-              const overlay = this.add.rectangle(0, 0, width * 2, height * 2, 0x000000, 0.3);
-              overlay.setOrigin(0, 0);
-              overlay.setDepth(-99);
-              
-              console.log(`[Game] Map background loaded: ${mapKey}`);
-            }
-          }
-        } catch (error) {
-          console.warn(`[Game] Failed to create map background:`, error);
-        }
-      }
-      
-      // Create grid overlay on top of map (if no map, this is the background)
+      // Create grid background with enhanced visuals
       const bgGraphics = this.add.graphics();
-      bgGraphics.lineStyle(1, 0x00ffea, mapBackground ? 0.15 : 0.08);
+      bgGraphics.lineStyle(1, 0x00ffea, 0.08);
       for (let x = 0; x < width * 2; x += 64) {
         bgGraphics.lineBetween(x, 0, x, height * 2);
       }
       for (let y = 0; y < height * 2; y += 64) {
         bgGraphics.lineBetween(0, y, width * 2, y);
       }
-      bgGraphics.setDepth(-50); // Above map but below units
 
       // Create player base
       const playerBase = this.add.circle(200, 200, 50, 0x00ffea, 0.3);
@@ -382,14 +191,12 @@ const Game = () => {
         unit.setData('maxHealth', 100);
         unit.setData('selected', false);
         
-        // Draw unit shape - position graphics at unit location
+        // Draw unit shape
         const unitGraphics = this.add.graphics();
-        unitGraphics.x = unit.x;
-        unitGraphics.y = unit.y;
         unitGraphics.fillStyle(0x00ffea, 0.8);
-        unitGraphics.fillCircle(0, 0, 20); // Draw at 0,0 relative to graphics position
+        unitGraphics.fillCircle(unit.x, unit.y, 20);
         unitGraphics.lineStyle(2, 0xffffff);
-        unitGraphics.strokeCircle(0, 0, 20);
+        unitGraphics.strokeCircle(unit.x, unit.y, 20);
         
         unit.setData('graphics', unitGraphics);
         playerUnits.push(unit);
@@ -399,25 +206,21 @@ const Game = () => {
           if (!unit.getData('selected')) {
             selectedUnits.forEach(u => {
               u.setData('selected', false);
+              u.getData('graphics')?.clear();
               const g = u.getData('graphics') as Phaser.GameObjects.Graphics;
-              if (g) {
-                g.clear();
-                g.fillStyle(0x00ffea, 0.8);
-                g.fillCircle(0, 0, 20);
-                g.lineStyle(2, 0xffffff);
-                g.strokeCircle(0, 0, 20);
-              }
+              g.fillStyle(0x00ffea, 0.8);
+              g.fillCircle(u.x, u.y, 20);
+              g.lineStyle(2, 0xffffff);
+              g.strokeCircle(u.x, u.y, 20);
             });
             selectedUnits = [unit];
             unit.setData('selected', true);
             const g = unit.getData('graphics') as Phaser.GameObjects.Graphics;
-            if (g) {
-              g.clear();
-              g.fillStyle(0x00ffea, 0.8);
-              g.fillCircle(0, 0, 20);
-              g.lineStyle(3, 0xffff00);
-              g.strokeCircle(0, 0, 20);
-            }
+            g.clear();
+            g.fillStyle(0x00ffea, 0.8);
+            g.fillCircle(unit.x, unit.y, 20);
+            g.lineStyle(3, 0xffff00);
+            g.strokeCircle(unit.x, unit.y, 20);
             setSelectedUnit(unit.getData('type'));
           }
         });
@@ -428,25 +231,10 @@ const Game = () => {
 
       // Mouse controls for unit movement
       this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-        // Right-click to move selected units
         if (pointer.rightButtonDown() && selectedUnits.length > 0) {
           selectedUnits.forEach((unit, idx) => {
-            // Spread units slightly when moving to same location
-            const angle = (idx / selectedUnits.length) * Math.PI * 2;
-            const spread = 30;
-            const offsetX = Math.cos(angle) * spread;
-            const offsetY = Math.sin(angle) * spread;
-            
-            const targetX = pointer.worldX + offsetX;
-            const targetY = pointer.worldY + offsetY;
-            
-            // Stop current movement
-            if (unit.body) {
-              (unit.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
-            }
-            
-            // Move to target
-            this.physics.moveTo(unit, targetX, targetY, 200);
+            const offset = idx * 40;
+            this.physics.moveTo(unit, pointer.worldX + offset, pointer.worldY, 200);
             
             // Show movement indicator
             const indicator = this.add.circle(pointer.worldX, pointer.worldY, 5, 0x00ff00, 0.8);
@@ -458,79 +246,15 @@ const Game = () => {
               onComplete: () => indicator.destroy()
             });
           });
-          toast.info(`Moving ${selectedUnits.length} unit(s)`);
         } else if (pointer.leftButtonDown()) {
-          // Left-click to select (but not if clicking on a unit - that's handled by unit.on('pointerdown'))
-          const clickedUnit = playerUnits.find(unit => {
-            const distance = Phaser.Math.Distance.Between(
-              pointer.worldX, pointer.worldY,
-              unit.x, unit.y
-            );
-            return distance < 25; // Unit radius
-          });
-          
-          if (!clickedUnit) {
-            isSelecting = true;
-            selectionStart = { x: pointer.worldX, y: pointer.worldY };
-          }
+          isSelecting = true;
+          selectionStart = { x: pointer.worldX, y: pointer.worldY };
         }
       });
 
-      this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
+      this.input.on('pointerup', () => {
         if (isSelecting) {
           isSelecting = false;
-          
-          // Select units in selection box
-          const selectionBox = {
-            x: Math.min(selectionStart.x, pointer.worldX),
-            y: Math.min(selectionStart.y, pointer.worldY),
-            width: Math.abs(pointer.worldX - selectionStart.x),
-            height: Math.abs(pointer.worldY - selectionStart.y)
-          };
-          
-          const newSelection: Phaser.Physics.Arcade.Sprite[] = [];
-          playerUnits.forEach(unit => {
-            if (unit.x >= selectionBox.x && 
-                unit.x <= selectionBox.x + selectionBox.width &&
-                unit.y >= selectionBox.y && 
-                unit.y <= selectionBox.y + selectionBox.height) {
-              newSelection.push(unit);
-            }
-          });
-          
-          // Update selection
-          selectedUnits.forEach(u => {
-            u.setData('selected', false);
-            const g = u.getData('graphics') as Phaser.GameObjects.Graphics;
-            if (g) {
-              g.clear();
-              g.fillStyle(0x00ffea, 0.8);
-              g.fillCircle(0, 0, 20);
-              g.lineStyle(2, 0xffffff);
-              g.strokeCircle(0, 0, 20);
-            }
-          });
-          
-          selectedUnits = newSelection;
-          selectedUnits.forEach(unit => {
-            unit.setData('selected', true);
-            const g = unit.getData('graphics') as Phaser.GameObjects.Graphics;
-            if (g) {
-              g.clear();
-              g.fillStyle(0x00ffea, 0.8);
-              g.fillCircle(0, 0, 20);
-              g.lineStyle(3, 0xffff00);
-              g.strokeCircle(0, 0, 20);
-            }
-          });
-          
-          if (selectedUnits.length > 0) {
-            setSelectedUnit(selectedUnits[0].getData('type'));
-            toast.info(`Selected ${selectedUnits.length} unit(s)`);
-          } else {
-            setSelectedUnit(null);
-          }
-          
           selectionGraphics.clear();
         }
       });
@@ -577,22 +301,17 @@ const Game = () => {
         if (cursors.up?.isDown) camera.scrollY -= speed;
         if (cursors.down?.isDown) camera.scrollY += speed;
 
-        // Update unit graphics positions (they follow the unit sprites)
+        // Update unit graphics positions
         playerUnits.forEach(unit => {
           const g = unit.getData('graphics') as Phaser.GameObjects.Graphics;
           if (g) {
-            // Update graphics position to match unit position
-            g.x = unit.x;
-            g.y = unit.y;
-            
-            // Redraw the unit circle at the current position
             g.clear();
             const color = unit.getData('selected') ? 0xffff00 : 0x00ffea;
             const lineWidth = unit.getData('selected') ? 3 : 2;
             g.fillStyle(0x00ffea, 0.8);
-            g.fillCircle(0, 0, 20); // Use 0,0 since we set x,y above
+            g.fillCircle(unit.x, unit.y, 20);
             g.lineStyle(lineWidth, color);
-            g.strokeCircle(0, 0, 20);
+            g.strokeCircle(unit.x, unit.y, 20);
           }
         });
       });
@@ -601,17 +320,12 @@ const Game = () => {
       this.time.addEvent({
         delay: 2000,
         callback: () => {
-          setResources(prev => {
-            const updated = {
-              ore: prev.ore + 10,
-              energy: prev.energy + 5,
-              biomass: prev.biomass + 3,
-              data: prev.data + 2
-            };
-            // Update ref for AI suggestions
-            currentResourcesRef = updated;
-            return updated;
-          });
+          setResources(prev => ({
+            ore: prev.ore + 10,
+            energy: prev.energy + 5,
+            biomass: prev.biomass + 3,
+            data: prev.data + 2
+          }));
         },
         loop: true
       });
@@ -623,72 +337,28 @@ const Game = () => {
         loop: true
       });
 
-      // Context-aware AI suggestions
+      // AI suggestions
       this.time.addEvent({
-        delay: 30000, // Every 30 seconds
+        delay: 30000,
         callback: () => {
-          // Generate contextual suggestion using refs (updated by state changes)
-          const contextualSuggestion = generateContextualAISuggestion(
-            currentResourcesRef,
-            currentPopulationRef,
-            currentResearchedTechsRef,
-            currentBuildQueueRef.length
-          );
-          
-          // Fallback to random suggestion if no contextual one
-          const suggestion = contextualSuggestion || 
-            AI_SUGGESTIONS[Math.floor(Math.random() * AI_SUGGESTIONS.length)];
-          
+          const suggestion = AI_SUGGESTIONS[Math.floor(Math.random() * AI_SUGGESTIONS.length)];
           const id = Date.now();
           setAiMessages(prev => [...prev, { ...suggestion, id }]);
-          
-          // Show toast with commander name and message
-          const commander = COMMANDERS.find(c => c.name === suggestion.commander) || COMMANDERS[0];
-          toast.info(`${suggestion.commander}: ${suggestion.message}`, {
-            description: commander.role,
-            duration: 5000
-          });
-          
-          // Auto-remove after 15 seconds
+          toast.info(`${suggestion.commander}: ${suggestion.message}`);
           setTimeout(() => {
             setAiMessages(prev => prev.filter(msg => msg.id !== id));
-          }, 15000);
+          }, 10000);
         },
         loop: true
       });
-      
-      // Event-based AI suggestions (immediate responses to player actions)
-      // These will be triggered by game events
     }
 
     function update(this: Phaser.Scene) {
-      // Update unit movement and stop when they reach their destination
       playerUnits.forEach(unit => {
         if (unit.body) {
-          const body = unit.body as Phaser.Physics.Arcade.Body;
-          const velocity = body.velocity;
-          
-          // Check if unit has reached its destination
-          if (body.speed > 0) {
-            const target = body.target as { x: number; y: number } | null;
-            if (target) {
-              const distance = Phaser.Math.Distance.Between(
-                unit.x, unit.y,
-                target.x, target.y
-              );
-              
-              // Stop if very close to target
-              if (distance < 10) {
-                unit.setVelocity(0, 0);
-                body.target = null;
-              }
-            }
-          }
-          
-          // Also stop if velocity is very small
-          if (Math.abs(velocity.x) < 1 && Math.abs(velocity.y) < 1 && body.speed < 5) {
+          const velocity = (unit.body as Phaser.Physics.Arcade.Body).velocity;
+          if (Math.abs(velocity.x) < 1 && Math.abs(velocity.y) < 1) {
             unit.setVelocity(0, 0);
-            body.target = null;
           }
         }
       });
@@ -734,36 +404,8 @@ const Game = () => {
 
       toast.success(`${building.name} construction started`);
       setShowBuildMenu(false);
-      
-      // AI response to building construction
-      const commander = COMMANDERS.find(c => c.id.toLowerCase() === commanderId.toLowerCase()) || COMMANDERS[0];
-      const responses = [
-        { commander: commander.name, message: `Excellent choice. ${building.name} will strengthen your position.` },
-        { commander: commander.name, message: `${building.name} construction initiated. Strategic move.` },
-        { commander: commander.name, message: `Building ${building.name}. This will improve your capabilities.` }
-      ];
-      const response = responses[Math.floor(Math.random() * responses.length)];
-      const id = Date.now();
-      setAiMessages(prev => [...prev, { ...response, id }]);
-      setTimeout(() => {
-        setAiMessages(prev => prev.filter(msg => msg.id !== id));
-      }, 10000);
     } else {
       toast.error('Insufficient resources');
-      
-      // AI response to insufficient resources
-      const commander = COMMANDERS.find(c => c.id.toLowerCase() === commanderId.toLowerCase()) || COMMANDERS[0];
-      const responses = [
-        { commander: commander.name, message: 'Insufficient resources. Focus on resource production first.' },
-        { commander: commander.name, message: 'Not enough resources. Build extractors and reactors.' },
-        { commander: 'VIREL', message: 'Resource management is key. Balance your economy first.' }
-      ];
-      const response = responses[Math.floor(Math.random() * responses.length)];
-      const id = Date.now();
-      setAiMessages(prev => [...prev, { ...response, id }]);
-      setTimeout(() => {
-        setAiMessages(prev => prev.filter(msg => msg.id !== id));
-      }, 8000);
     }
   };
 
@@ -796,58 +438,14 @@ const Game = () => {
         data: prev.data - (tech.cost.data || 0)
       }));
 
-      // AI response to research start
-      const commander = COMMANDERS.find(c => c.id.toLowerCase() === commanderId.toLowerCase()) || COMMANDERS[0];
-      const researchResponses = [
-        { commander: 'KOR', message: `Researching ${tech.name}. Knowledge is power.` },
-        { commander: commander.name, message: `${tech.name} research initiated. This will unlock new possibilities.` },
-        { commander: 'KOR', message: `Excellent choice. ${tech.name} will enhance your capabilities.` }
-      ];
-      const researchResponse = researchResponses[Math.floor(Math.random() * researchResponses.length)];
-      const researchId = Date.now();
-      setAiMessages(prev => [...prev, { ...researchResponse, id: researchId }]);
       setTimeout(() => {
-        setAiMessages(prev => prev.filter(msg => msg.id !== researchId));
-      }, 10000);
-
-      setTimeout(() => {
-        setResearchedTechs(prev => {
-          const updated = new Set([...prev, techId]);
-          currentResearchedTechsRef = updated;
-          return updated;
-        });
+        setResearchedTechs(prev => new Set([...prev, techId]));
         toast.success(`Research complete: ${tech.name}! ${tech.effects}`);
-        
-        // AI response to research completion
-        const completeResponses = [
-          { commander: 'KOR', message: `Research complete: ${tech.name}. ${tech.effects}` },
-          { commander: commander.name, message: `${tech.name} unlocked! New strategic options available.` },
-          { commander: 'KOR', message: `Technology ${tech.name} integrated. Efficiency increased.` }
-        ];
-        const completeResponse = completeResponses[Math.floor(Math.random() * completeResponses.length)];
-        const completeId = Date.now();
-        setAiMessages(prev => [...prev, { ...completeResponse, id: completeId }]);
-        setTimeout(() => {
-          setAiMessages(prev => prev.filter(msg => msg.id !== completeId));
-        }, 12000);
       }, tech.researchTime * 1000);
 
       toast.info(`Researching ${tech.name}... (${tech.researchTime}s)`);
     } else {
       toast.error('Insufficient resources for research');
-      
-      // AI response to insufficient research resources
-      const commander = COMMANDERS.find(c => c.id.toLowerCase() === commanderId.toLowerCase()) || COMMANDERS[0];
-      const responses = [
-        { commander: 'KOR', message: 'Insufficient resources for research. Build data centers to generate data.' },
-        { commander: commander.name, message: 'Not enough resources. Focus on production first.' }
-      ];
-      const response = responses[Math.floor(Math.random() * responses.length)];
-      const id = Date.now();
-      setAiMessages(prev => [...prev, { ...response, id }]);
-      setTimeout(() => {
-        setAiMessages(prev => prev.filter(msg => msg.id !== id));
-      }, 8000);
     }
   };
 

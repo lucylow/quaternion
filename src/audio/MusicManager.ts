@@ -66,8 +66,8 @@ export default class MusicManager {
 
   stopAll() {
     Object.values(this.stems).forEach(s => {
-      try { s.source?.stop(); } catch(e) { /* Ignore stop errors */ }
-      try { s.gain?.disconnect(); } catch(e) { /* Ignore disconnect errors */ }
+      try { s.source?.stop(); } catch(e) {}
+      try { s.gain?.disconnect(); } catch(e) {}
       s.source = undefined; s.gain = undefined;
     });
     this.active = false;

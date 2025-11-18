@@ -229,7 +229,7 @@ export class AIDecisionEngine {
     }
 
     switch (opponentPersonality) {
-      case AIPersonality.CAUTIOUS_GEOLOGIST: {
+      case AIPersonality.CAUTIOUS_GEOLOGIST:
         // Attack their predictable resource nodes
         const resourceTargets = this.findEnemyResourceVulnerabilities(state, playerId);
         if (resourceTargets.length > 0) {
@@ -241,9 +241,8 @@ export class AIDecisionEngine {
           };
         }
         break;
-      }
 
-      case AIPersonality.RECKLESS_STORM_CHASER: {
+      case AIPersonality.RECKLESS_STORM_CHASER:
         // Set ambushes at dynamic tiles they'll target
         const dynamicTiles = this.findImminentDynamicTiles(state, 60);
         if (dynamicTiles.length > 0) {
@@ -255,7 +254,6 @@ export class AIDecisionEngine {
           };
         }
         break;
-      }
 
       case AIPersonality.METHODICAL_ENGINEER:
         // Disrupt their tech progression

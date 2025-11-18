@@ -46,23 +46,13 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     this.state = { hasError: false, error: null };
   }
 
-  static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     console.error("Route loading error:", error, errorInfo);
     // You could also send this to an error reporting service here
-    
-    // Try to recover from non-critical errors
-    if (error.message.includes('ChunkLoadError') || error.message.includes('Loading chunk')) {
-      // This is a network error loading code - try reloading
-      setTimeout(() => {
-        if (typeof window !== "undefined") {
-          window.location.reload();
-        }
-      }, 2000);
-    }
   }
 
   handleReload = (): void => {
@@ -116,35 +106,6 @@ const queryClient = new QueryClient({
     },
   },
 });
-
-// Set up global error handlers for React Query
-queryClient.getQueryCache().subscribe((event) => {
-  if (event?.type === 'error') {
-    console.error('Query cache error:', event);
-    // Don't throw - allow app to continue
-  }
-});
-
-// Global error handlers
-if (typeof window !== "undefined") {
-  // Handle unhandled promise rejections
-  window.addEventListener('unhandledrejection', (event) => {
-    console.error('Unhandled promise rejection:', event.reason);
-    // Prevent default browser error handling
-    event.preventDefault();
-    // Allow game to continue
-  });
-
-  // Handle uncaught errors
-  window.addEventListener('error', (event) => {
-    console.error('Uncaught error:', event.error);
-    // Prevent default browser error handling for non-critical errors
-    if (event.error?.message?.includes('ResizeObserver') || 
-        event.error?.message?.includes('Non-Error promise rejection')) {
-      event.preventDefault();
-    }
-  });
-}
 
 const App = () => (
   <ErrorBoundary>

@@ -4,13 +4,7 @@
 export default async function handler(req, res) {
   try {
     const body = await req.json();
-    const { 
-      text, 
-      voice = 'default', 
-      ssml = false, 
-      mock = false,
-      voice_settings = {} // ElevenLabs voice settings
-    } = body;
+    const { text, voice = 'default', ssml = false, mock = false } = body;
 
     if (!text) return res.status(400).json({ error: "Missing text" });
 
@@ -26,7 +20,7 @@ export default async function handler(req, res) {
     const provider = (process.env.TTS_PROVIDER || "elevenlabs").toLowerCase();
 
     let audioBuf;
-    if (provider === "elevenlabs") audioBuf = await elevenLabsTTS(text, voice, ssml, voice_settings);
+    if (provider === "elevenlabs") audioBuf = await elevenLabsTTS(text, voice, ssml);
     else if (provider === "google") audioBuf = await googleCloudTTS(text, voice, ssml);
     else if (provider === "polly") audioBuf = await amazonPollyTTS(text, voice, ssml);
     else throw new Error("Unknown provider: " + provider);
@@ -56,38 +50,21 @@ function generateFakeOggBytes() {
 /* ----------------------------------------------------------
    ELEVENLABS SPEECH
 ----------------------------------------------------------- */
-async function elevenLabsTTS(text, voice, ssml, voiceSettings = {}) {
-  const key = process.env.ELEVENLABS_API_KEY || process.env.ElevenLabs_API_key;
+async function elevenLabsTTS(text, voice, ssml) {
+  const key = process.env.ELEVENLABS_API_KEY;
   if (!key) throw new Error("Missing ELEVENLABS_API_KEY");
 
   const endpoint = `https://api.elevenlabs.io/v1/text-to-speech/${voice}/stream`;
 
-  // Default voice settings (can be overridden)
-  const defaultVoiceSettings = {
-    stability: 0.5,
-    similarity_boost: 0.75,
-    style: 0.0,
-    use_speaker_boost: true
-  };
-
-  // Merge provided settings with defaults
-  const finalVoiceSettings = {
-    ...defaultVoiceSettings,
-    ...voiceSettings
-  };
-
-  const payload = {
-    text,
-    model_id: ssml ? "eleven_multilingual_v2" : "eleven_turbo_v2",
-    voice_settings: finalVoiceSettings
-  };
+  const payload = ssml
+    ? { text, model_id: "eleven_multilingual_v2", voice_settings: {} }
+    : { text, model_id: "eleven_turbo_v2", voice_settings: {} };
 
   const resp = await fetch(endpoint, {
     method: "POST",
     headers: {
       "xi-api-key": key,
-      "Content-Type": "application/json",
-      "Accept": "audio/mpeg"
+      "Content-Type": "application/json"
     },
     body: JSON.stringify(payload)
   });

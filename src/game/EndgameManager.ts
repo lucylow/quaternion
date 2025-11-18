@@ -235,11 +235,10 @@ export class EndgameManager {
         return Math.min(100, (instability / maxInstability) * 100);
       
       case 'harmony':
-      case 'ultimate_balance': {
+      case 'ultimate_balance':
         const threshold = scenario === 'ultimate_balance' ? avg * 0.02 : avg * 0.15;
         const progress = Math.max(0, 100 - (maxDeviation / threshold) * 100);
         return Math.min(100, progress);
-      }
       
       case 'ascendancy':
         if (researchedTechs.has('quantum_ascendancy')) return 100;

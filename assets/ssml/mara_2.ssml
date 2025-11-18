@@ -1,7 +1,0 @@
-<speak>
-  <voice name="Mara">
-    <prosody rate="0.96"><emphasis level="moderate">There must be another way.</emphasis></prosody>
-    <break time="200ms"/>
-  </voice>
-</speak>
-

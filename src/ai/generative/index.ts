@@ -10,4 +10,5 @@ export * from './PlanningSystem';
 export * from './OCEANPersonality';
 export * from './EmotionalModel';
 export * from './RelationshipSystem';
+export * from './GenerativeNPC';
 

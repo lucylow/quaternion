@@ -1,7 +1,0 @@
-<speak>
-  <voice name="Patch">
-    <prosody rate="1.05">Alarms: loud. Morale: quieter than you, commander.</prosody>
-    <break time="120ms"/>
-  </voice>
-</speak>
-

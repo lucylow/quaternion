@@ -43,27 +43,11 @@ export class ResourceManager {
   // Event modifiers (from ResourceEventGenerator)
   private eventModifiers: Map<ResourceType, number> = new Map();
 
-  // Instability system (0-200 scale)
-  private instability: number = 50;
-  private maxInstability: number = 200;
-
-  // Synergy tracking
-  private synergies: {
-    industrial: boolean; // Matter + Energy
-    biotech: boolean; // Life + Knowledge
-    harmonic: boolean; // All balanced
-  } = {
-    industrial: false,
-    biotech: false,
-    harmonic: false
-  };
-
   constructor() {
     this.resources = new Map();
     this.baseGenerationPerNode = new Map();
     this.initializeResources();
     this.initializeConversionEfficiency();
-    this.calculateInstability();
   }
 
   private initializeResources(): void {
@@ -135,6 +119,45 @@ export class ResourceManager {
     this.setResource(ResourceType.DATA, data);
   }
 
+  /**
+   * Process resource tick (called every game tick)
+   * @param controlledNodes Map of resource type to number of controlled nodes
+   * @param buildingProduction Map of resource type to production from buildings
+   */
+  public processResourceTick(
+    controlledNodes: Map<ResourceType, number> = new Map(),
+    buildingProduction: Map<ResourceType, number> = new Map()
+  ): void {
+    // Calculate generation from controlled nodes (with event modifiers)
+    controlledNodes.forEach((nodeCount, type) => {
+      const baseRate = this.baseGenerationPerNode.get(type) || 0;
+      let generation = nodeCount * baseRate;
+      
+      // Apply event modifiers
+      const modifier = this.eventModifiers.get(type) || 1.0;
+      generation *= modifier;
+      
+      this.addResource(type, generation);
+    });
+
+    // Add building production (with event modifiers)
+    buildingProduction.forEach((amount, type) => {
+      const modifier = this.eventModifiers.get(type) || 1.0;
+      this.addResource(type, amount * modifier);
+    });
+
+    // Apply decay
+    this.resources.forEach((resource, type) => {
+      if (resource.currentAmount > 0) {
+        const decayAmount = resource.currentAmount * resource.decayRate;
+        resource.currentAmount = Math.max(0, resource.currentAmount - decayAmount);
+        this.notifyResourceChanged(type, resource.currentAmount);
+      }
+    });
+
+    // Check for critical levels
+    this.checkCriticalResources();
+  }
 
   /**
    * Check if player can afford a cost
@@ -151,7 +174,51 @@ export class ResourceManager {
     return true;
   }
 
+  /**
+   * Spend resources (returns false if can't afford)
+   */
+  public spendResources(cost: ResourceCost): boolean {
+    if (!this.canAfford(cost)) {
+      return false;
+    }
 
+    for (const [type, amount] of Object.entries(cost)) {
+      if (amount && amount > 0) {
+        const resource = this.resources.get(type as ResourceType);
+        if (resource) {
+          resource.currentAmount = Math.max(0, resource.currentAmount - amount);
+          this.notifyResourceChanged(type as ResourceType, resource.currentAmount);
+        }
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Add resource (respects max capacity)
+   */
+  public addResource(type: ResourceType, amount: number): void {
+    const resource = this.resources.get(type);
+    if (resource) {
+      resource.currentAmount = Math.min(
+        resource.currentAmount + amount,
+        resource.maxCapacity
+      );
+      this.notifyResourceChanged(type, resource.currentAmount);
+    }
+  }
+
+  /**
+   * Set resource amount (respects max capacity)
+   */
+  public setResource(type: ResourceType, amount: number): void {
+    const resource = this.resources.get(type);
+    if (resource) {
+      resource.currentAmount = Math.min(amount, resource.maxCapacity);
+      this.notifyResourceChanged(type, resource.currentAmount);
+    }
+  }
 
   /**
    * Get resource amount
@@ -311,224 +378,6 @@ export class ResourceManager {
    */
   public getEventModifier(type: ResourceType): number {
     return this.eventModifiers.get(type) || 1.0;
-  }
-
-  /**
-   * Calculate instability based on resource imbalance
-   * Instability = 0-200, where 0 is perfect balance, 200 is maximum imbalance
-   */
-  private calculateInstability(): void {
-    const values = [
-      this.getResourceAmount(ResourceType.ORE),
-      this.getResourceAmount(ResourceType.ENERGY),
-      this.getResourceAmount(ResourceType.BIOMASS),
-      this.getResourceAmount(ResourceType.DATA)
-    ];
-
-    // Calculate mean
-    const mean = values.reduce((a, b) => a + b, 0) / values.length;
-    
-    if (mean === 0) {
-      this.instability = 0;
-      return;
-    }
-
-    // Calculate standard deviation
-    const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
-    const stdDev = Math.sqrt(variance);
-
-    // Normalize stdDev relative to mean (coefficient of variation)
-    const coefficientOfVariation = mean > 0 ? stdDev / mean : 0;
-
-    // Map to 0-200 scale (0 = perfect balance, 200 = maximum imbalance)
-    // Using a sigmoid-like curve for smoother scaling
-    this.instability = Math.min(this.maxInstability, coefficientOfVariation * 200);
-
-    // Check synergies
-    this.checkSynergies();
-  }
-
-  /**
-   * Check for resource synergies
-   */
-  private checkSynergies(): void {
-    const ore = this.getResourceAmount(ResourceType.ORE);
-    const energy = this.getResourceAmount(ResourceType.ENERGY);
-    const biomass = this.getResourceAmount(ResourceType.BIOMASS);
-    const data = this.getResourceAmount(ResourceType.DATA);
-
-    // Industrial synergy: Matter + Energy (within 20% of each other)
-    const matterEnergyDiff = Math.abs(ore - energy) / Math.max(ore, energy, 1);
-    this.synergies.industrial = matterEnergyDiff <= 0.2 && ore > 50 && energy > 50;
-
-    // BioTech synergy: Life + Knowledge (within 20% of each other)
-    const lifeKnowledgeDiff = Math.abs(biomass - data) / Math.max(biomass, data, 1);
-    this.synergies.biotech = lifeKnowledgeDiff <= 0.2 && biomass > 20 && data > 20;
-
-    // Harmonic synergy: All resources within 10% of each other
-    const max = Math.max(ore, energy, biomass, data);
-    const min = Math.min(ore, energy, biomass, data);
-    const harmonicDiff = max > 0 ? (max - min) / max : 1;
-    this.synergies.harmonic = harmonicDiff <= 0.1 && min > 50;
-  }
-
-  /**
-   * Get current instability (0-200)
-   */
-  public getInstability(): number {
-    return this.instability;
-  }
-
-  /**
-   * Check if resources are perfectly balanced (within 10% of median)
-   */
-  public isPerfectlyBalanced(): boolean {
-    const values = [
-      this.getResourceAmount(ResourceType.ORE),
-      this.getResourceAmount(ResourceType.ENERGY),
-      this.getResourceAmount(ResourceType.BIOMASS),
-      this.getResourceAmount(ResourceType.DATA)
-    ];
-
-    const sorted = [...values].sort((a, b) => a - b);
-    const median = (sorted[1] + sorted[2]) / 2;
-
-    if (median === 0) return false;
-
-    // Check if all values are within 10% of median
-    return values.every(val => {
-      const diff = Math.abs(val - median) / median;
-      return diff <= 0.1;
-    });
-  }
-
-  /**
-   * Get instability penalties
-   */
-  public getInstabilityPenalties(): { productionReduction: number; damageToUnits: number } {
-    if (this.instability < 50) {
-      return { productionReduction: 0, damageToUnits: 0 };
-    }
-
-    // Scale penalties from 0% to 50% based on instability
-    const penaltyFactor = (this.instability - 50) / 150; // 0-1 scale for 50-200 instability
-
-    return {
-      productionReduction: penaltyFactor * 0.5, // Up to 50% reduction
-      damageToUnits: penaltyFactor * 2 // Up to 2 damage per tick
-    };
-  }
-
-  /**
-   * Get active synergies
-   */
-  public getActiveSynergies(): { industrial: boolean; biotech: boolean; harmonic: boolean } {
-    return { ...this.synergies };
-  }
-
-  /**
-   * Get synergy bonuses
-   */
-  public getSynergyBonuses(): {
-    constructionSpeed: number; // Industrial bonus
-    researchSpeed: number; // BioTech bonus
-    generationMultiplier: number; // Harmonic bonus
-  } {
-    return {
-      constructionSpeed: this.synergies.industrial ? 1.1 : 1.0, // 10% faster construction
-      researchSpeed: this.synergies.biotech ? 1.15 : 1.0, // 15% faster research
-      generationMultiplier: this.synergies.harmonic ? 1.2 : 1.0 // 20% resource generation increase
-    };
-  }
-
-  /**
-   * Override addResource to recalculate instability
-   */
-  public addResource(type: ResourceType, amount: number): void {
-    const resource = this.resources.get(type);
-    if (resource) {
-      resource.currentAmount = Math.min(
-        resource.currentAmount + amount,
-        resource.maxCapacity
-      );
-      this.notifyResourceChanged(type, resource.currentAmount);
-      this.calculateInstability();
-    }
-  }
-
-  /**
-   * Override setResource to recalculate instability
-   */
-  public setResource(type: ResourceType, amount: number): void {
-    const resource = this.resources.get(type);
-    if (resource) {
-      resource.currentAmount = Math.min(amount, resource.maxCapacity);
-      this.notifyResourceChanged(type, resource.currentAmount);
-      this.calculateInstability();
-    }
-  }
-
-  /**
-   * Override spendResources to recalculate instability
-   */
-  public spendResources(cost: ResourceCost): boolean {
-    if (!this.canAfford(cost)) {
-      return false;
-    }
-
-    for (const [type, amount] of Object.entries(cost)) {
-      if (amount && amount > 0) {
-        const resource = this.resources.get(type as ResourceType);
-        if (resource) {
-          resource.currentAmount = Math.max(0, resource.currentAmount - amount);
-          this.notifyResourceChanged(type as ResourceType, resource.currentAmount);
-        }
-      }
-    }
-
-    this.calculateInstability();
-    return true;
-  }
-
-  /**
-   * Override processResourceTick to recalculate instability
-   */
-  public processResourceTick(
-    controlledNodes: Map<ResourceType, number> = new Map(),
-    buildingProduction: Map<ResourceType, number> = new Map()
-  ): void {
-    // Calculate generation from controlled nodes (with event modifiers)
-    controlledNodes.forEach((nodeCount, type) => {
-      const baseRate = this.baseGenerationPerNode.get(type) || 0;
-      let generation = nodeCount * baseRate;
-      
-      // Apply event modifiers
-      const modifier = this.eventModifiers.get(type) || 1.0;
-      generation *= modifier;
-      
-      this.addResource(type, generation);
-    });
-
-    // Add building production (with event modifiers)
-    buildingProduction.forEach((amount, type) => {
-      const modifier = this.eventModifiers.get(type) || 1.0;
-      this.addResource(type, amount * modifier);
-    });
-
-    // Apply decay
-    this.resources.forEach((resource, type) => {
-      if (resource.currentAmount > 0) {
-        const decayAmount = resource.currentAmount * resource.decayRate;
-        resource.currentAmount = Math.max(0, resource.currentAmount - decayAmount);
-        this.notifyResourceChanged(type, resource.currentAmount);
-      }
-    });
-
-    // Recalculate instability after all changes
-    this.calculateInstability();
-
-    // Check for critical levels
-    this.checkCriticalResources();
   }
 }
 
