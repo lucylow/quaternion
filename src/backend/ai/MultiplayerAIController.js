@@ -126,16 +126,24 @@ class MultiplayerAIController {
 
   analyzeEconomy(playerState) {
     const workers = playerState.units.filter(u => u.type === 'worker');
-    const mineralsPerWorker = playerState.resources.minerals / Math.max(workers.length, 1);
-    const gasWorkers = workers.filter(w => w.gathering === 'gas');
-    const gasPerWorker = playerState.resources.gas / Math.max(gasWorkers.length, 1);
+    // Use quaternion resource system (ore/energy/biomass/data)
+    const ore = playerState.resources.ore || 0;
+    const energy = playerState.resources.energy || 0;
+    const biomass = playerState.resources.biomass || 0;
+    const data = playerState.resources.data || 0;
+    
+    const orePerWorker = ore / Math.max(workers.length, 1);
+    const energyPerWorker = energy / Math.max(workers.length, 1);
+    const totalResources = ore + energy + biomass + data;
+    const resourcesPerWorker = totalResources / Math.max(workers.length, 1);
     const supplyCap = playerState.supply.current / playerState.supply.max;
 
     return {
-      resourcesPerWorker: mineralsPerWorker,
-      gasPerWorker,
+      resourcesPerWorker,
+      orePerWorker,
+      energyPerWorker,
       supplyCap,
-      economyHealth: (mineralsPerWorker + gasPerWorker) / 200
+      economyHealth: resourcesPerWorker / 200 // Normalize to similar scale
     };
   }
 
@@ -194,8 +202,9 @@ class MultiplayerAIController {
 
     if (!playerState) return actions;
 
-    // Build more workers
-    if (playerState.resources.minerals > 60 && playerState.supply.current < playerState.supply.max - 1) {
+    // Build more workers - use quaternion resources (ore/energy/biomass/data)
+    const ore = playerState.resources.ore || 0;
+    if (ore > 60 && playerState.supply.current < playerState.supply.max - 1) {
       const base = playerState.buildings.find(b => b.type === 'base' && !b.producing);
       if (base) {
         actions.push({
@@ -207,7 +216,7 @@ class MultiplayerAIController {
     }
 
     // Expand with new base
-    if (playerState.resources.minerals > 300 && playerState.buildings.filter(b => b.type === 'base').length < 3) {
+    if (ore > 300 && playerState.buildings.filter(b => b.type === 'base').length < 3) {
       const expansionLocation = this.findExpansionLocation(gameState);
       if (expansionLocation) {
         actions.push({
@@ -245,7 +254,8 @@ class MultiplayerAIController {
     }
 
     // Build defensive structures
-    if (playerState.resources.minerals > 100) {
+    const ore = playerState.resources.ore || 0;
+    if (ore > 100) {
       const defensiveUnits = playerState.units.filter(u => u.type === 'soldier').length;
       if (defensiveUnits < 5) {
         const barracks = playerState.buildings.find(b => b.type === 'barracks' && !b.producing);
@@ -281,7 +291,8 @@ class MultiplayerAIController {
     }
 
     // Build more military units
-    if (playerState.resources.minerals > 80) {
+    const ore = playerState.resources.ore || 0;
+    if (ore > 80) {
       const barracks = playerState.buildings.find(b => b.type === 'barracks' && !b.producing);
       if (barracks) {
         actions.push({
@@ -301,8 +312,10 @@ class MultiplayerAIController {
 
     if (!playerState) return actions;
 
-    // Build production facilities
-    if (playerState.resources.minerals > 200 && playerState.resources.gas > 100) {
+    // Build production facilities - use quaternion resources
+    const ore = playerState.resources.ore || 0;
+    const energy = playerState.resources.energy || 0;
+    if (ore > 200 && energy > 100) {
       const hasFactory = playerState.buildings.find(b => b.type === 'factory');
       if (!hasFactory && playerState.supply.current < playerState.supply.max - 5) {
         const factoryLocation = this.findBuildLocation(gameState, 'factory');
@@ -366,7 +379,7 @@ class MultiplayerAIController {
     
     return [
       {
-        condition: (ps) => ps.resources.minerals > 50 && ps.supply.current < ps.supply.max - 1,
+        condition: (ps) => (ps.resources.ore || 0) > 50 && ps.supply.current < ps.supply.max - 1,
         action: {
           commandType: 'build_unit',
           buildingId: ps.buildings.find(b => b.type === 'base')?.id,
@@ -374,7 +387,7 @@ class MultiplayerAIController {
         }
       },
       {
-        condition: (ps) => ps.resources.minerals > 100 && !ps.buildings.find(b => b.type === 'barracks') && quality > 0.6,
+        condition: (ps) => (ps.resources.ore || 0) > 100 && !ps.buildings.find(b => b.type === 'barracks') && quality > 0.6,
         action: {
           commandType: 'build_building',
           buildingType: 'barracks',
@@ -382,7 +395,7 @@ class MultiplayerAIController {
         }
       },
       {
-        condition: (ps) => ps.resources.minerals > 150 && ps.units.filter(u => u.type === 'soldier').length < 3 && quality > 0.5,
+        condition: (ps) => (ps.resources.ore || 0) > 150 && ps.units.filter(u => u.type === 'soldier').length < 3 && quality > 0.5,
         action: {
           commandType: 'build_unit',
           buildingId: ps.buildings.find(b => b.type === 'barracks')?.id,

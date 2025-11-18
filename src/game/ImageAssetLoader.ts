@@ -85,9 +85,11 @@ export class ImageAssetLoader {
       const encodedPath = this.encodePath(asset.path);
       console.log(`[ImageAssetLoader] Loading ${asset.key} from ${encodedPath}`);
       try {
+        // Use load.image with proper error handling for Lovable compatibility
         scene.load.image(asset.key, encodedPath);
       } catch (error) {
         console.error(`[ImageAssetLoader] Failed to queue load for ${asset.key}:`, error);
+        // Continue loading other assets even if one fails
       }
     });
     console.log(`[ImageAssetLoader] Queued ${this.allAssets.length} assets for loading`);

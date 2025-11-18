@@ -15,6 +15,7 @@ export interface ChatCompletionOptions {
   max_tokens?: number;
   temperature?: number;
   cache?: boolean;
+  mockKey?: string;
 }
 
 export interface ChatCompletionResponse {
@@ -51,20 +52,35 @@ export async function chatCompletion(
     max_tokens = 512,
     temperature = 0.8,
     cache = false,
+    mockKey,
   } = options;
 
-  const res = await fetch(`${EDGE_BASE}/ai/openai/chat`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages, model, max_tokens, temperature, cache }),
-  });
+  try {
+    const res = await fetch(`${EDGE_BASE}/ai/openai/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages, model, max_tokens, temperature, cache, mockKey }),
+    });
 
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => 'Unknown error');
-    throw new Error(`Chat failed: ${res.status} ${errorText}`);
+    if (!res.ok) {
+      // If error and not already in mock mode, retry with mock
+      if (!mockKey && res.status >= 500) {
+        console.warn('OpenAI API error, retrying with mock mode');
+        return chatCompletion({ ...options, mockKey: 'fallback' });
+      }
+      const errorText = await res.text().catch(() => 'Unknown error');
+      throw new Error(`Chat failed: ${res.status} ${errorText}`);
+    }
+
+    return res.json();
+  } catch (err: any) {
+    // Network errors or other failures - retry with mock if not already using it
+    if (!mockKey && err.message.includes('fetch')) {
+      console.warn('Network error, retrying with mock mode');
+      return chatCompletion({ ...options, mockKey: 'fallback' });
+    }
+    throw err;
   }
-
-  return res.json();
 }
 
 /**
@@ -76,44 +92,74 @@ export async function chatCompletion(
 export async function streamChat(
   options: Omit<ChatCompletionOptions, 'cache' | 'max_tokens'>
 ): Promise<ReadableStream<Uint8Array> | null> {
-  const { messages, model = 'gpt-4o-mini', temperature = 0.8 } = options;
+  const { messages, model = 'gpt-4o-mini', temperature = 0.8, mockKey } = options;
 
-  const res = await fetch(`${EDGE_BASE}/ai/openai/chat`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages, model, temperature, stream: true }),
-  });
+  try {
+    const res = await fetch(`${EDGE_BASE}/ai/openai/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages, model, temperature, stream: true, mockKey }),
+    });
 
-  if (!res.ok) {
-    const txt = await res.text().catch(() => 'Unknown error');
-    throw new Error(`Stream chat failed: ${res.status} ${txt}`);
+    if (!res.ok) {
+      // If error and not already in mock mode, retry with mock
+      if (!mockKey && res.status >= 500) {
+        console.warn('OpenAI API error, retrying with mock mode');
+        return streamChat({ ...options, mockKey: 'fallback' });
+      }
+      const txt = await res.text().catch(() => 'Unknown error');
+      throw new Error(`Stream chat failed: ${res.status} ${txt}`);
+    }
+
+    return res.body;
+  } catch (err: any) {
+    // Network errors - retry with mock if not already using it
+    if (!mockKey && err.message.includes('fetch')) {
+      console.warn('Network error, retrying with mock mode');
+      return streamChat({ ...options, mockKey: 'fallback' });
+    }
+    throw err;
   }
-
-  return res.body;
 }
 
 /**
  * Audio transcription (send base64 encoded audio)
  * @param audioBase64 Base64 encoded audio data
  * @param model Whisper model to use (default: 'whisper-1')
+ * @param mockKey Optional mock key for demo mode
  * @returns Promise with transcription response
  */
 export async function transcribeAudioBase64(
   audioBase64: string,
-  model: string = 'whisper-1'
+  model: string = 'whisper-1',
+  mockKey?: string
 ): Promise<TranscriptionResponse> {
-  const res = await fetch(`${EDGE_BASE}/ai/openai/transcribe`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ audioBase64, model }),
-  });
+  try {
+    const res = await fetch(`${EDGE_BASE}/ai/openai/transcribe`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ audioBase64, model, mockKey }),
+    });
 
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => 'Unknown error');
-    throw new Error(`Transcription failed: ${res.status} ${errorText}`);
+    if (!res.ok) {
+      // If error and not already in mock mode, retry with mock
+      if (!mockKey && res.status >= 500) {
+        console.warn('OpenAI transcription error, retrying with mock mode');
+        return transcribeAudioBase64(audioBase64, model, 'fallback');
+      }
+      const errorText = await res.text().catch(() => 'Unknown error');
+      throw new Error(`Transcription failed: ${res.status} ${errorText}`);
+    }
+
+    return res.json();
+  } catch (err: any) {
+    // Network errors - retry with mock if not already using it
+    if (!mockKey && err.message.includes('fetch')) {
+      console.warn('Network error, retrying with mock mode');
+      return transcribeAudioBase64(audioBase64, model, 'fallback');
+    }
+    throw err;
   }
-
-  return res.json();
 }
 
 /**

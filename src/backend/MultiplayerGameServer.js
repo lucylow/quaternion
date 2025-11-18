@@ -450,9 +450,15 @@ class MultiplayerGameServer extends EventEmitter {
     const buildingsConstructed = playerData?.buildingsConstructed || 0;
     const unitsLost = playerData?.unitsLost || 0;
     
+    // Use quaternion resource system (ore/energy/biomass/data)
+    const totalResources = (player.resources.ore || 0) + 
+                          (player.resources.energy || 0) + 
+                          (player.resources.biomass || 0) + 
+                          (player.resources.data || 0);
+    
     return (unitsKilled * 100) + 
            (buildingsConstructed * 50) + 
-           (player.resources.minerals + player.resources.gas) / 10 - 
+           totalResources / 10 - 
            (unitsLost * 30);
   }
 

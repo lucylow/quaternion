@@ -3,7 +3,7 @@
  * Main game page with Phaser game engine.
  * Edit this file to modify the game page.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import Phaser from 'phaser';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Brain, Zap, Leaf, Box, Building, Swords, MessageCircle } from 'lucide-react';
@@ -16,6 +16,7 @@ import { JudgeHUD } from '@/components/game/JudgeHUD';
 import { COMMANDERS, AI_SUGGESTIONS, BUILDINGS, TECH_TREE } from '@/data/gameData';
 import { toast } from 'sonner';
 import { ImageAssetLoader } from '@/game/ImageAssetLoader';
+import { AICommanderArchetypes, CommanderProfile } from '@/ai/opponents/AICommanderArchetypes';
 
 interface GameResources {
   ore: number;
@@ -60,7 +61,117 @@ const Game = () => {
   });
   const [selectedMapKey, setSelectedMapKey] = useState<string | null>(routeConfig?.mapId ? ImageAssetLoader.getMapKeyByMapId(routeConfig.mapId) : null);
   
+  // AI Commander Profile
+  const [commanderProfile] = useState<CommanderProfile>(() => {
+    const archetype = routeConfig?.archetype || 'THE_TACTICIAN';
+    const seed = gameSeed;
+    return AICommanderArchetypes.createCommander(archetype as any, seed);
+  });
+  
   const navigate = useNavigate();
+  
+  // Context-aware AI suggestion generator
+  const generateContextualAISuggestion = (
+    currentResources: GameResources,
+    currentPopulation: { current: number; max: number },
+    researchedTechs: Set<string>,
+    buildQueueLength: number
+  ): { commander: string; message: string } | null => {
+    const suggestions: Array<{ commander: string; message: string; priority: number }> = [];
+    
+    // Resource-based suggestions
+    if (currentResources.ore < 100) {
+      suggestions.push({
+        commander: 'AUREN',
+        message: 'Ore reserves critically low. Build ore extractors immediately.',
+        priority: 9
+      });
+    } else if (currentResources.ore > 800 && currentResources.energy < 100) {
+      suggestions.push({
+        commander: 'VIREL',
+        message: 'Ore surplus detected. Invest in energy reactors to balance production.',
+        priority: 8
+      });
+    }
+    
+    if (currentResources.energy < 50) {
+      suggestions.push({
+        commander: 'VIREL',
+        message: 'Energy reserves depleted. Prioritize power generation before expansion.',
+        priority: 9
+      });
+    }
+    
+    if (currentResources.biomass < 50 && researchedTechs.size > 0) {
+      suggestions.push({
+        commander: 'LIRA',
+        message: 'Biomass levels low. Consider building bio labs for sustainable growth.',
+        priority: 7
+      });
+    }
+    
+    if (currentResources.data < 30 && researchedTechs.size < 3) {
+      suggestions.push({
+        commander: 'KOR',
+        message: 'Data production insufficient. Build data centers to unlock advanced tech.',
+        priority: 8
+      });
+    }
+    
+    // Population-based suggestions
+    if (currentPopulation.current >= currentPopulation.max * 0.9) {
+      suggestions.push({
+        commander: 'AUREN',
+        message: 'Population near capacity. Expand infrastructure or upgrade units.',
+        priority: 7
+      });
+    }
+    
+    // Tech-based suggestions
+    if (researchedTechs.size === 0 && currentResources.data >= 50) {
+      suggestions.push({
+        commander: 'KOR',
+        message: 'Research opportunities available. Start with Data Analysis for faster research.',
+        priority: 8
+      });
+    }
+    
+    if (researchedTechs.has('quantum_core') && !researchedTechs.has('advanced_refinery')) {
+      suggestions.push({
+        commander: 'AUREN',
+        message: 'Quantum Core complete. Research Advanced Refinery to boost ore production.',
+        priority: 7
+      });
+    }
+    
+    // Build queue suggestions
+    if (buildQueueLength === 0 && currentResources.ore >= 150) {
+      suggestions.push({
+        commander: 'VIREL',
+        message: 'Resources available. Consider building barracks or expanding production.',
+        priority: 6
+      });
+    }
+    
+    // Commander personality-based suggestions (using archetype)
+    const catchphrase = commanderProfile.voiceProfile.catchphrases[
+      Math.floor(Math.random() * commanderProfile.voiceProfile.catchphrases.length)
+    ];
+    
+    if (suggestions.length === 0) {
+      // Use commander's catchphrase or general advice
+      const commanderName = COMMANDERS.find(c => c.id.toLowerCase() === commanderId.toLowerCase())?.name || 'AUREN';
+      suggestions.push({
+        commander: commanderName,
+        message: catchphrase || 'Continue building your strategic advantage.',
+        priority: 5
+      });
+    }
+    
+    // Sort by priority and return highest priority suggestion
+    suggestions.sort((a, b) => b.priority - a.priority);
+    return suggestions.length > 0 ? { commander: suggestions[0].commander, message: suggestions[0].message } : null;
+  };
 
   useEffect(() => {
     if (!gameRef.current || phaserGameRef.current) return;
@@ -271,12 +382,14 @@ const Game = () => {
         unit.setData('maxHealth', 100);
         unit.setData('selected', false);
         
-        // Draw unit shape
+        // Draw unit shape - position graphics at unit location
         const unitGraphics = this.add.graphics();
+        unitGraphics.x = unit.x;
+        unitGraphics.y = unit.y;
         unitGraphics.fillStyle(0x00ffea, 0.8);
-        unitGraphics.fillCircle(unit.x, unit.y, 20);
+        unitGraphics.fillCircle(0, 0, 20); // Draw at 0,0 relative to graphics position
         unitGraphics.lineStyle(2, 0xffffff);
-        unitGraphics.strokeCircle(unit.x, unit.y, 20);
+        unitGraphics.strokeCircle(0, 0, 20);
         
         unit.setData('graphics', unitGraphics);
         playerUnits.push(unit);
@@ -286,21 +399,25 @@ const Game = () => {
           if (!unit.getData('selected')) {
             selectedUnits.forEach(u => {
               u.setData('selected', false);
-              u.getData('graphics')?.clear();
               const g = u.getData('graphics') as Phaser.GameObjects.Graphics;
-              g.fillStyle(0x00ffea, 0.8);
-              g.fillCircle(u.x, u.y, 20);
-              g.lineStyle(2, 0xffffff);
-              g.strokeCircle(u.x, u.y, 20);
+              if (g) {
+                g.clear();
+                g.fillStyle(0x00ffea, 0.8);
+                g.fillCircle(0, 0, 20);
+                g.lineStyle(2, 0xffffff);
+                g.strokeCircle(0, 0, 20);
+              }
             });
             selectedUnits = [unit];
             unit.setData('selected', true);
             const g = unit.getData('graphics') as Phaser.GameObjects.Graphics;
-            g.clear();
-            g.fillStyle(0x00ffea, 0.8);
-            g.fillCircle(unit.x, unit.y, 20);
-            g.lineStyle(3, 0xffff00);
-            g.strokeCircle(unit.x, unit.y, 20);
+            if (g) {
+              g.clear();
+              g.fillStyle(0x00ffea, 0.8);
+              g.fillCircle(0, 0, 20);
+              g.lineStyle(3, 0xffff00);
+              g.strokeCircle(0, 0, 20);
+            }
             setSelectedUnit(unit.getData('type'));
           }
         });
@@ -388,9 +505,9 @@ const Game = () => {
             if (g) {
               g.clear();
               g.fillStyle(0x00ffea, 0.8);
-              g.fillCircle(u.x, u.y, 20);
+              g.fillCircle(0, 0, 20);
               g.lineStyle(2, 0xffffff);
-              g.strokeCircle(u.x, u.y, 20);
+              g.strokeCircle(0, 0, 20);
             }
           });
           
@@ -401,9 +518,9 @@ const Game = () => {
             if (g) {
               g.clear();
               g.fillStyle(0x00ffea, 0.8);
-              g.fillCircle(unit.x, unit.y, 20);
+              g.fillCircle(0, 0, 20);
               g.lineStyle(3, 0xffff00);
-              g.strokeCircle(unit.x, unit.y, 20);
+              g.strokeCircle(0, 0, 20);
             }
           });
           
@@ -460,17 +577,22 @@ const Game = () => {
         if (cursors.up?.isDown) camera.scrollY -= speed;
         if (cursors.down?.isDown) camera.scrollY += speed;
 
-        // Update unit graphics positions
+        // Update unit graphics positions (they follow the unit sprites)
         playerUnits.forEach(unit => {
           const g = unit.getData('graphics') as Phaser.GameObjects.Graphics;
           if (g) {
+            // Update graphics position to match unit position
+            g.x = unit.x;
+            g.y = unit.y;
+            
+            // Redraw the unit circle at the current position
             g.clear();
             const color = unit.getData('selected') ? 0xffff00 : 0x00ffea;
             const lineWidth = unit.getData('selected') ? 3 : 2;
             g.fillStyle(0x00ffea, 0.8);
-            g.fillCircle(unit.x, unit.y, 20);
+            g.fillCircle(0, 0, 20); // Use 0,0 since we set x,y above
             g.lineStyle(lineWidth, color);
-            g.strokeCircle(unit.x, unit.y, 20);
+            g.strokeCircle(0, 0, 20);
           }
         });
       });
@@ -479,12 +601,17 @@ const Game = () => {
       this.time.addEvent({
         delay: 2000,
         callback: () => {
-          setResources(prev => ({
-            ore: prev.ore + 10,
-            energy: prev.energy + 5,
-            biomass: prev.biomass + 3,
-            data: prev.data + 2
-          }));
+          setResources(prev => {
+            const updated = {
+              ore: prev.ore + 10,
+              energy: prev.energy + 5,
+              biomass: prev.biomass + 3,
+              data: prev.data + 2
+            };
+            // Update ref for AI suggestions
+            currentResourcesRef = updated;
+            return updated;
+          });
         },
         loop: true
       });
@@ -496,28 +623,72 @@ const Game = () => {
         loop: true
       });
 
-      // AI suggestions
+      // Context-aware AI suggestions
       this.time.addEvent({
-        delay: 30000,
+        delay: 30000, // Every 30 seconds
         callback: () => {
-          const suggestion = AI_SUGGESTIONS[Math.floor(Math.random() * AI_SUGGESTIONS.length)];
+          // Generate contextual suggestion using refs (updated by state changes)
+          const contextualSuggestion = generateContextualAISuggestion(
+            currentResourcesRef,
+            currentPopulationRef,
+            currentResearchedTechsRef,
+            currentBuildQueueRef.length
+          );
+          
+          // Fallback to random suggestion if no contextual one
+          const suggestion = contextualSuggestion || 
+            AI_SUGGESTIONS[Math.floor(Math.random() * AI_SUGGESTIONS.length)];
+          
           const id = Date.now();
           setAiMessages(prev => [...prev, { ...suggestion, id }]);
-          toast.info(`${suggestion.commander}: ${suggestion.message}`);
+          
+          // Show toast with commander name and message
+          const commander = COMMANDERS.find(c => c.name === suggestion.commander) || COMMANDERS[0];
+          toast.info(`${suggestion.commander}: ${suggestion.message}`, {
+            description: commander.role,
+            duration: 5000
+          });
+          
+          // Auto-remove after 15 seconds
           setTimeout(() => {
             setAiMessages(prev => prev.filter(msg => msg.id !== id));
-          }, 10000);
+          }, 15000);
         },
         loop: true
       });
+      
+      // Event-based AI suggestions (immediate responses to player actions)
+      // These will be triggered by game events
     }
 
     function update(this: Phaser.Scene) {
+      // Update unit movement and stop when they reach their destination
       playerUnits.forEach(unit => {
         if (unit.body) {
-          const velocity = (unit.body as Phaser.Physics.Arcade.Body).velocity;
-          if (Math.abs(velocity.x) < 1 && Math.abs(velocity.y) < 1) {
+          const body = unit.body as Phaser.Physics.Arcade.Body;
+          const velocity = body.velocity;
+          
+          // Check if unit has reached its destination
+          if (body.speed > 0) {
+            const target = body.target as { x: number; y: number } | null;
+            if (target) {
+              const distance = Phaser.Math.Distance.Between(
+                unit.x, unit.y,
+                target.x, target.y
+              );
+              
+              // Stop if very close to target
+              if (distance < 10) {
+                unit.setVelocity(0, 0);
+                body.target = null;
+              }
+            }
+          }
+          
+          // Also stop if velocity is very small
+          if (Math.abs(velocity.x) < 1 && Math.abs(velocity.y) < 1 && body.speed < 5) {
             unit.setVelocity(0, 0);
+            body.target = null;
           }
         }
       });
@@ -563,8 +734,36 @@ const Game = () => {
 
       toast.success(`${building.name} construction started`);
       setShowBuildMenu(false);
+      
+      // AI response to building construction
+      const commander = COMMANDERS.find(c => c.id.toLowerCase() === commanderId.toLowerCase()) || COMMANDERS[0];
+      const responses = [
+        { commander: commander.name, message: `Excellent choice. ${building.name} will strengthen your position.` },
+        { commander: commander.name, message: `${building.name} construction initiated. Strategic move.` },
+        { commander: commander.name, message: `Building ${building.name}. This will improve your capabilities.` }
+      ];
+      const response = responses[Math.floor(Math.random() * responses.length)];
+      const id = Date.now();
+      setAiMessages(prev => [...prev, { ...response, id }]);
+      setTimeout(() => {
+        setAiMessages(prev => prev.filter(msg => msg.id !== id));
+      }, 10000);
     } else {
       toast.error('Insufficient resources');
+      
+      // AI response to insufficient resources
+      const commander = COMMANDERS.find(c => c.id.toLowerCase() === commanderId.toLowerCase()) || COMMANDERS[0];
+      const responses = [
+        { commander: commander.name, message: 'Insufficient resources. Focus on resource production first.' },
+        { commander: commander.name, message: 'Not enough resources. Build extractors and reactors.' },
+        { commander: 'VIREL', message: 'Resource management is key. Balance your economy first.' }
+      ];
+      const response = responses[Math.floor(Math.random() * responses.length)];
+      const id = Date.now();
+      setAiMessages(prev => [...prev, { ...response, id }]);
+      setTimeout(() => {
+        setAiMessages(prev => prev.filter(msg => msg.id !== id));
+      }, 8000);
     }
   };
 
@@ -597,14 +796,58 @@ const Game = () => {
         data: prev.data - (tech.cost.data || 0)
       }));
 
+      // AI response to research start
+      const commander = COMMANDERS.find(c => c.id.toLowerCase() === commanderId.toLowerCase()) || COMMANDERS[0];
+      const researchResponses = [
+        { commander: 'KOR', message: `Researching ${tech.name}. Knowledge is power.` },
+        { commander: commander.name, message: `${tech.name} research initiated. This will unlock new possibilities.` },
+        { commander: 'KOR', message: `Excellent choice. ${tech.name} will enhance your capabilities.` }
+      ];
+      const researchResponse = researchResponses[Math.floor(Math.random() * researchResponses.length)];
+      const researchId = Date.now();
+      setAiMessages(prev => [...prev, { ...researchResponse, id: researchId }]);
       setTimeout(() => {
-        setResearchedTechs(prev => new Set([...prev, techId]));
+        setAiMessages(prev => prev.filter(msg => msg.id !== researchId));
+      }, 10000);
+
+      setTimeout(() => {
+        setResearchedTechs(prev => {
+          const updated = new Set([...prev, techId]);
+          currentResearchedTechsRef = updated;
+          return updated;
+        });
         toast.success(`Research complete: ${tech.name}! ${tech.effects}`);
+        
+        // AI response to research completion
+        const completeResponses = [
+          { commander: 'KOR', message: `Research complete: ${tech.name}. ${tech.effects}` },
+          { commander: commander.name, message: `${tech.name} unlocked! New strategic options available.` },
+          { commander: 'KOR', message: `Technology ${tech.name} integrated. Efficiency increased.` }
+        ];
+        const completeResponse = completeResponses[Math.floor(Math.random() * completeResponses.length)];
+        const completeId = Date.now();
+        setAiMessages(prev => [...prev, { ...completeResponse, id: completeId }]);
+        setTimeout(() => {
+          setAiMessages(prev => prev.filter(msg => msg.id !== completeId));
+        }, 12000);
       }, tech.researchTime * 1000);
 
       toast.info(`Researching ${tech.name}... (${tech.researchTime}s)`);
     } else {
       toast.error('Insufficient resources for research');
+      
+      // AI response to insufficient research resources
+      const commander = COMMANDERS.find(c => c.id.toLowerCase() === commanderId.toLowerCase()) || COMMANDERS[0];
+      const responses = [
+        { commander: 'KOR', message: 'Insufficient resources for research. Build data centers to generate data.' },
+        { commander: commander.name, message: 'Not enough resources. Focus on production first.' }
+      ];
+      const response = responses[Math.floor(Math.random() * responses.length)];
+      const id = Date.now();
+      setAiMessages(prev => [...prev, { ...response, id }]);
+      setTimeout(() => {
+        setAiMessages(prev => prev.filter(msg => msg.id !== id));
+      }, 8000);
     }
   };
 

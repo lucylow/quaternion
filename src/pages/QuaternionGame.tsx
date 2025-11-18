@@ -888,6 +888,11 @@ const QuaternionGame = () => {
           node = graphics;
         }
         
+        // Ensure resource nodes are visible
+        if ('setDepth' in node) {
+          node.setDepth(75); // Above background but below units
+        }
+        
         node.setData('type', nodeType.resource);
         node.setData('amount', 1000);
         node.setData('axis', nodeType.axis);
@@ -923,6 +928,7 @@ const QuaternionGame = () => {
       playerBase = this.add.rectangle(150, 350, 80, 80, 0x00ffea, 0.9);
       playerBase.setStrokeStyle(3, 0x00ffea, 1);
       playerBase.setInteractive();
+      playerBase.setDepth(50); // Ensure base is visible
       playerBase.setData('type', 'base');
       playerBase.setData('player', 1);
       playerBase.setData('health', 1000);
@@ -932,6 +938,7 @@ const QuaternionGame = () => {
       
       // Base glow effect
       const baseGlow = this.add.circle(150, 350, 50, 0x00ffea, 0.2);
+      baseGlow.setDepth(49); // Just below the base
       this.tweens.add({
         targets: baseGlow,
         scale: { from: 1, to: 1.3 },
@@ -1000,6 +1007,7 @@ const QuaternionGame = () => {
       // Create AI base
       aiBase = this.add.rectangle(1050, 350, 80, 80, 0xff4444, 0.9);
       aiBase.setStrokeStyle(3, 0xff4444, 1);
+      aiBase.setDepth(50); // Ensure AI base is visible
       aiBase.setData('type', 'base');
       aiBase.setData('player', 2);
       aiBase.setData('health', 1000);
@@ -1008,6 +1016,7 @@ const QuaternionGame = () => {
       buildingsRef.current = buildings;
       
       const aiBaseGlow = this.add.circle(1050, 350, 50, 0xff4444, 0.2);
+      aiBaseGlow.setDepth(49); // Just below the base
       this.tweens.add({
         targets: aiBaseGlow,
         scale: { from: 1, to: 1.3 },

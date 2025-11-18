@@ -1,0 +1,91 @@
+{
+  "chats": {
+    "demo_chat": {
+      "id": "mock-demo-001",
+      "choices": [
+        {
+          "message": {
+            "role": "assistant",
+            "content": "Welcome to the demo. In this run your choices shape the biome. Try harvesting or preserving the Bio-Seed."
+          }
+        }
+      ]
+    },
+    "archive_harvest_attempt": {
+      "id": "mock-archive-harvest",
+      "choices": [
+        {
+          "message": {
+            "role": "assistant",
+            "content": "The earth shudders; miners cheer while Dr. Mara's eyes grow distant."
+          }
+        }
+      ]
+    },
+    "archive_preserve_confirm": {
+      "id": "mock-archive-preserve",
+      "choices": [
+        {
+          "message": {
+            "role": "assistant",
+            "content": "You bind the roots and slow the extraction. A hush of green returns."
+          }
+        }
+      ]
+    },
+    "merchant_offer": {
+      "id": "mock-merchant-001",
+      "choices": [
+        {
+          "message": {
+            "role": "assistant",
+            "content": "A traveling merchant offers tech for food. Accepting yields immediate growth, but costs reputation with the Biologists."
+          }
+        }
+      ]
+    },
+    "epilogue_overclock": {
+      "id": "epilogue_overclock",
+      "choices": [
+        {
+          "message": {
+            "role": "assistant",
+            "content": "Cities rose like glass, humming with stolen nights. The river remembers our hunger."
+          }
+        }
+      ]
+    },
+    "epilogue_bioconserve": {
+      "id": "epilogue_bioconserve",
+      "choices": [
+        {
+          "message": {
+            "role": "assistant",
+            "content": "Green light stitched the ruins back together. We traded speed for seeds, and the future hummed soft."
+          }
+        }
+      ]
+    }
+  },
+  "transcripts": {
+    "sample_speech_1": {
+      "text": "Mock transcription: The scouts report a faint hum under the northern vault."
+    },
+    "player_short": {
+      "text": "Mock transcription: Hold the chokepoint, bring up shields."
+    }
+  },
+  "events": {
+    "bio_seed_aftershock": {
+      "event": "Bio-Seed Aftershock",
+      "flavor": "A low, wet sound rolls from below. Dr. Mara whispers, 'It remembers the old world.'",
+      "effect": { "wildlifeAggression": 0.30, "localYieldDecay": 0.25, "narrativeTag": "guilt" }
+    },
+    "artifact_orb": {
+      "event": "Found Relic",
+      "flavor": "A glass orb hums with old code — half-song, half-warning.",
+      "effect": { "artifactCollected": "glass_orb", "loreSeed": "orb_song_01" }
+    }
+  }
+}
+

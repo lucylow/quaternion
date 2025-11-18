@@ -7,10 +7,29 @@ A cutting-edge real-time strategy game built for the **Chroma Awards AI Games Co
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Chroma Awards](https://img.shields.io/badge/Chroma-Awards-orange)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.8-blue)
+![React](https://img.shields.io/badge/React-18.3-61dafb)
+![Phaser](https://img.shields.io/badge/Phaser-3.60-green)
+
+---
+
+## 📋 Table of Contents
+
+- [Overview](#-overview)
+- [Architecture](#-system-architecture)
+- [Core Gameplay Systems](#-core-gameplay-systems)
+- [AI Integration](#-ai-integration-systems)
+- [Technical Stack](#-technical-stack)
+- [Installation & Setup](#-installation--setup)
+- [Development Guide](#-development-guide)
+- [Performance](#-performance-optimizations)
+- [Deployment](#-deployment)
+
+---
 
 ## 🌟 Overview
 
-Quaternion is a sci-fi RTS game where players must balance four fundamental axes: **Matter**, **Energy**, **Life**, and **Knowledge**. The game features:
+Quaternion is a sci-fi RTS game where players must balance four fundamental axes: **Matter** (Ore), **Energy**, **Life** (Biomass), and **Knowledge** (Data). The game features:
 
 - **AI-Driven World Generation** - Procedural maps created from natural language prompts
 - **Adaptive AI Commanders** - Learning opponents with evolving personalities
@@ -19,50 +38,455 @@ Quaternion is a sci-fi RTS game where players must balance four fundamental axes
 - **Dynamic Lore Engine** - AI-generated world-building with moral memory tracking
 - **Meta-AI: The Quaternion Core** - Symbolic AI entity that judges player philosophy
 
-## ✨ Key Features
+---
 
-### 🎯 Core Gameplay
+## 🏗️ System Architecture
 
-- **4-Axis Resource System**: Balance Matter, Energy, Life, and Knowledge
-- **Multiple Victory Conditions**: Military, Economic, Scientific, and Balance victories
-- **Procedural Map Generation**: Every match features a unique, AI-generated battlefield
-- **Tech Tree System**: Research upgrades across four technology branches
-- **Unit & Building Management**: Build armies, construct bases, and manage resources
+### High-Level Architecture
 
-### 🤖 AI Systems
+```mermaid
+graph TB
+    subgraph "Client Layer"
+        UI[React UI Components]
+        Game[Phaser Game Engine]
+        Audio[Audio System]
+    end
+    
+    subgraph "Game Core"
+        GSL[Game State Manager]
+        GL[Game Loop]
+        RM[Resource Manager]
+        UM[Unit Manager]
+        TM[Tech Tree Manager]
+        MM[Map Manager]
+    end
+    
+    subgraph "AI Integration Layer"
+        AIM[AIIntegrationManager]
+        LLM[LLM Integration]
+        TTS[ElevenLabs TTS]
+        MUSIC[Music Integration]
+    end
+    
+    subgraph "AI Systems"
+        PG[Procedural Generation]
+        EC[Enhanced Commanders]
+        DE[Dynamic Events]
+        NC[Narrative Characters]
+    end
+    
+    subgraph "Backend Services"
+        API[Express API]
+        WS[WebSocket Server]
+        DB[(Supabase/PostgreSQL)]
+    end
+    
+    UI --> Game
+    Game --> GSL
+    GSL --> GL
+    GL --> RM
+    GL --> UM
+    GL --> TM
+    GL --> MM
+    
+    GSL --> AIM
+    AIM --> LLM
+    AIM --> TTS
+    AIM --> MUSIC
+    
+    AIM --> PG
+    AIM --> EC
+    AIM --> DE
+    AIM --> NC
+    
+    Game --> API
+    API --> WS
+    API --> DB
+```
 
-#### 1. **Generative NPCs with Memory**
-- NPCs remember past interactions with players
-- Form opinions and relationships based on history
-- Dynamic goals and schedules
-- OCEAN personality model (Big Five traits)
-- Emotional modeling with mood systems
+### Game Loop Architecture
 
-#### 2. **AI Creative Features**
-- **World Generation**: Prompt-based terrain synthesis ("arid wasteland", "overgrown ruin")
-- **Adaptive Commanders**: Learning AI with evolving four-axis personalities
-- **Voice Narration**: ElevenLabs TTS with emotion-based modulation
-- **Adaptive Music**: Fuser integration for state-responsive soundtracks
-- **Dynamic Lore**: AI-generated chronicles and moral memory tracking
-- **Quaternion Core**: Meta-AI that judges player philosophy
+```mermaid
+sequenceDiagram
+    participant User
+    participant GameLoop
+    participant GameState
+    participant AI
+    participant Renderer
+    
+    User->>GameLoop: Input Event
+    GameLoop->>GameState: Process Input
+    GameLoop->>GameState: Fixed Update (60 FPS)
+    GameState->>AI: Get AI Decisions
+    AI->>GameState: Return Actions
+    GameState->>GameState: Update Entities
+    GameState->>GameState: Check Win Conditions
+    GameLoop->>Renderer: Variable Update (Variable FPS)
+    Renderer->>User: Render Frame
+```
 
-#### 3. **Strategic AI**
-- Personality-driven behavior trees
-- Utility AI for unit-level decisions
-- MCTS planning for tactical decisions
-- Terrain-aware pathfinding
-- Adaptive difficulty scaling
+### Four-Axis Resource System
 
-### 🎨 Additional Features
+```mermaid
+graph LR
+    subgraph "Resource Axes"
+        M[Matter<br/>Ore]
+        E[Energy]
+        L[Life<br/>Biomass]
+        K[Knowledge<br/>Data]
+    end
+    
+    subgraph "Derived Metrics"
+        S[Stability]
+        EN[Entropy]
+        P[Progress]
+    end
+    
+    subgraph "Synergies"
+        ME[Matter+Energy<br/>Industrial]
+        LK[Life+Knowledge<br/>BioTech]
+        ALL[All Balanced<br/>Harmonic]
+    end
+    
+    M --> S
+    E --> S
+    L --> S
+    K --> S
+    
+    S --> EN
+    S --> P
+    
+    M --> ME
+    E --> ME
+    L --> LK
+    K --> LK
+    M --> ALL
+    E --> ALL
+    L --> ALL
+    K --> ALL
+```
 
-- **Campaign Mode**: Narrative-driven campaigns with AI-generated events
-- **Multiplayer Support**: Real-time multiplayer with WebSocket
-- **Replay System**: Full game replay with AI decision highlights
-- **Cosmetic Shop**: Monetization system with Stripe integration
-- **Battle Pass**: Seasonal progression system
-- **Resource Puzzles**: Strategic decision-making challenges
+### AI System Integration Flow
 
-## 🚀 Quick Start
+```mermaid
+graph TD
+    Start[Game Start] --> Init[Initialize AI Manager]
+    Init --> MapGen[Generate Map with AI]
+    MapGen --> Theme[LLM: Generate Theme]
+    Theme --> Map[Create Procedural Map]
+    
+    Init --> Commander[Create AI Commander]
+    Commander --> Personality[LLM: Generate Personality]
+    Personality --> Behavior[Build Behavior Tree]
+    
+    Map --> GameLoop[Start Game Loop]
+    Behavior --> GameLoop
+    
+    GameLoop --> Events[Check for Events]
+    Events --> EventGen[LLM: Generate Event]
+    EventGen --> Voice[ElevenLabs: Narrate]
+    Voice --> Music[Update Music]
+    
+    GameLoop --> State[Update Game State]
+    State --> AI[AI Decision Making]
+    AI --> Actions[Execute Actions]
+    Actions --> GameLoop
+    
+    GameLoop --> End[Game End]
+    End --> Lore[Generate Lore]
+    Lore --> Core[Quaternion Core Judgment]
+```
+
+---
+
+## 🎮 Core Gameplay Systems
+
+### 1. Four-Axis Resource System
+
+The game revolves around balancing four interconnected resources:
+
+| Resource | Symbol | Description | Generation | Consumption |
+|----------|--------|-------------|------------|-------------|
+| **Matter** (Ore) | ⚙️ | Industrial capacity, construction materials | Mining nodes, industrial buildings | Unit production, building construction |
+| **Energy** | 🔋 | Power grid stability, operational capacity | Power plants, generators | Unit movement, building operation |
+| **Life** (Biomass) | 🌿 | Ecological balance, biological resources | Farms, organic nodes | Unit healing, biological units |
+| **Knowledge** (Data) | 🧬 | Tech progression, research capacity | Research labs, data nodes | Technology research, upgrades |
+
+**Resource Interactions:**
+- **Instability System**: Imbalance between resources creates instability (0-200)
+- **Synergies**: Certain resource combinations provide bonuses
+- **Perfect Balance**: Maintaining all four resources in harmony unlocks special endings
+
+### 2. Game State Management
+
+```typescript
+// Core Game State Structure
+class QuaternionGameState {
+  // Resources
+  resources: {
+    ore: number;
+    energy: number;
+    biomass: number;
+    data: number;
+  };
+  
+  // Instability tracking
+  instability: number; // 0-200
+  
+  // Managers
+  resourceManager: ResourceManager;
+  unitManager: UnitManager;
+  techTreeManager: TechTreeManager;
+  mapManager: MapManager;
+  
+  // AI State
+  aiControllers: AIController[];
+  
+  // Game Loop
+  update(deltaTime: number): void;
+}
+```
+
+### 3. Game Loop Implementation
+
+The game uses a **hybrid fixed/variable timestep** approach:
+
+```mermaid
+graph TD
+    Start[Frame Start] --> Input[Process Input]
+    Input --> Accumulate[Accumulate Time]
+    Accumulate --> Fixed{Time >= Fixed Step?}
+    Fixed -->|Yes| FixedUpdate[Fixed Update 60 FPS]
+    FixedUpdate --> Accumulate
+    Fixed -->|No| Variable[Variable Update]
+    Variable --> Interpolate[Calculate Interpolation]
+    Interpolate --> Render[Render Frame]
+    Render --> Start
+```
+
+**Key Features:**
+- **Fixed Timestep**: 60 FPS for game logic (deterministic)
+- **Variable Timestep**: Variable FPS for rendering (smooth)
+- **Frame Skipping**: Prevents spiral of death
+- **Interpolation**: Smooth rendering between fixed updates
+
+### 4. Victory Conditions
+
+The game supports multiple victory paths:
+
+1. **Equilibrium Victory**: Maintain perfect balance of all four resources
+2. **Technological Victory**: Research all technologies in one branch
+3. **Territorial Victory**: Control majority of map nodes
+4. **Moral Victory**: Achieve high moral alignment through choices
+
+---
+
+## 🤖 AI Integration Systems
+
+### AI Architecture Overview
+
+```mermaid
+graph TB
+    subgraph "AI Integration Manager"
+        AIM[AIIntegrationManager<br/>Central Coordinator]
+    end
+    
+    subgraph "External APIs"
+        GAI[Google AI Pro<br/>Gemini]
+        EL[ElevenLabs<br/>TTS]
+        FUSER[Fuser<br/>Music]
+    end
+    
+    subgraph "AI Systems"
+        PG[Procedural Generation<br/>Map Themes]
+        EC[Enhanced Commanders<br/>Personality AI]
+        DE[Dynamic Events<br/>Narrative Events]
+        NC[Narrative Characters<br/>4 AI Advisors]
+    end
+    
+    subgraph "Game Integration"
+        GS[Game State]
+        MAP[Map Manager]
+        CMD[Commander System]
+        EVT[Event System]
+    end
+    
+    AIM --> GAI
+    AIM --> EL
+    AIM --> FUSER
+    
+    AIM --> PG
+    AIM --> EC
+    AIM --> DE
+    AIM --> NC
+    
+    PG --> MAP
+    EC --> CMD
+    DE --> EVT
+    NC --> GS
+```
+
+### 1. Procedural Generation System
+
+**Location**: `src/ai/systems/ProceduralGenerationSystem.ts`
+
+**Features:**
+- LLM-generated map themes from natural language prompts
+- Strategic feature placement based on theme
+- Semantic map descriptions
+- Terrain generation with strategic intent
+
+**Flow:**
+```mermaid
+sequenceDiagram
+    participant Game
+    participant PG[Procedural Gen]
+    participant LLM[Google AI]
+    participant Map
+    
+    Game->>PG: generateMap(seed, width, height, type)
+    PG->>LLM: Generate theme description
+    LLM-->>PG: Theme + strategic features
+    PG->>Map: Create map with features
+    Map-->>Game: Map with metadata
+```
+
+### 2. Enhanced Commander System
+
+**Location**: `src/ai/systems/EnhancedCommanderSystem.ts`
+
+**Commander Archetypes:**
+
+| Archetype | Traits | Strategy | Weakness |
+|-----------|--------|----------|----------|
+| **The Innovator** | High innovation, low aggression | Tech rush, unconventional tactics | Vulnerable to early aggression |
+| **The Butcher** | High aggression, low caution | Constant attacks, military focus | Poor late-game economy |
+| **The Spider** | High caution, methodical | Defensive expansion, strong defenses | Slow to react |
+| **The Mirror** | High adaptability | Copies and improves player strategies | Struggles with novel approaches |
+| **The Tactician** | Balanced, tactical | Positioning, flanking, timing | May overthink |
+| **The Economist** | Economic focus | Resource superiority, late game | Weak early military |
+| **The Wildcard** | Unpredictable | Chaotic, random strategies | Inconsistent |
+
+**Personality Matrix:**
+```typescript
+interface PersonalityTraits {
+  aggression: number;      // 0.0 - 1.0
+  caution: number;        // 0.0 - 1.0
+  adaptability: number;   // 0.0 - 1.0
+  innovation: number;     // 0.0 - 1.0
+  ruthlessness: number;   // 0.0 - 1.0
+  predictability: number; // 0.0 - 1.0
+}
+```
+
+### 3. Dynamic Event System
+
+**Location**: `src/ai/systems/DynamicEventSystem.ts`
+
+**Event Types:**
+- **Terrain Events**: Map modifications, obstacles
+- **Resource Events**: Resource node spawns, bonuses
+- **Combat Events**: Enemy spawns, tactical opportunities
+- **Narrative Events**: Story-driven occurrences
+
+**Event Generation Flow:**
+```mermaid
+graph LR
+    Trigger[Game State Trigger] --> Check[Check Event Conditions]
+    Check --> LLM[LLM: Generate Event]
+    LLM --> Validate[Validate Event]
+    Validate --> Execute[Execute Event]
+    Execute --> Voice[ElevenLabs: Narrate]
+    Voice --> Update[Update Game State]
+```
+
+### 4. Narrative Character System
+
+**Location**: `src/game/narrative/`
+
+**Four AI Advisors:**
+
+1. **AUREN - The Architect of Matter** ⚙️
+   - Personality: Calculating, rational, engineering metaphors
+   - Voice: Deep baritone, mechanical cadence
+   - Philosophy: "Perfection is precision multiplied by discipline."
+
+2. **VIREL - The Keeper of Energy** 🔋
+   - Personality: Intense, passionate, oscillates between calm and fury
+   - Voice: Expressive TTS with emotional modulation
+   - Philosophy: "Power demands harmony, not hunger."
+
+3. **LIRA - The Voice of Life** 🌿
+   - Personality: Gentle but firm, empathic, critical of industry
+   - Voice: Soft contralto, warm organic tone
+   - Philosophy: "Even creation tires of giving."
+
+4. **KOR - The Seer of Knowledge** 🧬
+   - Personality: Coldly logical, detached, recursive statements
+   - Voice: Digitally flattened tenor, synthetic overtone
+   - Philosophy: "Knowledge expands faster than stability."
+
+**Character Evolution System:**
+- Characters evolve based on player actions
+- Tension system creates conflicts between advisors
+- Dynamic dialogue generation using LLM
+- Voice synthesis with ElevenLabs
+
+### 5. Quaternion Core (Meta-AI)
+
+**Location**: `src/game/narrative/QuaternionCoreNarrative.ts`
+
+The Quaternion Core is a meta-AI that:
+- Observes player actions throughout the game
+- Generates personalized endgame monologues
+- Judges player philosophy and choices
+- Provides fourth-wall-breaking commentary
+
+---
+
+## 🛠️ Technical Stack
+
+### Frontend
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **React** | 18.3 | UI framework |
+| **TypeScript** | 5.8 | Type safety |
+| **Vite** | 5.4 | Build tool & dev server |
+| **Phaser** | 3.60 | Game engine |
+| **Radix UI** | Latest | Component library |
+| **Tailwind CSS** | 3.4 | Styling |
+| **React Query** | 5.83 | State management |
+| **React Router** | 6.30 | Routing |
+
+### Backend
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| **Express.js** | 4.18 | API server |
+| **WebSocket (ws)** | 8.18 | Real-time multiplayer |
+| **Supabase** | Latest | Database & auth |
+| **PostgreSQL** | - | Database (via Supabase) |
+| **Prisma** | 5.20 | ORM |
+
+### AI Integration
+
+| Service | Purpose | Integration |
+|---------|---------|-------------|
+| **Google AI Pro (Gemini)** | LLM for content generation | `src/ai/integrations/LLMIntegration.ts` |
+| **ElevenLabs** | Text-to-speech | `src/ai/integrations/ElevenLabsIntegration.ts` |
+| **Fuser** | Adaptive music | `src/ai/integrations/MusicIntegration.ts` |
+
+### Development Tools
+
+- **ESLint**: Code linting
+- **Vitest**: Testing framework
+- **TypeScript**: Type checking
+- **Prisma Studio**: Database management
+
+---
+
+## 📦 Installation & Setup
 
 ### Prerequisites
 
@@ -73,24 +497,29 @@ Quaternion is a sci-fi RTS game where players must balance four fundamental axes
   - ElevenLabs API (for voice narration)
   - Fuser API (for adaptive music)
 
-### Installation
+### Installation Steps
 
 ```bash
-# Clone the repository
+# 1. Clone the repository
 git clone https://github.com/yourusername/quaternion.git
 cd quaternion
 
-# Install dependencies
+# 2. Install dependencies
 npm install
 
-# Start development server
-npm run dev
+# 3. Set up environment variables
+cp .env.example .env
+# Edit .env with your API keys
 
-# Or start production server
-npm start
+# 4. Set up database (if using Supabase)
+npm run prisma:generate
+npm run prisma:migrate
+
+# 5. Start development server
+npm run dev
 ```
 
-The game will be available at `http://localhost:5173` (dev) or `http://localhost:3000` (production).
+The game will be available at `http://localhost:5173`
 
 ### Environment Variables
 
@@ -99,7 +528,7 @@ Create a `.env` file in the root directory:
 ```env
 # AI Integration (Optional - game works without these)
 GOOGLE_AI_API_KEY=your_google_ai_key
-ElevenLabs_API_key=your_elevenlabs_key
+ELEVENLABS_API_KEY=your_elevenlabs_key
 FUSER_API_KEY=your_fuser_key
 
 # Stripe (for monetization)
@@ -108,95 +537,199 @@ VITE_STRIPE_PUBLIC_KEY=pk_test_...
 
 # Supabase (for multiplayer and persistence)
 SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_KEY=your_supabase_key
+SUPABASE_ANON_KEY=your_supabase_key
 ```
 
 **Note**: The game works without API keys using fallback systems, but AI features will be limited.
 
-## 🎮 Game Modes
+---
 
-### Single Player
-
-- **Quick Match**: Jump into a game with AI opponent
-- **Campaign**: Narrative-driven missions with AI-generated events
-- **Puzzle Mode**: Resource allocation and strategic challenges
-- **Sandbox**: Free play with customizable settings
-
-### Multiplayer
-
-- **Ranked Match**: Competitive play with ELO rating
-- **Custom Game**: Private matches with friends
-- **Tournament**: Automated bracket competitions
-
-## 🏗️ Architecture
-
-### Tech Stack
-
-- **Frontend**: React 18 + TypeScript + Vite
-- **Game Engine**: Phaser 3.60
-- **UI Framework**: Radix UI + Tailwind CSS
-- **State Management**: React Query + React Hooks
-- **Backend**: Express.js + WebSocket
-- **Database**: Supabase (PostgreSQL)
-- **AI Integration**: Google AI (Gemini), ElevenLabs, Fuser
-
-### Project Structure
+## 🏗️ Project Structure
 
 ```
 quaternion/
 ├── src/
-│   ├── ai/                    # AI systems
-│   │   ├── creative/          # AI creative features
-│   │   ├── generative/        # Generative NPCs
-│   │   ├── integrations/       # LLM, TTS, Music APIs
-│   │   ├── systems/           # AI game systems
-│   │   └── terrain/           # Terrain-aware AI
-│   ├── components/            # React components
-│   ├── game/                  # Game logic
-│   ├── map/                   # Map generation
-│   ├── pages/                 # Route pages
-│   └── utils/                 # Utilities
-├── public/                    # Static assets
-├── docs/                      # Documentation
-└── supabase/                  # Database migrations
+│   ├── ai/                          # AI systems
+│   │   ├── agents/                  # Specialized AI agents
+│   │   │   ├── EconomicAgent.ts
+│   │   │   ├── MilitaryAgent.ts
+│   │   │   ├── ResearchAgent.ts
+│   │   │   └── ScoutingAgent.ts
+│   │   ├── creative/                # AI creative features
+│   │   │   ├── AdaptiveCommanderAI.ts
+│   │   │   └── NarrativeGeneration.ts
+│   │   ├── generative/              # Generative NPCs
+│   │   │   └── GenerativeNPC.ts
+│   │   ├── integrations/           # External AI APIs
+│   │   │   ├── LLMIntegration.ts
+│   │   │   ├── ElevenLabsIntegration.ts
+│   │   │   └── MusicIntegration.ts
+│   │   ├── opponents/               # AI opponents
+│   │   │   ├── AICommanderArchetypes.ts
+│   │   │   └── EnhancedAIOpponent.ts
+│   │   ├── systems/                 # AI game systems
+│   │   │   ├── ProceduralGenerationSystem.ts
+│   │   │   ├── EnhancedCommanderSystem.ts
+│   │   │   └── DynamicEventSystem.ts
+│   │   └── AIIntegrationManager.ts  # Central coordinator
+│   ├── game/                        # Game logic
+│   │   ├── QuaternionGameState.ts   # Main game state
+│   │   ├── GameLoop.ts              # Game loop implementation
+│   │   ├── ResourceManager.ts       # Resource management
+│   │   ├── UnitManager.ts           # Unit management
+│   │   ├── TechTreeManager.ts       # Technology system
+│   │   ├── MapManager.ts            # Map management
+│   │   ├── narrative/               # Narrative systems
+│   │   │   ├── AINarrativeDirector.ts
+│   │   │   ├── AICreativeCharacters.ts
+│   │   │   └── QuaternionCoreNarrative.ts
+│   │   └── strategic/               # Strategic AI
+│   ├── components/                  # React components
+│   │   ├── game/                   # Game UI components
+│   │   ├── ui/                     # UI components (Radix)
+│   │   └── narrative/              # Narrative UI
+│   ├── audio/                      # Audio systems
+│   │   ├── AudioEngine.ts
+│   │   ├── AdaptiveMusicSystem.ts
+│   │   └── ElevenLabsAudioIntegration.ts
+│   ├── map/                        # Map generation
+│   │   └── MapGenerator.ts
+│   ├── pages/                      # Route pages
+│   └── App.tsx                     # Main app component
+├── server/                         # Backend server
+│   └── server.js
+├── public/                         # Static assets
+├── docs/                           # Documentation
+├── supabase/                       # Database migrations
+└── package.json
 ```
 
-## 🤖 AI Systems Documentation
+---
 
-### Generative NPCs
+## 💻 Development Guide
 
-- **[Generative NPCs README](./src/ai/generative/README.md)** - Complete cognitive architecture
-- **[Implementation Guide](./GENERATIVE_NPCS_IMPLEMENTATION.md)** - Full implementation details
+### Available Scripts
 
-### AI Creative Features
+```bash
+# Development
+npm run dev              # Start dev server (Vite)
+npm run build           # Production build
+npm run preview         # Preview production build
 
-- **[AI Creative Features](./AI_CREATIVE_FEATURES.md)** - Chroma Awards submission write-up
-- **[Creative Systems README](./src/ai/creative/README.md)** - Technical documentation
+# Database
+npm run seed            # Seed database
+npm run seed:minimal    # Minimal seed
+npm run prisma:studio   # Open Prisma Studio
 
-### AI Integration
+# Linting
+npm run lint            # Run ESLint
+```
 
-- **[AI Integration Summary](./CHROMA_AWARDS_AI_INTEGRATION.md)** - Complete AI integration overview
-- **[AI Tools Stack](./docs/AI_TOOLS_STACK.md)** - Comprehensive AI tools documentation
+### Code Structure Guidelines
 
-## 📚 Documentation
+1. **TypeScript**: Full type safety throughout
+2. **Modular Architecture**: Clean separation of concerns
+3. **Component-Based**: Reusable React components
+4. **AI-First Design**: All systems designed with AI integration in mind
 
-### Core Systems
+### Adding New AI Features
 
-- **[Project Summary](./docs/PROJECT_SUMMARY.md)** - High-level overview
-- **[Backend AI README](./docs/BACKEND_AI_README.md)** - AI architecture guide
-- **[Game Integration Guide](./GAME_INTEGRATION_GUIDE.md)** - Game modes and integration
+1. **Create Integration** (if needed):
+   ```typescript
+   // src/ai/integrations/NewAIIntegration.ts
+   export class NewAIIntegration {
+     async generateContent(prompt: string) {
+       // Implementation
+     }
+   }
+   ```
 
-### Features
+2. **Add to AI Manager**:
+   ```typescript
+   // src/ai/AIIntegrationManager.ts
+   import { NewAIIntegration } from './integrations/NewAIIntegration';
+   
+   // Add to constructor and methods
+   ```
 
-- **[Campaign System](./CAMPAIGN_SYSTEM.md)** - Narrative campaigns
-- **[Monetization](./MONETIZATION_README.md)** - Shop, battle pass, tournaments
-- **[Procedural Generation](./PROCEDURAL_GENERATION_IMPROVEMENTS.md)** - Map generation
-- **[Resource Puzzles](./RESOURCE_PUZZLE_IMPLEMENTATION.md)** - Puzzle system
+3. **Integrate with Game**:
+   ```typescript
+   // In game component
+   const result = await aiManager.newFeature(params);
+   ```
 
-### Deployment
+---
 
-- **[Deployment Guide](./docs/DEPLOYMENT.md)** - Production deployment
-- **[Itch.io Deployment](./ITCH_IO_DEPLOYMENT.md)** - Itch.io publishing
+## ⚡ Performance Optimizations
+
+### Game Loop Performance
+
+- **Fixed Timestep**: 60 FPS for deterministic game logic
+- **Frame Skipping**: Prevents spiral of death
+- **Interpolation**: Smooth rendering between fixed updates
+- **Performance Monitoring**: Adaptive quality settings
+
+### AI Performance
+
+- **Caching**: Map themes, commander personalities, voice lines cached
+- **Rate Limiting**: LLM calls max 1 per 5 seconds
+- **Pre-generation**: Voice lines and music stems pre-generated
+- **Lazy Loading**: AI systems initialize on first use
+- **Fallbacks**: All systems work without API keys
+
+### Rendering Performance
+
+- **Object Pooling**: Reuse game objects
+- **Spatial Partitioning**: Efficient collision detection
+- **LOD System**: Level of detail for distant objects
+- **Asset Optimization**: Compressed textures and audio
+
+### Target Performance Metrics
+
+- **FPS**: 60 FPS on modern hardware
+- **AI Response Time**: <100ms for strategic decisions
+- **Memory Usage**: <500MB for typical game session
+- **Load Time**: <3 seconds for initial load
+
+---
+
+## 🚀 Deployment
+
+### Production Build
+
+```bash
+npm run build:production
+```
+
+This creates an optimized build in the `dist/` directory.
+
+### Deployment Options
+
+1. **Vercel** (Recommended for frontend):
+   - Connect GitHub repository
+   - Vercel auto-detects Vite configuration
+   - Set environment variables in Vercel dashboard
+
+2. **Netlify**:
+   - Build command: `npm run build`
+   - Publish directory: `dist`
+
+3. **Itch.io**:
+   ```bash
+   npm run build:itch
+   # Upload dist/ directory to Itch.io
+   ```
+
+### Environment Setup
+
+Ensure all environment variables are set in your deployment platform:
+- `GOOGLE_AI_API_KEY`
+- `ELEVENLABS_API_KEY`
+- `FUSER_API_KEY`
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+
+---
 
 ## 🎯 For Chroma Awards Judges
 
@@ -226,30 +759,44 @@ quaternion/
 5. **Lore Generation Demo**: Generate world chronicles and moral reflections
 6. **Core Judgment Demo**: Show endgame philosophy analysis
 
-## 🛠️ Development
+### AI Tools Used
 
-### Available Scripts
+- **Google AI Pro (Gemini)**: Strategic content generation, narrative creation
+- **ElevenLabs**: Voice narration and commander dialogue
+- **Fuser**: Adaptive music generation
+- **Saga AI**: Alternative LLM provider (fallback)
 
-```bash
-# Development
-npm run dev              # Start dev server
-npm run build           # Production build
-npm run preview         # Preview production build
+---
 
-# Database
-npm run seed            # Seed database
-npm run seed:minimal    # Minimal seed
+## 📚 Additional Documentation
 
-# Linting
-npm run lint            # Run ESLint
-```
+### Core Systems
 
-### Code Structure
+- **[AI Integration Summary](./CHROMA_AWARDS_AI_INTEGRATION.md)** - Complete AI integration overview
+- **[Project Summary](./docs/PROJECT_SUMMARY.md)** - High-level overview
+- **[Backend AI README](./docs/BACKEND_AI_README.md)** - AI architecture guide
+- **[Game Integration Guide](./GAME_INTEGRATION_GUIDE.md)** - Game modes and integration
 
-- **TypeScript**: Full type safety
-- **Modular Architecture**: Clean separation of concerns
-- **Component-Based**: Reusable React components
-- **AI-First Design**: All systems designed with AI integration in mind
+### AI Systems
+
+- **[Generative NPCs README](./src/ai/generative/README.md)** - Complete cognitive architecture
+- **[AI Creative Features](./AI_CREATIVE_FEATURES.md)** - Chroma Awards submission write-up
+- **[Creative Systems README](./src/ai/creative/README.md)** - Technical documentation
+- **[AI Tools Stack](./docs/AI_TOOLS_STACK.md)** - Comprehensive AI tools documentation
+
+### Features
+
+- **[Campaign System](./CAMPAIGN_SYSTEM.md)** - Narrative campaigns
+- **[Monetization](./MONETIZATION_README.md)** - Shop, battle pass, tournaments
+- **[Procedural Generation](./PROCEDURAL_GENERATION_IMPROVEMENTS.md)** - Map generation
+- **[Resource Puzzles](./RESOURCE_PUZZLE_IMPLEMENTATION.md)** - Puzzle system
+
+### Deployment
+
+- **[Deployment Guide](./docs/DEPLOYMENT.md)** - Production deployment
+- **[Itch.io Deployment](./ITCH_IO_DEPLOYMENT.md)** - Itch.io publishing
+
+---
 
 ## 🧪 Testing
 
@@ -262,12 +809,7 @@ npm test -- ai
 npm test -- game
 ```
 
-## 📊 Performance
-
-- **Target FPS**: 60 FPS on modern hardware
-- **AI Response Time**: <100ms for strategic decisions
-- **Memory Usage**: <500MB for typical game session
-- **Load Time**: <3 seconds for initial load
+---
 
 ## 🤝 Contributing
 
@@ -278,9 +820,13 @@ This project is built for the Chroma Awards competition. For contributions:
 3. Make your changes
 4. Submit a pull request
 
+---
+
 ## 📄 License
 
 MIT License - see LICENSE file for details
+
+---
 
 ## 🙏 Acknowledgments
 
@@ -290,12 +836,16 @@ MIT License - see LICENSE file for details
 - **Radix UI** - Component library
 - **AI Providers**: Google AI, ElevenLabs, Fuser
 
+---
+
 ## 🔗 Links
 
 - **Live Demo**: [Coming Soon]
 - **Documentation**: See `/docs` directory
 - **AI Features**: See `AI_CREATIVE_FEATURES.md`
 - **Chroma Awards Submission**: See project page
+
+---
 
 ## 📞 Support
 
