@@ -200,7 +200,41 @@ export function BattlePassShop() {
     return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
   };
 
-  const getRewardIcon = (rewardType: string) => {
+  const getRewardIcon = (rewardType: string, level: number = 1) => {
+    const asset = getRewardAsset(rewardType, level);
+    
+    if (asset) {
+      return (
+        <img 
+          src={asset} 
+          alt={rewardType}
+          className="w-full h-full object-cover rounded-full"
+          onError={(e) => {
+            // Fallback to icon if image fails to load
+            const target = e.target as HTMLImageElement;
+            target.style.display = 'none';
+            const parent = target.parentElement;
+            if (parent) {
+              switch (rewardType) {
+                case 'cosmetic':
+                  parent.innerHTML = '<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>';
+                  break;
+                case 'xp_booster':
+                  parent.innerHTML = '<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>';
+                  break;
+                case 'currency':
+                  parent.innerHTML = '<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>';
+                  break;
+                default:
+                  parent.innerHTML = '<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2v1m0 0V6a2 2 0 112 2v1m-2 0h.01M12 8h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>';
+              }
+            }
+          }}
+        />
+      );
+    }
+    
+    // Fallback to icon
     switch (rewardType) {
       case 'cosmetic':
         return <Sparkles className="h-5 w-5" />;
@@ -331,22 +365,50 @@ export function BattlePassShop() {
                   <CardContent className="pt-6 pb-4">
                     <div className="flex flex-col items-center space-y-2">
                       <div
-                        className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                        className={`relative w-20 h-20 rounded-lg overflow-hidden border-2 ${
                           isUnlocked
                             ? isClaimed
-                              ? 'bg-green-500'
-                              : 'bg-primary'
-                            : 'bg-muted'
+                              ? 'border-green-500 bg-green-500/10'
+                              : 'border-primary bg-primary/10'
+                            : 'border-muted bg-muted/50 grayscale'
                         }`}
                       >
                         {isUnlocked ? (
                           isClaimed ? (
-                            <Check className="h-6 w-6 text-white" />
+                            <div className="w-full h-full flex items-center justify-center bg-green-500/20">
+                              <Check className="h-8 w-8 text-green-600" />
+                            </div>
                           ) : (
-                            getRewardIcon(reward?.reward_type || 'gift')
+                            <>
+                              {getRewardAsset(reward?.reward_type || 'gift', level) ? (
+                                <img 
+                                  src={getRewardAsset(reward?.reward_type || 'gift', level)!} 
+                                  alt={`Level ${level} reward`}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const parent = target.parentElement;
+                                    if (parent) {
+                                      const icon = getRewardIcon(reward?.reward_type || 'gift', level);
+                                      parent.innerHTML = '';
+                                      if (typeof icon === 'object' && icon !== null) {
+                                        parent.appendChild(icon as any);
+                                      }
+                                    }
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  {getRewardIcon(reward?.reward_type || 'gift', level)}
+                                </div>
+                              )}
+                            </>
                           )
                         ) : (
-                          <Lock className="h-6 w-6 text-muted-foreground" />
+                          <div className="w-full h-full flex items-center justify-center bg-muted/50">
+                            <Lock className="h-8 w-8 text-muted-foreground" />
+                          </div>
                         )}
                       </div>
                       <div className="text-center">
@@ -406,6 +468,37 @@ export function BattlePassShop() {
               </div>
               <CardDescription className="text-base">{pass.description}</CardDescription>
             </CardHeader>
+            
+            {/* Game Asset Preview */}
+            <div className="px-6 pb-4">
+              <div className="relative h-48 rounded-lg overflow-hidden border border-border/50 bg-gradient-to-br from-purple-500/10 to-pink-500/10">
+                <div className="absolute inset-0 grid grid-cols-3 gap-1 p-2">
+                  {[
+                    MONSTER_ASSETS[0],
+                    MAP_ASSETS[0],
+                    COUNTRY_ASSETS[0],
+                  ].map((asset, idx) => (
+                    <div key={idx} className="relative overflow-hidden rounded">
+                      <img 
+                        src={asset} 
+                        alt={`Preview ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                    </div>
+                  ))}
+                </div>
+                <div className="absolute bottom-2 left-2 right-2">
+                  <Badge variant="secondary" className="text-xs">
+                    Exclusive Game Assets Included
+                  </Badge>
+                </div>
+              </div>
+            </div>
             
             <CardContent>
               <div className="mb-6">
@@ -485,6 +578,50 @@ export function BattlePassShop() {
           </div>
         </div>
       </div>
+
+      {/* Featured Rewards Preview */}
+      <Card className="mb-8 border-2 border-primary/20 bg-gradient-to-br from-purple-500/5 to-pink-500/5">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            Featured Rewards
+          </CardTitle>
+          <CardDescription>
+            Exclusive game assets, monsters, maps, and more await you
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { asset: MONSTER_ASSETS[0], label: 'Celestial Monster', type: 'Monster' },
+              { asset: MAP_ASSETS[0], label: 'Twilight Biome', type: 'Map' },
+              { asset: COUNTRY_ASSETS[0], label: 'Dubai Battlefield', type: 'Location' },
+              { asset: MONSTER_ASSETS[3], label: 'Quaternion Poster', type: 'Exclusive' },
+            ].map((item, idx) => (
+              <div key={idx} className="relative group">
+                <div className="relative h-32 rounded-lg overflow-hidden border-2 border-primary/20 group-hover:border-primary transition-colors">
+                  <img 
+                    src={item.asset} 
+                    alt={item.label}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                    }}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-2">
+                    <p className="text-xs font-semibold text-white">{item.label}</p>
+                    <Badge variant="secondary" className="text-xs mt-1">
+                      {item.type}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'shop' | 'progress')} className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-2 mb-6">

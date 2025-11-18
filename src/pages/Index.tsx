@@ -5,7 +5,7 @@
  */
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Brain, Box, Zap, Leaf, Trophy, ChevronDown, Gamepad2, Clock, Bot, Grid3x3, Palette, Mic, Music, Mountain, GitBranch, Dices, Menu, X } from "lucide-react";
+import { Brain, Box, Zap, Leaf, Trophy, ChevronDown, Gamepad2, Clock, Bot, Grid3x3, Palette, Mic, Music, Mountain, GitBranch, Dices, Menu, X, ShoppingBag, Award, ShoppingCart } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/quaternion-hero.webp";
@@ -98,6 +98,36 @@ const Index = () => {
             </div>
             <div className="flex items-center gap-2">
               <Button 
+                onClick={() => navigate('/shop')}
+                variant="ghost"
+                size="icon"
+                className="hidden sm:flex text-primary hover:text-secondary hover:bg-primary/10"
+                aria-label="Shop"
+                title="Cosmetic Shop"
+              >
+                <ShoppingBag className="w-5 h-5" />
+              </Button>
+              <Button 
+                onClick={() => navigate('/battle-pass')}
+                variant="ghost"
+                size="icon"
+                className="hidden sm:flex text-primary hover:text-secondary hover:bg-primary/10"
+                aria-label="Battle Pass"
+                title="Battle Pass"
+              >
+                <Award className="w-5 h-5" />
+              </Button>
+              <Button 
+                onClick={() => navigate('/checkout')}
+                variant="ghost"
+                size="icon"
+                className="hidden sm:flex text-primary hover:text-secondary hover:bg-primary/10"
+                aria-label="Checkout"
+                title="Checkout"
+              >
+                <ShoppingCart className="w-5 h-5" />
+              </Button>
+              <Button 
                 onClick={() => navigate('/lobby')}
                 className="hidden sm:flex bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:shadow-neon focus:ring-2 focus:ring-primary focus:ring-offset-2 text-sm px-3 py-1.5"
               >
@@ -124,6 +154,18 @@ const Index = () => {
                 <a href="/commanders" onClick={(e) => { e.preventDefault(); navigate('/commanders'); setMobileMenuOpen(false); }} className="hover:text-primary transition-colors py-2 text-sm">Commanders</a>
                 <a href="/how-to-play" onClick={(e) => { e.preventDefault(); navigate('/how-to-play'); setMobileMenuOpen(false); }} className="hover:text-primary transition-colors py-2 text-sm">How to Play</a>
                 <a href="/ai-features" onClick={(e) => { e.preventDefault(); navigate('/ai-features'); setMobileMenuOpen(false); }} className="hover:text-primary transition-colors py-2 text-sm">AI Features</a>
+                <a href="/shop" onClick={(e) => { e.preventDefault(); navigate('/shop'); setMobileMenuOpen(false); }} className="hover:text-primary transition-colors py-2 text-sm flex items-center gap-2">
+                  <ShoppingBag className="w-4 h-4" />
+                  Shop
+                </a>
+                <a href="/battle-pass" onClick={(e) => { e.preventDefault(); navigate('/battle-pass'); setMobileMenuOpen(false); }} className="hover:text-primary transition-colors py-2 text-sm flex items-center gap-2">
+                  <Award className="w-4 h-4" />
+                  Battle Pass
+                </a>
+                <a href="/checkout" onClick={(e) => { e.preventDefault(); navigate('/checkout'); setMobileMenuOpen(false); }} className="hover:text-primary transition-colors py-2 text-sm flex items-center gap-2">
+                  <ShoppingCart className="w-4 h-4" />
+                  Checkout
+                </a>
                 <Button 
                   onClick={() => { navigate('/lobby'); setMobileMenuOpen(false); }}
                   className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:shadow-neon mt-2"

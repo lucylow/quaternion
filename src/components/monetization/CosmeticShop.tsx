@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Loader2, Search, Sparkles, Star, Zap, Crown, Gem, Filter, Grid3x3, List, ShoppingCart, TrendingUp, Eye, X, Plus, Minus } from 'lucide-react';
+import { Loader2, Search, Sparkles, Star, Zap, Crown, Gem, Filter, Grid3x3, List, ShoppingCart, TrendingUp, Eye, X, Plus, Minus, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
@@ -60,6 +60,24 @@ export function CosmeticShop() {
     }
   };
 
+  const addToCart = (cosmetic: Cosmetic) => {
+    if (!cart.find(item => item.id === cosmetic.id)) {
+      setCart([...cart, cosmetic]);
+      toast.success(`${cosmetic.name} added to cart`);
+    } else {
+      toast.info(`${cosmetic.name} is already in your cart`);
+    }
+  };
+
+  const removeFromCart = (cosmeticId: string) => {
+    setCart(cart.filter(item => item.id !== cosmeticId));
+    toast.success('Item removed from cart');
+  };
+
+  const getCartTotal = () => {
+    return cart.reduce((sum, item) => sum + item.price, 0);
+  };
+
   const handlePurchase = async (cosmetic: Cosmetic) => {
     setPurchasing(cosmetic.id);
     setLoading(true);
@@ -83,12 +101,32 @@ export function CosmeticShop() {
       }
 
       // Redirect to checkout with Stripe
-      window.location.href = `/checkout?clientSecret=${data.clientSecret}&amount=${data.amount}&type=cosmetic&id=${cosmetic.id}`;
+      navigate(`/checkout?clientSecret=${data.clientSecret}&amount=${data.amount}&type=cosmetic&id=${cosmetic.id}&name=${encodeURIComponent(cosmetic.name)}`);
     } catch (error: any) {
       console.error('Failed to initiate purchase:', error);
       toast.error(error.message || 'Failed to initiate purchase');
       setLoading(false);
       setPurchasing(null);
+    }
+  };
+
+  const handleCheckout = async () => {
+    if (cart.length === 0) {
+      toast.error('Your cart is empty');
+      return;
+    }
+
+    try {
+      const playerId = localStorage.getItem('playerId') || 'demo_player';
+      
+      // For now, checkout first item. In production, you'd create a combined payment intent
+      const firstItem = cart[0];
+      await handlePurchase(firstItem);
+      
+      // Remove purchased item from cart
+      setCart(cart.slice(1));
+    } catch (error: any) {
+      console.error('Checkout failed:', error);
     }
   };
 
@@ -215,25 +253,40 @@ export function CosmeticShop() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent mb-2">
-              Cosmetic Shop
+              Game Assets Shop
             </h1>
-            <p className="text-muted-foreground">Customize your experience with exclusive cosmetics</p>
+            <p className="text-muted-foreground">Customize your experience with exclusive game assets and cosmetics</p>
           </div>
-          <div className="hidden md:flex items-center gap-2">
-            <Button
-              variant={viewMode === 'grid' ? 'default' : 'outline'}
-              size="icon"
-              onClick={() => setViewMode('grid')}
-            >
-              <Grid3x3 className="w-4 h-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'list' ? 'default' : 'outline'}
-              size="icon"
-              onClick={() => setViewMode('list')}
-            >
-              <List className="w-4 h-4" />
-            </Button>
+          <div className="flex items-center gap-2">
+            {cart.length > 0 && (
+              <Button
+                variant="outline"
+                onClick={() => setShowCart(true)}
+                className="relative"
+              >
+                <ShoppingCart className="w-4 h-4 mr-2" />
+                Cart ({cart.length})
+                <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center bg-primary text-primary-foreground">
+                  {cart.length}
+                </Badge>
+              </Button>
+            )}
+            <div className="hidden md:flex items-center gap-2">
+              <Button
+                variant={viewMode === 'grid' ? 'default' : 'outline'}
+                size="icon"
+                onClick={() => setViewMode('grid')}
+              >
+                <Grid3x3 className="w-4 h-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'outline'}
+                size="icon"
+                onClick={() => setViewMode('list')}
+              >
+                <List className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -249,18 +302,40 @@ export function CosmeticShop() {
                 const rarityConfig = getRarityConfig(cosmetic.rarity);
                 return (
                   <Card key={cosmetic.id} className={cn("overflow-hidden border-2 transition-all hover:scale-105", rarityConfig.glow)}>
-                    <CardHeader className="p-0">
-                      <div className={cn("aspect-video rounded-t-lg flex items-center justify-center relative overflow-hidden", rarityConfig.color)}>
+                <CardHeader className="p-0 relative group">
+                  <div className={cn("aspect-video rounded-t-lg flex items-center justify-center relative overflow-hidden cursor-pointer", rarityConfig.color)}
+                    onClick={() => setSelectedCosmetic(cosmetic)}
+                  >
+                    {cosmetic.image ? (
+                      <img 
+                        src={cosmetic.image} 
+                        alt={cosmetic.name}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <>
                         <div className="absolute inset-0 bg-black/20" />
                         <div className="relative z-10 text-white text-4xl font-bold">
                           {cosmetic.name[0]}
                         </div>
-                        <Badge className={cn("absolute top-2 right-2", rarityConfig.color, "text-white border-0")}>
-                          {rarityConfig.icon}
-                          <span className="ml-1 capitalize">{cosmetic.rarity}</span>
-                        </Badge>
-                      </div>
-                    </CardHeader>
+                      </>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <Badge className={cn("absolute top-2 right-2", rarityConfig.color, "text-white border-0")}>
+                      {rarityConfig.icon}
+                      <span className="ml-1 capitalize">{cosmetic.rarity}</span>
+                    </Badge>
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button size="sm" variant="secondary" className="gap-2">
+                        <Eye className="w-4 h-4" />
+                        View Details
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
                     <CardContent className="p-4">
                       <CardTitle className="text-lg mb-1">{cosmetic.name}</CardTitle>
                       <CardDescription className="text-sm line-clamp-2">{cosmetic.description}</CardDescription>
@@ -360,10 +435,29 @@ export function CosmeticShop() {
               return (
                 <Card key={cosmetic.id} className="overflow-hidden hover:shadow-lg transition-all">
                   <div className="flex flex-col md:flex-row">
-                    <div className={cn("w-full md:w-48 aspect-video md:aspect-auto flex items-center justify-center relative", rarityConfig.color)}>
-                      <div className="absolute inset-0 bg-black/20" />
-                      <div className="relative z-10 text-white text-3xl font-bold">
-                        {cosmetic.name[0]}
+                    <div 
+                      className={cn("w-full md:w-48 aspect-video md:aspect-auto flex items-center justify-center relative cursor-pointer group", rarityConfig.color)}
+                      onClick={() => setSelectedCosmetic(cosmetic)}
+                    >
+                      {cosmetic.image ? (
+                        <img 
+                          src={cosmetic.image} 
+                          alt={cosmetic.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <>
+                          <div className="absolute inset-0 bg-black/20" />
+                          <div className="relative z-10 text-white text-3xl font-bold">
+                            {cosmetic.name[0]}
+                          </div>
+                        </>
+                      )}
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Eye className="w-8 h-8 text-white" />
                       </div>
                     </div>
                     <div className="flex-1 p-6">
@@ -387,23 +481,45 @@ export function CosmeticShop() {
                           </p>
                           <span className="text-3xl font-bold">${cosmetic.price.toFixed(2)}</span>
                         </div>
-                        <Button
-                          onClick={() => handlePurchase(cosmetic)}
-                          disabled={loading || purchasing === cosmetic.id}
-                          size="lg"
-                        >
-                          {purchasing === cosmetic.id ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Processing...
-                            </>
-                          ) : (
-                            <>
-                              <ShoppingCart className="mr-2 h-4 w-4" />
-                              Buy Now
-                            </>
-                          )}
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            onClick={() => addToCart(cosmetic)}
+                            disabled={cart.some(item => item.id === cosmetic.id)}
+                            size="lg"
+                            className="gap-2"
+                          >
+                            {cart.some(item => item.id === cosmetic.id) ? (
+                              <>
+                                <CheckCircle2 className="h-4 w-4" />
+                                In Cart
+                              </>
+                            ) : (
+                              <>
+                                <Plus className="h-4 w-4" />
+                                Add to Cart
+                              </>
+                            )}
+                          </Button>
+                          <Button
+                            onClick={() => handlePurchase(cosmetic)}
+                            disabled={loading || purchasing === cosmetic.id}
+                            size="lg"
+                            className="gap-2"
+                          >
+                            {purchasing === cosmetic.id ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Processing...
+                              </>
+                            ) : (
+                              <>
+                                <ShoppingCart className="mr-2 h-4 w-4" />
+                                Buy Now
+                              </>
+                            )}
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -443,25 +559,47 @@ export function CosmeticShop() {
                     {cosmetic.category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                   </p>
                 </CardContent>
-                <CardFooter className="flex justify-between items-center p-4 pt-0">
+                <CardFooter className="flex justify-between items-center p-4 pt-0 gap-2">
                   <span className="text-2xl font-bold">${cosmetic.price.toFixed(2)}</span>
-                  <Button
-                    onClick={() => handlePurchase(cosmetic)}
-                    disabled={loading || purchasing === cosmetic.id}
-                    className="gap-2"
-                  >
-                    {purchasing === cosmetic.id ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <ShoppingCart className="h-4 w-4" />
-                        Buy
-                      </>
-                    )}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => addToCart(cosmetic)}
+                      disabled={cart.some(item => item.id === cosmetic.id)}
+                      className="gap-1"
+                    >
+                      {cart.some(item => item.id === cosmetic.id) ? (
+                        <>
+                          <CheckCircle2 className="h-4 w-4" />
+                          In Cart
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="h-4 w-4" />
+                          Add
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      onClick={() => handlePurchase(cosmetic)}
+                      disabled={loading || purchasing === cosmetic.id}
+                      className="gap-2"
+                      size="sm"
+                    >
+                      {purchasing === cosmetic.id ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <ShoppingCart className="h-4 w-4" />
+                          Buy Now
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </CardFooter>
               </Card>
             );
