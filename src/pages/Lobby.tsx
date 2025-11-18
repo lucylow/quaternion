@@ -414,7 +414,10 @@ const Lobby = () => {
                 className={`bg-card/70 border-primary/30 cursor-pointer transition-all ${
                   gameType === 'neural-frontier' ? 'border-2 border-primary ring-2 ring-primary/20' : ''
                 }`}
-                onClick={() => setGameType('neural-frontier')}
+                onClick={() => {
+                  setGameType('neural-frontier');
+                  navigate('/game');
+                }}
               >
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-2">
@@ -478,10 +481,10 @@ const Lobby = () => {
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Target className="w-5 h-5 text-primary" />
-                    <CardTitle className="text-lg">Arena Seed</CardTitle>
+                    <CardTitle className="text-lg">Arena Match</CardTitle>
                   </div>
                   <CardDescription className="text-xs">
-                    Short replayable matches with deterministic seeds. Perfect for judges.
+                    Dynamic real-time strategy matches with full player control. Build, research, and command your forces to victory.
                   </CardDescription>
                 </CardContent>
               </Card>
@@ -541,7 +544,7 @@ const Lobby = () => {
                     <CardTitle className="text-lg">Theater Mode</CardTitle>
                   </div>
                   <CardDescription className="text-xs">
-                    Replay your best runs with AI Core commentary overlay.
+                    Watch replays of your best runs with AI Core commentary overlay. (Replay viewing mode)
                   </CardDescription>
                 </CardContent>
               </Card>
@@ -552,10 +555,10 @@ const Lobby = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Gamepad2 className="w-5 h-5 text-yellow-400" />
-                  Quick Start (Chroma Awards Demo)
+                  Quick Start
                 </CardTitle>
                 <CardDescription>
-                  Optimized for 15-25 minute play sessions. Perfect for judges to experience the full game quickly.
+                  Optimized for 15-25 minute play sessions. Jump into dynamic gameplay with faster progression and exciting action.
                 </CardDescription>
               </CardHeader>
               <CardContent>

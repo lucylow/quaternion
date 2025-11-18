@@ -3,8 +3,9 @@
  * Displays AI advisor recommendations
  */
 
-import { Brain, AlertCircle, TrendingUp, TrendingDown } from 'lucide-react';
+import { Brain, AlertCircle, TrendingUp, TrendingDown, X } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { AdvisorResponse } from '@/game/puzzles/ResourceAdvisor';
 import { AdvisorPersonality } from '@/game/puzzles/ResourceAdvisor';
 
@@ -57,6 +58,16 @@ export const ResourceAdvisorPanel = ({
               {getUrgencyIcon(advice.urgency)}
               <span className="text-xs text-gray-400 capitalize">{advice.urgency}</span>
             </div>
+            {onDismiss && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-5 w-5 p-0 text-gray-400 hover:text-white ml-1"
+                onClick={onDismiss}
+              >
+                <X className="w-3 h-3" />
+              </Button>
+            )}
           </div>
           <p className="text-sm text-white mb-1">{advice.adviceText}</p>
           {advice.reasoning && (

@@ -2390,8 +2390,8 @@ const QuaternionGame = () => {
       {/* Top HUD */}
       {!gameOver && (
         <>
-          <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-gray-900 to-transparent p-4">
-            <div className="flex items-center justify-between">
+          <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-gray-900 to-transparent p-4 pointer-events-none">
+            <div className="flex items-center justify-between pointer-events-auto">
               <Button
                 variant="ghost"
                 size="sm"
@@ -2402,7 +2402,7 @@ const QuaternionGame = () => {
                 Exit Game
               </Button>
 
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 pointer-events-auto">
                 {/* Enhanced Resources with Axis-Specific Styling */}
                 <div 
                   className="flex items-center gap-2 bg-gray-800/85 backdrop-blur-sm px-3 py-2 rounded-lg border border-orange-400/50 hover:border-orange-400/80 transition-all group"
@@ -2499,7 +2499,7 @@ const QuaternionGame = () => {
           </div>
 
           {/* Game Canvas */}
-          <div ref={gameRef} className="w-full h-full" />
+          <div ref={gameRef} className="absolute inset-0 w-full h-full z-0 pointer-events-auto" />
 
           {/* Enhanced RTS Bottom Panel with AI Flair */}
           <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-gray-900/95 via-gray-900/90 to-transparent p-4 pointer-events-none">
@@ -2563,10 +2563,6 @@ const QuaternionGame = () => {
                     <Brain className="w-4 h-4 mr-2" />
                     Tech
                   </Button>
-                </div>
-                <div className="text-sm text-cyan-200 flex items-center gap-2 bg-gray-800/50 px-2 py-1 rounded backdrop-blur-sm text-readable-neon">
-                  <Trophy className="w-4 h-4 text-yellow-300" />
-                  <span>Chroma Awards 2025 - Puzzle/Strategy | Tools: ElevenLabs, OpenArt, Google AI, Fuser, Luma AI</span>
                 </div>
               </div>
             </div>
@@ -2805,41 +2801,47 @@ const QuaternionGame = () => {
           )}
 
           {/* Black Market Panel */}
-          <BlackMarketPanel
-            offers={marketOffers}
-            currentResources={{
-              [ResourceType.ORE]: resources.ore,
-              [ResourceType.ENERGY]: resources.energy,
-              [ResourceType.BIOMASS]: resources.biomass,
-              [ResourceType.DATA]: resources.data
-            }}
-            onAccept={(offerId) => {
-              if (puzzleManagerRef.current) {
-                const result = puzzleManagerRef.current.acceptMarketOffer(offerId);
-                if (result.success && result.offer) {
-                  // Apply costs and rewards
-                  const costs = result.offer.resourceCosts;
-                  const rewards = result.offer.resourceRewards;
-                  setResources(prev => ({
-                    ore: prev.ore - (costs.ore || 0) + (rewards[ResourceType.ORE] || 0),
-                    energy: prev.energy - (costs.energy || 0) + (rewards[ResourceType.ENERGY] || 0),
-                    biomass: prev.biomass - (costs.biomass || 0) + (rewards[ResourceType.BIOMASS] || 0),
-                    data: prev.data - (costs.data || 0) + (rewards[ResourceType.DATA] || 0)
-                  }));
+          {marketOffers.length > 0 && (
+            <BlackMarketPanel
+              offers={marketOffers}
+              currentResources={{
+                [ResourceType.ORE]: resources.ore,
+                [ResourceType.ENERGY]: resources.energy,
+                [ResourceType.BIOMASS]: resources.biomass,
+                [ResourceType.DATA]: resources.data
+              }}
+              onAccept={(offerId) => {
+                if (puzzleManagerRef.current) {
+                  const result = puzzleManagerRef.current.acceptMarketOffer(offerId);
+                  if (result.success && result.offer) {
+                    // Apply costs and rewards
+                    const costs = result.offer.resourceCosts;
+                    const rewards = result.offer.resourceRewards;
+                    setResources(prev => ({
+                      ore: prev.ore - (costs.ore || 0) + (rewards[ResourceType.ORE] || 0),
+                      energy: prev.energy - (costs.energy || 0) + (rewards[ResourceType.ENERGY] || 0),
+                      biomass: prev.biomass - (costs.biomass || 0) + (rewards[ResourceType.BIOMASS] || 0),
+                      data: prev.data - (costs.data || 0) + (rewards[ResourceType.DATA] || 0)
+                    }));
 
-                  if (result.riskTriggered && result.penalties) {
-                    toast.error('Hidden risk triggered!', {
-                      description: result.penalties.effects?.join(', ') || 'Unexpected consequences'
-                    });
-                  } else {
-                    toast.success('Market offer accepted', {
-                      description: result.offer.description
-                    });
+                    if (result.riskTriggered && result.penalties) {
+                      toast.error('Hidden risk triggered!', {
+                        description: result.penalties.effects?.join(', ') || 'Unexpected consequences'
+                      });
+                    } else {
+                      toast.success('Market offer accepted', {
+                        description: result.offer.description
+                      });
+                    }
                   }
                 }
-              }
-            }}
-          />
+              }}
+              onDismiss={(offerId) => {
+                // Simply remove the offer from the state
+                setMarketOffers(prev => prev.filter(o => o.offerId !== offerId));
+              }}
+            />
+          )}
 
           {/* Resource Advisor Panel */}
           {advisorAdvice && puzzleManagerRef.current && (
@@ -2858,22 +2860,33 @@ const QuaternionGame = () => {
           {/* AI Offers Panel */}
           {aiOffers.length > 0 && (
             <div className="absolute bottom-24 left-4 z-20">
-              <AIOffersPanel
-                offers={aiOffers}
-                onAccept={(offerId) => {
-                  if (symbioticGameplayRef.current) {
-                    symbioticGameplayRef.current.acceptOffer(offerId);
-                    setAiOffers(prev => prev.filter(o => o.id !== offerId));
-                    toast.success('AI offer accepted!');
-                  }
-                }}
-                onReject={(offerId) => {
-                  if (symbioticGameplayRef.current) {
-                    symbioticGameplayRef.current.rejectOffer(offerId);
-                    setAiOffers(prev => prev.filter(o => o.id !== offerId));
-                  }
-                }}
-              />
+              <div className="relative">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="absolute top-0 right-0 z-10 h-6 w-6 p-0 text-gray-400 hover:text-white"
+                  onClick={() => setAiOffers([])}
+                  title="Hide AI Offers"
+                >
+                  <X className="w-3 h-3" />
+                </Button>
+                <AIOffersPanel
+                  offers={aiOffers}
+                  onAccept={(offerId) => {
+                    if (symbioticGameplayRef.current) {
+                      symbioticGameplayRef.current.acceptOffer(offerId);
+                      setAiOffers(prev => prev.filter(o => o.id !== offerId));
+                      toast.success('AI offer accepted!');
+                    }
+                  }}
+                  onReject={(offerId) => {
+                    if (symbioticGameplayRef.current) {
+                      symbioticGameplayRef.current.rejectOffer(offerId);
+                      setAiOffers(prev => prev.filter(o => o.id !== offerId));
+                    }
+                  }}
+                />
+              </div>
             </div>
           )}
 

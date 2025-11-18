@@ -56,3 +56,71 @@ export const routes = [
   { path: "/battle-pass", name: "Battle Pass", component: "BattlePass" },
 ];
 
+/**
+ * All lazy-loaded components for Lovable discovery
+ * This ensures all dynamically imported modules are discoverable
+ */
+export const lazyComponents = {
+  LazyGame,
+  LazyQuaternionGame,
+  LazyLobby,
+  LazyAbout,
+  LazyCommanders,
+  LazyHowToPlay,
+  LazyAIFeatures,
+  LazyReplays,
+  LazyTechTree,
+  LazyMapGenerator,
+  LazyCosmeticShop,
+  LazyCheckout,
+  LazyBattlePass,
+  LazyNotFound,
+};
+
+/**
+ * Preload all lazy-loaded modules
+ * This function ensures all dynamically imported modules are downloaded
+ * Useful for ensuring Lovable can discover and analyze all routes
+ */
+export async function preloadAllLazyModules(): Promise<void> {
+  const imports = [
+    import("../pages/Game"),
+    import("../pages/QuaternionGame"),
+    import("../pages/Lobby"),
+    import("../pages/About"),
+    import("../pages/Commanders"),
+    import("../pages/HowToPlay"),
+    import("../pages/AIFeatures"),
+    import("../pages/Replays"),
+    import("../pages/TechTree"),
+    import("../pages/MapGenerator"),
+    import("../pages/CosmeticShop"),
+    import("../pages/Checkout"),
+    import("../pages/BattlePass"),
+    import("../pages/NotFound"),
+  ];
+
+  await Promise.all(imports);
+}
+
+/**
+ * All dynamic import paths for Lovable discovery
+ * This array helps Lovable find all dynamically imported modules
+ */
+export const dynamicImportPaths = [
+  "../pages/Game",
+  "../pages/QuaternionGame",
+  "../pages/Lobby",
+  "../pages/About",
+  "../pages/Commanders",
+  "../pages/HowToPlay",
+  "../pages/AIFeatures",
+  "../pages/Replays",
+  "../pages/TechTree",
+  "../pages/MapGenerator",
+  "../pages/CosmeticShop",
+  "../pages/Checkout",
+  "../pages/BattlePass",
+  "../pages/NotFound",
+] as const;
+

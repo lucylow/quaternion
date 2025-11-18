@@ -193,17 +193,6 @@ export const EndgameScene = ({ endgameData, gameTime, onRestart }: EndgameSceneP
             Main Menu
           </Button>
         </div>
-
-        {/* Chroma Awards Footer */}
-        <div 
-          className={`mt-12 pt-6 border-t border-white/10 transition-opacity duration-1000 delay-5000 ${
-            showControls ? 'opacity-100' : 'opacity-0'
-          }`}
-        >
-          <p className="text-xs text-gray-500">
-            Chroma Awards 2025 Submission | www.ChromaAwards.com
-          </p>
-        </div>
       </div>
 
       {/* Particle Effects for Ultimate Balance */}

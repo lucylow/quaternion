@@ -217,14 +217,8 @@ const Index = () => {
               </span>
             </div>
             
-            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-secondary to-primary text-primary-foreground px-3 sm:px-4 py-2 rounded-md font-bold text-xs sm:text-sm">
-              <Trophy className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="hidden sm:inline">Chroma Awards 2025 Submission - Puzzle/Strategy Category</span>
-              <span className="sm:hidden">Chroma Awards 2025</span>
-            </div>
             <div className="text-xs sm:text-sm text-muted-foreground mt-2">
               <p>Tools Used: ElevenLabs, OpenArt, LTX Studio, Fuser, Luma AI, SAGA, Google Gemini 2.5 Flash</p>
-              <p className="mt-1">Visit <a href="https://www.ChromaAwards.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">www.ChromaAwards.com</a> for more information</p>
             </div>
           </div>
           
@@ -262,8 +256,7 @@ const Index = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
             <div className="space-y-2 p-6 rounded-lg bg-card/50 border border-primary/20 hover:border-primary/40 transition-colors">
               <div className="text-5xl mb-2">🏆</div>
-              <h4 className="text-xl font-bold text-primary">Chroma Awards 2025</h4>
-              <p className="text-muted-foreground">Official Submission</p>
+              <h4 className="text-xl font-bold text-primary">Official Submission</h4>
             </div>
             <div className="space-y-2 p-6 rounded-lg bg-card/50 border border-primary/20 hover:border-primary/40 transition-colors">
               <div className="text-5xl mb-2">⭐</div>
@@ -434,7 +427,7 @@ const Index = () => {
                 <div>
                   <h4 className="font-bold mb-2 flex items-center gap-2">
                     <Trophy className="w-5 h-5 text-primary" />
-                    Chroma Awards Compliant
+                    Browser Compatible
                   </h4>
                   <p className="text-sm text-muted-foreground">Playable in browser with no downloads or login required</p>
                 </div>
@@ -518,7 +511,7 @@ const Index = () => {
           <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 mb-6 sm:mb-8">
             <div>
               <div className="text-xl font-bold text-primary mb-4">QUATERNION: NEURAL FRONTIER</div>
-              <p className="text-sm text-muted-foreground mb-4">An AI-generated strategy experience for the Chroma Awards 2025</p>
+              <p className="text-sm text-muted-foreground mb-4">An AI-generated strategy experience</p>
               <div className="inline-flex items-center gap-2 bg-gradient-to-r from-secondary to-primary text-primary-foreground px-3 py-1 rounded text-sm font-bold">
                 <Trophy className="w-4 h-4" />
                 Official Submission
@@ -564,13 +557,12 @@ const Index = () => {
                 <a href="#" className="block text-muted-foreground hover:text-primary transition-colors">Discord</a>
                 <a href="#" className="block text-muted-foreground hover:text-primary transition-colors">Twitter</a>
                 <a href="#" className="block text-muted-foreground hover:text-primary transition-colors">YouTube</a>
-                <a href="https://chromaawards.devpost.com/" target="_blank" rel="noopener noreferrer" className="block text-muted-foreground hover:text-primary transition-colors">Chroma Awards</a>
               </div>
             </div>
           </div>
           
           <div className="border-t border-primary/20 pt-8 text-center text-sm text-muted-foreground">
-            <p className="mb-2">© 2025 Quaternion: Neural Frontier. Created for the Chroma Awards: AI Film, Music Videos, and Games competition.</p>
+            <p className="mb-2">© 2025 Quaternion: Neural Frontier.</p>
             <p>This project uses AI-generated content created with proper licensing and permissions for all assets.</p>
           </div>
         </div>
