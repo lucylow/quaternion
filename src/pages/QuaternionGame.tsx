@@ -380,12 +380,19 @@ const QuaternionGame = () => {
       }
 
       console.log('Creating Phaser config with parent:', containerElement);
+      console.log('Container dimensions:', containerElement.offsetWidth, 'x', containerElement.offsetHeight);
+      console.log('Container computed style:', window.getComputedStyle(containerElement).display);
+      
+      // Get container dimensions or use window size
+      const containerWidth = containerElement.offsetWidth || window.innerWidth;
+      const containerHeight = containerElement.offsetHeight || window.innerHeight;
+      
       const config: Phaser.Types.Core.GameConfig = {
         type: Phaser.AUTO,
-        width: 1200,
-        height: 700,
+        width: containerWidth || 1200,
+        height: containerHeight || 700,
         parent: containerElement, // Use element directly
-        backgroundColor: '#001122',
+        backgroundColor: '#001122', // Dark blue background - visible even if nothing else renders
       scene: {
         preload: preload,
         create: create,
@@ -475,10 +482,10 @@ const QuaternionGame = () => {
           console.warn('[Preload] WARNING: No monster textures loaded! Check asset paths and file names.');
         }
         
-        setTimeout(() => {
-          setLoading(false);
-          gameStateRef.current?.start();
-        }, 500);
+        // Always set loading to false and start game, even if assets failed
+        setLoading(false);
+        gameStateRef.current?.start();
+        console.log('[Preload] Game ready - loading screen should disappear');
       });
 
       // Log loading progress
@@ -506,15 +513,20 @@ const QuaternionGame = () => {
         }
       });
 
-      // Fallback timeout in case assets don't load
+      // Fallback timeout in case assets don't load - ensure game always starts
       setTimeout(() => {
         if (this.load.progress < 1) {
           console.warn(`Assets not fully loaded. Progress: ${(this.load.progress * 100).toFixed(1)}%`);
           console.log('Available textures:', Object.keys(this.textures.list));
-          setLoading(false);
+          console.warn('[Preload] Proceeding with partial asset load - game will use fallback rendering');
+        }
+        // Always set loading to false after timeout to ensure game is playable
+        setLoading(false);
+        if (gameStateRef.current && !gameStateRef.current.isRunning) {
           gameStateRef.current?.start();
         }
-      }, 5000);
+        console.log('[Preload] Fallback timeout - game ready');
+      }, 3000); // Reduced timeout to 3 seconds for faster startup
     }
 
     // Create particle emitter for effects
@@ -825,12 +837,15 @@ const QuaternionGame = () => {
         const worldWidth = width * 2;
         const worldHeight = height * 2;
         const bgGraphics = this.add.graphics();
-        bgGraphics.fillGradientStyle(0x001122, 0x001122, 0x002244, 0x002244, 1);
+        // Use a more visible gradient that clearly shows the game area
+        bgGraphics.fillGradientStyle(0x001122, 0x001122, 0x003366, 0x002244, 1);
         bgGraphics.fillRect(0, 0, worldWidth, worldHeight);
         bgGraphics.setDepth(-1000);
         bgGraphics.setScrollFactor(1);
+        bgGraphics.setVisible(true);
+        bgGraphics.setActive(true);
         backgroundImage = bgGraphics;
-        console.log('[Background] Gradient fallback background created');
+        console.log('[Background] Gradient fallback background created and visible');
       } else {
         // Ensure background is set up correctly
         if (backgroundImage instanceof Phaser.GameObjects.Image) {
@@ -839,6 +854,16 @@ const QuaternionGame = () => {
           backgroundImage.setActive(true);
           console.log('[Background] Map background verified and visible');
         }
+      }
+      
+      // CRITICAL: Ensure something is always visible - add a test rectangle if nothing else
+      if (!backgroundImage || (backgroundImage instanceof Phaser.GameObjects.Image && !backgroundImage.visible)) {
+        console.error('[Background] CRITICAL: No visible background! Creating emergency fallback');
+        const emergencyBg = this.add.rectangle(width, height, width * 2, height * 2, 0x001133, 1);
+        emergencyBg.setDepth(-1001);
+        emergencyBg.setScrollFactor(1);
+        emergencyBg.setVisible(true);
+        console.log('[Background] Emergency background created');
       }
       
       // Add grid overlay on top of background
@@ -1125,7 +1150,7 @@ const QuaternionGame = () => {
         const unitType = i < 3 ? 'worker' : 'soldier';
         const unitAxis = i < 3 ? 'matter' : 'energy';
         
-        // Create unit as physics sprite
+        // Create unit as physics sprite with visible graphics
         const unit = this.physics.add.sprite(unitX, unitY, '');
         unit.displayWidth = 40;
         unit.displayHeight = 40;
@@ -1139,16 +1164,32 @@ const QuaternionGame = () => {
         unit.setData('damage', unitType === 'soldier' ? 15 : 5);
         unit.setData('state', 'idle');
         
-        // Create unit graphics with axis-themed visuals
+        // Create unit graphics with axis-themed visuals - CRITICAL: Make sure graphics are visible!
         const unitGraphics = this.add.graphics();
         const design = AXIS_DESIGNS[unitAxis];
         const primaryColor = hexToPhaserColor(design.primary);
         const glowColor = hexToPhaserColor(design.glow);
         
-        unitGraphics.fillStyle(primaryColor, 0.8);
-        unitGraphics.fillCircle(unit.x, unit.y, 20);
-        unitGraphics.lineStyle(2, glowColor, 1);
-        unitGraphics.strokeCircle(unit.x, unit.y, 20);
+        // Draw visible unit shape
+        unitGraphics.fillStyle(primaryColor, 1.0); // Full opacity for visibility
+        if (unitType === 'worker') {
+          unitGraphics.fillCircle(0, 0, 20);
+        } else {
+          // Soldier - triangle shape
+          unitGraphics.fillTriangle(-15, 15, 0, -15, 15, 15);
+        }
+        unitGraphics.lineStyle(3, glowColor, 1); // Thicker line for visibility
+        if (unitType === 'worker') {
+          unitGraphics.strokeCircle(0, 0, 20);
+        } else {
+          unitGraphics.strokeTriangle(-15, 15, 0, -15, 15, 15);
+        }
+        
+        // Position graphics at unit location
+        unitGraphics.setPosition(unitX, unitY);
+        unitGraphics.setDepth(100); // Ensure units are above background
+        unitGraphics.setVisible(true);
+        unitGraphics.setActive(true);
         
         unit.setData('graphics', unitGraphics);
         playerUnits.push(unit);
@@ -2398,6 +2439,19 @@ const QuaternionGame = () => {
       console.log('Initializing Phaser game with config:', config);
       try {
         const game = new Phaser.Game(config);
+        
+        // CRITICAL: Ensure canvas is visible immediately
+        if (game.canvas) {
+          game.canvas.style.display = 'block';
+          game.canvas.style.width = '100%';
+          game.canvas.style.height = '100%';
+          game.canvas.style.pointerEvents = 'auto';
+          game.canvas.style.position = 'relative';
+          console.log('[Phaser] Canvas style set - should be visible now');
+          console.log('[Phaser] Canvas dimensions:', game.canvas.width, 'x', game.canvas.height);
+        }
+        
+        // Store game reference
         phaserGameRef.current = game;
 
         // Log game initialization
@@ -3064,7 +3118,10 @@ const QuaternionGame = () => {
               height: '100%',
               pointerEvents: 'auto',
               touchAction: 'none',
-              zIndex: 1
+              zIndex: 1,
+              backgroundColor: '#000011', // Dark blue background to show canvas area
+              minHeight: '100vh',
+              minWidth: '100vw'
             }}
           />
 

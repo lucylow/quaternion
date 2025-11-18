@@ -90,7 +90,9 @@ const Index = () => {
             </a>
             <div className="hidden md:flex items-center gap-6">
               <a href="#overview" onClick={(e) => { e.preventDefault(); scrollToSection('overview'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">Overview</a>
-              <a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection('features'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">Features</a>
+                <a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection('features'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">Features</a>
+              <a href="#maps" onClick={(e) => { e.preventDefault(); scrollToSection('maps'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">Maps</a>
+              <a href="#monsters" onClick={(e) => { e.preventDefault(); scrollToSection('monsters'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">Monsters</a>
               <a href="/about" onClick={(e) => { e.preventDefault(); navigate('/about'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">About</a>
               <a href="/commanders" onClick={(e) => { e.preventDefault(); navigate('/commanders'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">Commanders</a>
               <a href="/how-to-play" onClick={(e) => { e.preventDefault(); navigate('/how-to-play'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">How to Play</a>
@@ -150,6 +152,8 @@ const Index = () => {
               <div className="flex flex-col gap-3">
                 <a href="#overview" onClick={(e) => { e.preventDefault(); scrollToSection('overview'); }} className="hover:text-primary transition-colors py-2 text-sm">Overview</a>
                 <a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection('features'); }} className="hover:text-primary transition-colors py-2 text-sm">Features</a>
+                <a href="#maps" onClick={(e) => { e.preventDefault(); scrollToSection('maps'); }} className="hover:text-primary transition-colors py-2 text-sm">Maps</a>
+                <a href="#monsters" onClick={(e) => { e.preventDefault(); scrollToSection('monsters'); }} className="hover:text-primary transition-colors py-2 text-sm">Monsters</a>
                 <a href="/about" onClick={(e) => { e.preventDefault(); navigate('/about'); setMobileMenuOpen(false); }} className="hover:text-primary transition-colors py-2 text-sm">About</a>
                 <a href="/commanders" onClick={(e) => { e.preventDefault(); navigate('/commanders'); setMobileMenuOpen(false); }} className="hover:text-primary transition-colors py-2 text-sm">Commanders</a>
                 <a href="/how-to-play" onClick={(e) => { e.preventDefault(); navigate('/how-to-play'); setMobileMenuOpen(false); }} className="hover:text-primary transition-colors py-2 text-sm">How to Play</a>
@@ -189,6 +193,13 @@ const Index = () => {
             <p className="text-base sm:text-lg text-muted-foreground">
               An AI-generated strategy game where every decision rotates the four dimensions of reality. Command procedurally generated armies, exploit dynamic terrain, and balance the Quaternion to achieve victory.
             </p>
+            <div className="relative mt-6 rounded-lg overflow-hidden border border-primary/30 shadow-neon">
+              <img 
+                src="/assets/monsters/DALL·E 2024-11-22 18.35.00 - Design a cinematic, ultra-high-quality sci-fi movie poster for 'Quaternion.' The composition features a massive, glowing monster emanating the four po.webp"
+                alt="Quaternion Game"
+                className="w-full h-auto object-cover"
+              />
+            </div>
             <div className="flex flex-wrap gap-3 sm:gap-4">
               <Button 
                 size="lg" 
@@ -283,7 +294,7 @@ const Index = () => {
               <CardContent className="p-6">
                 <Grid3x3 className="w-12 h-12 text-primary mb-4 group-hover:scale-110 transition-transform" />
                 <h3 className="text-xl font-bold mb-2 text-primary">Procedural Strategy</h3>
-                <p className="text-muted-foreground">Every match features AI-generated maps, units, and commanders. No two games are alike with our neural terrain synthesis system.</p>
+                <p className="text-muted-foreground">AI-generated maps, units, and commanders. No two games are alike.</p>
               </CardContent>
             </Card>
 
@@ -291,7 +302,7 @@ const Index = () => {
               <CardContent className="p-6">
                 <Bot className="w-12 h-12 text-primary mb-4 group-hover:scale-110 transition-transform" />
                 <h3 className="text-xl font-bold mb-2 text-primary">AI-Driven Gameplay</h3>
-                <p className="text-muted-foreground">Command AI generals with unique personalities, each with their own strategic preferences and evolving tactics.</p>
+                <p className="text-muted-foreground">Command AI generals with unique personalities and evolving tactics.</p>
               </CardContent>
             </Card>
 
@@ -299,7 +310,215 @@ const Index = () => {
               <CardContent className="p-6">
                 <Brain className="w-12 h-12 text-primary mb-4 group-hover:scale-110 transition-transform" />
                 <h3 className="text-xl font-bold mb-2 text-primary">Four-Dimensional Balance</h3>
-                <p className="text-muted-foreground">Master the Quaternion system: Matter, Energy, Life, and Knowledge. Each decision shifts the balance of power.</p>
+                <p className="text-muted-foreground">Master the Quaternion: Matter, Energy, Life, and Knowledge.</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Maps Gallery Section */}
+      <section id="maps" className="py-12 sm:py-20 bg-muted/20">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl sm:text-4xl font-bold text-center mb-4 text-primary">Explore Diverse Battlefields</h2>
+          <div className="w-24 h-1 bg-primary mx-auto mb-8 sm:mb-12 shadow-neon" />
+          
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group">
+              <div className="aspect-video relative overflow-hidden">
+                <img 
+                  src="/assets/maps/DALL·E 2024-11-20 16.22.41 - Create a unique 2D and 3D map design for a volcanic terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowing.webp"
+                  alt="Volcanic Terrain Map"
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                />
+              </div>
+              <CardContent className="p-4">
+                <h3 className="font-bold text-primary">Volcanic Terrain</h3>
+              </CardContent>
+            </Card>
+
+            <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '100ms' }}>
+              <div className="aspect-video relative overflow-hidden">
+                <img 
+                  src="/assets/maps/DALL·E 2024-11-20 16.22.45 - Create a unique 2D and 3D map design for a lush alien jungle for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowin.webp"
+                  alt="Alien Jungle Map"
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                />
+              </div>
+              <CardContent className="p-4">
+                <h3 className="font-bold text-primary">Alien Jungle</h3>
+              </CardContent>
+            </Card>
+
+            <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '200ms' }}>
+              <div className="aspect-video relative overflow-hidden">
+                <img 
+                  src="/assets/maps/DALL·E 2024-11-20 16.22.38 - Create a unique 2D and 3D map design for an icy wasteland for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature slippery .webp"
+                  alt="Icy Wasteland Map"
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                />
+              </div>
+              <CardContent className="p-4">
+                <h3 className="font-bold text-primary">Icy Wasteland</h3>
+              </CardContent>
+            </Card>
+
+            <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '300ms' }}>
+              <div className="aspect-video relative overflow-hidden">
+                <img 
+                  src="/assets/maps/DALL·E 2024-11-20 16.22.35 - Create a unique 2D and 3D map design for a desert terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature shifting .webp"
+                  alt="Desert Terrain Map"
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                />
+              </div>
+              <CardContent className="p-4">
+                <h3 className="font-bold text-primary">Desert Terrain</h3>
+              </CardContent>
+            </Card>
+
+            <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group">
+              <div className="aspect-video relative overflow-hidden">
+                <img 
+                  src="/assets/maps/DALL·E 2024-11-20 16.22.32 - Create a unique 2D and 3D map design for a mountainous terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature laye.webp"
+                  alt="Mountainous Terrain Map"
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                />
+              </div>
+              <CardContent className="p-4">
+                <h3 className="font-bold text-primary">Mountainous</h3>
+              </CardContent>
+            </Card>
+
+            <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '100ms' }}>
+              <div className="aspect-video relative overflow-hidden">
+                <img 
+                  src="/assets/maps/DALL·E 2024-11-20 16.22.24 - Create a unique 2D and 3D map design for an urban battlefield for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature dense.webp"
+                  alt="Urban Battlefield Map"
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                />
+              </div>
+              <CardContent className="p-4">
+                <h3 className="font-bold text-primary">Urban Battlefield</h3>
+              </CardContent>
+            </Card>
+
+            <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '200ms' }}>
+              <div className="aspect-video relative overflow-hidden">
+                <img 
+                  src="/assets/maps/DALL·E 2024-11-20 16.22.21 - Create a unique 2D and 3D map design for a twilight biome for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowing a.webp"
+                  alt="Twilight Biome Map"
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                />
+              </div>
+              <CardContent className="p-4">
+                <h3 className="font-bold text-primary">Twilight Biome</h3>
+              </CardContent>
+            </Card>
+
+            <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '300ms' }}>
+              <div className="aspect-video relative overflow-hidden">
+                <img 
+                  src="/assets/maps/DALL·E 2024-11-20 16.22.28 - Create a unique 2D and 3D map design for an underwater biome for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowin.webp"
+                  alt="Underwater Biome Map"
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                />
+              </div>
+              <CardContent className="p-4">
+                <h3 className="font-bold text-primary">Underwater</h3>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* Monsters Gallery Section */}
+      <section id="monsters" className="py-12 sm:py-20">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl sm:text-4xl font-bold text-center mb-4 text-primary">Face Colossal Threats</h2>
+          <div className="w-24 h-1 bg-primary mx-auto mb-8 sm:mb-12 shadow-neon" />
+          
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+            <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group">
+              <div className="aspect-[4/3] relative overflow-hidden">
+                <img 
+                  src="/assets/monsters/DALL·E 2024-11-22 19.02.15 - Create a visually striking and highly original sci-fi illustration for 'Quaternion_ Defend the Dimensions.' Center the image on a colossal monster for.webp"
+                  alt="Colossal Monster"
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                />
+              </div>
+              <CardContent className="p-6">
+                <h3 className="text-xl font-bold text-primary mb-2">Elemental Guardian</h3>
+                <p className="text-muted-foreground text-sm">A massive elemental monster formed from four floating islands.</p>
+              </CardContent>
+            </Card>
+
+            <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '100ms' }}>
+              <div className="aspect-[4/3] relative overflow-hidden">
+                <img 
+                  src="/assets/monsters/DALL·E 2024-11-22 18.54.19 - Design a breathtaking sci-fi illustration for 'Quaternion_ Defend the Dimensions.' Depict a massive elemental monster formed from four floating island.webp"
+                  alt="Elemental Monster"
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                />
+              </div>
+              <CardContent className="p-6">
+                <h3 className="text-xl font-bold text-primary mb-2">Four-Powered Titan</h3>
+                <p className="text-muted-foreground text-sm">Towering monster radiating Time, Space, Matter, and Energy.</p>
+              </CardContent>
+            </Card>
+
+            <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '200ms' }}>
+              <div className="aspect-[4/3] relative overflow-hidden">
+                <img 
+                  src="/assets/monsters/DALL·E 2024-11-22 18.49.09 - Create an original and highly detailed sci-fi illustration of a colossal elemental monster formed from four floating islands, each representing a dist.webp"
+                  alt="Floating Islands Monster"
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                />
+              </div>
+              <CardContent className="p-6">
+                <h3 className="text-xl font-bold text-primary mb-2">Dimensional Beast</h3>
+                <p className="text-muted-foreground text-sm">Each island represents a distinct dimension of power.</p>
+              </CardContent>
+            </Card>
+
+            <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group">
+              <div className="aspect-[4/3] relative overflow-hidden">
+                <img 
+                  src="/assets/monsters/DALL·E 2024-11-22 18.44.15 - Design an enhanced sci-fi movie poster for 'Quaternion,' focusing on the battle between a colossal monster and three futuristic starships. The monster.webp"
+                  alt="Battle Scene Monster"
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                />
+              </div>
+              <CardContent className="p-6">
+                <h3 className="text-xl font-bold text-primary mb-2">Cosmic Battle</h3>
+                <p className="text-muted-foreground text-sm">Engage in epic battles against overwhelming forces.</p>
+              </CardContent>
+            </Card>
+
+            <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '100ms' }}>
+              <div className="aspect-[4/3] relative overflow-hidden">
+                <img 
+                  src="/assets/monsters/DALL·E 2024-11-22 18.42.21 - Create a visually striking sci-fi movie poster for 'Quaternion.' The central focus is a towering, glowing monster radiating four powers_ Time (blue, s.webp"
+                  alt="Glowing Monster"
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                />
+              </div>
+              <CardContent className="p-6">
+                <h3 className="text-xl font-bold text-primary mb-2">Radiant Guardian</h3>
+                <p className="text-muted-foreground text-sm">Glowing with the four primal forces of the universe.</p>
+              </CardContent>
+            </Card>
+
+            <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '200ms' }}>
+              <div className="aspect-[4/3] relative overflow-hidden">
+                <img 
+                  src="/assets/monsters/DALL·E 2024-11-20 16.27.15 - Create an AI-generated image of a Celestial Monster character from a celestial-themed game. The monster is chaotic and otherworldly, with glowing cosm.webp"
+                  alt="Celestial Monster"
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                />
+              </div>
+              <CardContent className="p-6">
+                <h3 className="text-xl font-bold text-primary mb-2">Celestial Chaos</h3>
+                <p className="text-muted-foreground text-sm">Otherworldly being with chaotic cosmic powers.</p>
               </CardContent>
             </Card>
           </div>
@@ -318,7 +537,7 @@ const Index = () => {
               <CardContent className="p-6 relative">
                 <Dices className="w-12 h-12 text-primary mb-4" />
                 <h3 className="text-xl font-bold mb-2 text-primary">Procedural Generation</h3>
-                <p className="text-muted-foreground">AI-powered terrain, unit, and narrative generation creates infinite replayability with Luma AI and Hailuo integration.</p>
+                <p className="text-muted-foreground">AI-powered terrain, units, and narrative create infinite replayability.</p>
               </CardContent>
             </Card>
 
@@ -327,7 +546,7 @@ const Index = () => {
               <CardContent className="p-6 relative">
                 <Mic className="w-12 h-12 text-primary mb-4" />
                 <h3 className="text-xl font-bold mb-2 text-primary">AI Voice Narration</h3>
-                <p className="text-muted-foreground">Dynamic narration and character voices powered by ElevenLabs, with context-aware emotional responses.</p>
+                <p className="text-muted-foreground">Dynamic narration powered by ElevenLabs with emotional responses.</p>
               </CardContent>
             </Card>
 
@@ -336,7 +555,7 @@ const Index = () => {
               <CardContent className="p-6 relative">
                 <Palette className="w-12 h-12 text-primary mb-4" />
                 <h3 className="text-xl font-bold mb-2 text-primary">AI-Generated Art</h3>
-                <p className="text-muted-foreground">All visual assets created with OpenArt, Dreamina, and ArtCraft, ensuring a unique aesthetic for every playthrough.</p>
+                <p className="text-muted-foreground">Unique visual assets from OpenArt, Dreamina, and ArtCraft.</p>
               </CardContent>
             </Card>
 
@@ -345,7 +564,7 @@ const Index = () => {
               <CardContent className="p-6 relative">
                 <Music className="w-12 h-12 text-primary mb-4" />
                 <h3 className="text-xl font-bold mb-2 text-primary">Adaptive Soundtrack</h3>
-                <p className="text-muted-foreground">Music and soundscape dynamically evolve based on gameplay using Fuser AI, matching the intensity of each moment.</p>
+                <p className="text-muted-foreground">Music evolves dynamically with gameplay intensity using Fuser AI.</p>
               </CardContent>
             </Card>
 
@@ -354,7 +573,7 @@ const Index = () => {
               <CardContent className="p-6 relative">
                 <GitBranch className="w-12 h-12 text-primary mb-4" />
                 <h3 className="text-xl font-bold mb-2 text-primary">Tech Tree Puzzles</h3>
-                <p className="text-muted-foreground">Strategic tech progression with optimal sequencing challenges. Each choice opens new tactical possibilities.</p>
+                <p className="text-muted-foreground">Strategic progression with optimal sequencing challenges.</p>
               </CardContent>
             </Card>
 
@@ -362,8 +581,8 @@ const Index = () => {
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
               <CardContent className="p-6 relative">
                 <Mountain className="w-12 h-12 text-primary mb-4" />
-                <h3 className="text-xl font-bold mb-2 text-primary">Terrain-Based Strategy</h3>
-                <p className="text-muted-foreground">Exploit procedurally generated terrain features like chokepoints, elevation, and dynamic environmental hazards.</p>
+                <h3 className="text-xl font-bold mb-2 text-primary">Terrain Strategy</h3>
+                <p className="text-muted-foreground">Exploit procedurally generated terrain and environmental hazards.</p>
               </CardContent>
             </Card>
           </div>
@@ -376,7 +595,7 @@ const Index = () => {
           <h2 className="text-3xl sm:text-4xl font-bold text-center mb-4 text-primary">AI Tools Integration</h2>
           <div className="w-24 h-1 bg-primary mx-auto mb-6 shadow-neon" />
           <p className="text-center text-muted-foreground max-w-3xl mx-auto mb-8 sm:mb-12 text-sm sm:text-base px-4">
-            Quaternion showcases cutting-edge AI creativity by integrating multiple AI tools throughout the development process and gameplay experience.
+            Cutting-edge AI creativity powers every aspect of the experience.
           </p>
           
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
@@ -534,6 +753,8 @@ const Index = () => {
               <div className="space-y-2 text-sm">
                 <a href="#overview" onClick={(e) => { e.preventDefault(); scrollToSection('overview'); }} className="block text-muted-foreground hover:text-primary transition-colors">Game Overview</a>
                 <a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection('features'); }} className="block text-muted-foreground hover:text-primary transition-colors">Features</a>
+                <a href="#maps" onClick={(e) => { e.preventDefault(); scrollToSection('maps'); }} className="block text-muted-foreground hover:text-primary transition-colors">Maps</a>
+                <a href="#monsters" onClick={(e) => { e.preventDefault(); scrollToSection('monsters'); }} className="block text-muted-foreground hover:text-primary transition-colors">Monsters</a>
                 <a href="#ai-tools" onClick={(e) => { e.preventDefault(); scrollToSection('ai-tools'); }} className="block text-muted-foreground hover:text-primary transition-colors">AI Tools</a>
                 <a href="#demo" onClick={(e) => { e.preventDefault(); scrollToSection('demo'); }} className="block text-muted-foreground hover:text-primary transition-colors">Play Demo</a>
                 <a href="#characters" onClick={(e) => { e.preventDefault(); scrollToSection('characters'); }} className="block text-muted-foreground hover:text-primary transition-colors">Characters</a>

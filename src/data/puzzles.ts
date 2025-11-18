@@ -400,6 +400,377 @@ export const PUZZLES: Record<string, Puzzle> = {
     ],
     seed: 999012,
     unlockedBy: 'puzzle_8'
+  },
+
+  puzzle_13: {
+    id: 'puzzle_13',
+    name: 'Biomass Bloom',
+    description: 'Start with zero biomass. Grow your organic resources from scratch while maintaining other resource flows.',
+    difficulty: 'medium',
+    category: 'resource_race',
+    startingResources: {
+      ore: 200,
+      energy: 200,
+      biomass: 0,
+      data: 100
+    },
+    constraints: [
+      { type: 'resource_min', resource: 'biomass', value: 1 }, // Must maintain at least 1 biomass
+      { type: 'time_limit', value: 300 }
+    ],
+    winCondition: {
+      type: 'resource_target',
+      description: 'Reach 300 biomass while maintaining equilibrium with other resources',
+      target: 300
+    },
+    hints: [
+      'Build biomass extractors immediately',
+      'Don\'t let biomass drop to zero',
+      'Balance biomass growth with other resources',
+      'Workers can help gather biomass from nodes'
+    ],
+    seed: 999013,
+    unlockedBy: 'puzzle_2'
+  },
+
+  puzzle_14: {
+    id: 'puzzle_14',
+    name: 'The Clockwork',
+    description: 'Maintain resources in a specific ratio: 2:1:1:1 (ore:energy:biomass:data). Precision timing required.',
+    difficulty: 'medium',
+    category: 'equilibrium',
+    startingResources: {
+      ore: 200,
+      energy: 100,
+      biomass: 100,
+      data: 100
+    },
+    constraints: [
+      { type: 'time_limit', value: 360 }
+    ],
+    winCondition: {
+      type: 'equilibrium',
+      description: 'Maintain 2:1:1:1 ratio (ore:energy:biomass:data) for 25 seconds',
+      duration: 25
+    },
+    hints: [
+      'Ore should be exactly double the other resources',
+      'Monitor ratios constantly',
+      'Adjust production rates carefully',
+      'Use buildings to fine-tune resource generation'
+    ],
+    seed: 999014,
+    unlockedBy: 'puzzle_1'
+  },
+
+  puzzle_15: {
+    id: 'puzzle_15',
+    name: 'Rapid Fire',
+    description: 'Complete the challenge in under 2 minutes. Speed and efficiency are everything.',
+    difficulty: 'hard',
+    category: 'timing',
+    startingResources: {
+      ore: 150,
+      energy: 150,
+      biomass: 150,
+      data: 150
+    },
+    constraints: [
+      { type: 'time_limit', value: 120 } // Only 2 minutes!
+    ],
+    winCondition: {
+      type: 'equilibrium',
+      description: 'Achieve equilibrium within 2 minutes',
+      duration: 15
+    },
+    hints: [
+      'Act quickly - time is critical',
+      'Prioritize essential buildings',
+      'Don\'t waste time on unnecessary tech',
+      'Focus on immediate resource balance'
+    ],
+    seed: 999015,
+    unlockedBy: 'puzzle_9'
+  },
+
+  puzzle_16: {
+    id: 'puzzle_16',
+    name: 'The Juggler',
+    description: 'Keep all four resources above 100 but below 200. A delicate balancing act.',
+    difficulty: 'hard',
+    category: 'equilibrium',
+    startingResources: {
+      ore: 150,
+      energy: 150,
+      biomass: 150,
+      data: 150
+    },
+    constraints: [
+      { type: 'resource_min', resource: 'ore', value: 100 },
+      { type: 'resource_min', resource: 'energy', value: 100 },
+      { type: 'resource_min', resource: 'biomass', value: 100 },
+      { type: 'resource_min', resource: 'data', value: 100 },
+      { type: 'resource_max', resource: 'ore', value: 200 },
+      { type: 'resource_max', resource: 'energy', value: 200 },
+      { type: 'resource_max', resource: 'biomass', value: 200 },
+      { type: 'resource_max', resource: 'data', value: 200 },
+      { type: 'time_limit', value: 420 }
+    ],
+    winCondition: {
+      type: 'equilibrium',
+      description: 'Maintain all resources between 100-200 for 30 seconds',
+      duration: 30
+    },
+    hints: [
+      'Stop gathering when approaching limits',
+      'Use resources to stay in range',
+      'Monitor all four resources constantly',
+      'This requires precise control'
+    ],
+    seed: 999016,
+    unlockedBy: 'puzzle_6'
+  },
+
+  puzzle_17: {
+    id: 'puzzle_17',
+    name: 'Data Drought',
+    description: 'Knowledge is scarce. Research efficiently with minimal data resources available.',
+    difficulty: 'medium',
+    category: 'resource_race',
+    startingResources: {
+      ore: 300,
+      energy: 300,
+      biomass: 300,
+      data: 15 // Very low data
+    },
+    constraints: [
+      { type: 'resource_min', resource: 'data', value: 5 }, // Can't drop below 5
+      { type: 'time_limit', value: 480 }
+    ],
+    winCondition: {
+      type: 'technological',
+      description: 'Research 3 technologies while keeping data above 5',
+    },
+    hints: [
+      'Build data extractors first',
+      'Don\'t research too quickly',
+      'Balance data generation with research needs',
+      'Prioritize efficient research paths'
+    ],
+    seed: 999017,
+    unlockedBy: 'puzzle_4'
+  },
+
+  puzzle_18: {
+    id: 'puzzle_18',
+    name: 'The Cascade',
+    description: 'Resources must flow in sequence: ore → energy → biomass → data. Build the chain correctly.',
+    difficulty: 'hard',
+    category: 'efficiency',
+    startingResources: {
+      ore: 400,
+      energy: 50,
+      biomass: 50,
+      data: 50
+    },
+    constraints: [
+      { type: 'time_limit', value: 540 }
+    ],
+    winCondition: {
+      type: 'equilibrium',
+      description: 'Achieve equilibrium by converting resources in sequence',
+      duration: 20
+    },
+    hints: [
+      'Convert ore to energy first',
+      'Then use energy to produce biomass',
+      'Finally convert biomass to data',
+      'Build the conversion chain systematically'
+    ],
+    seed: 999018,
+    unlockedBy: 'puzzle_13'
+  },
+
+  puzzle_19: {
+    id: 'puzzle_19',
+    name: 'Zero Sum',
+    description: 'Total resources must never exceed 1000. Balance growth with strict limits.',
+    difficulty: 'hard',
+    category: 'equilibrium',
+    startingResources: {
+      ore: 250,
+      energy: 250,
+      biomass: 250,
+      data: 250
+    },
+    constraints: [
+      { type: 'time_limit', value: 600 }
+    ],
+    winCondition: {
+      type: 'equilibrium',
+      description: 'Maintain equilibrium for 40 seconds with total resources ≤ 1000',
+      duration: 40
+    },
+    hints: [
+      'Sum of all resources must stay under 1000',
+      'Spend resources to stay within limit',
+      'Balance is key - can\'t hoard resources',
+      'Monitor total resource count constantly'
+    ],
+    seed: 999019,
+    unlockedBy: 'puzzle_16'
+  },
+
+  puzzle_20: {
+    id: 'puzzle_20',
+    name: 'The Spiral',
+    description: 'Resources must cycle: ore peaks, then energy, then biomass, then data. Create the spiral pattern.',
+    difficulty: 'hard',
+    category: 'timing',
+    startingResources: {
+      ore: 200,
+      energy: 200,
+      biomass: 200,
+      data: 200
+    },
+    constraints: [
+      { type: 'time_limit', value: 600 }
+    ],
+    winCondition: {
+      type: 'equilibrium',
+      description: 'Complete one full cycle (ore→energy→biomass→data→ore) and return to equilibrium',
+      duration: 20
+    },
+    hints: [
+      'Let ore peak first, then shift to energy',
+      'Follow the cycle: ore → energy → biomass → data',
+      'Time your resource production shifts',
+      'End with all resources balanced'
+    ],
+    seed: 999020,
+    unlockedBy: 'puzzle_14'
+  },
+
+  puzzle_21: {
+    id: 'puzzle_21',
+    name: 'The Foundation',
+    description: 'Build exactly 8 buildings total - 2 of each type. No more, no less.',
+    difficulty: 'medium',
+    category: 'efficiency',
+    startingResources: {
+      ore: 300,
+      energy: 300,
+      biomass: 300,
+      data: 300
+    },
+    constraints: [
+      { type: 'time_limit', value: 480 }
+    ],
+    winCondition: {
+      type: 'equilibrium',
+      description: 'Achieve equilibrium with exactly 8 buildings (2 of each type)',
+      duration: 20
+    },
+    hints: [
+      'Plan your building layout carefully',
+      'You need 2 ore extractors, 2 refineries, 2 biomass farms, 2 research centers',
+      'Balance production across building types',
+      'No extra buildings allowed'
+    ],
+    seed: 999021,
+    unlockedBy: 'puzzle_3'
+  },
+
+  puzzle_22: {
+    id: 'puzzle_22',
+    name: 'The Pendulum',
+    description: 'Resources swing between two states: high ore/low energy, then high energy/low ore. Control the swing.',
+    difficulty: 'hard',
+    category: 'timing',
+    startingResources: {
+      ore: 400,
+      energy: 50,
+      biomass: 200,
+      data: 200
+    },
+    constraints: [
+      { type: 'time_limit', value: 540 }
+    ],
+    winCondition: {
+      type: 'equilibrium',
+      description: 'Complete two full swings (high ore→high energy→high ore) then achieve balance',
+      duration: 15
+    },
+    hints: [
+      'Start with high ore, convert to energy',
+      'Then convert energy back to ore',
+      'Complete the pendulum swing twice',
+      'End in perfect balance'
+    ],
+    seed: 999022,
+    unlockedBy: 'puzzle_18'
+  },
+
+  puzzle_23: {
+    id: 'puzzle_23',
+    name: 'The Trinity',
+    description: 'Maintain three resources equal while the fourth stays at exactly half their value.',
+    difficulty: 'hard',
+    category: 'equilibrium',
+    startingResources: {
+      ore: 200,
+      energy: 200,
+      biomass: 200,
+      data: 100
+    },
+    constraints: [
+      { type: 'time_limit', value: 480 }
+    ],
+    winCondition: {
+      type: 'equilibrium',
+      description: 'Keep ore, energy, and biomass equal while data is exactly half for 30 seconds',
+      duration: 30
+    },
+    hints: [
+      'Three resources must match exactly',
+      'Data must be exactly half of the others',
+      'Monitor all four resources carefully',
+      'Precision is critical'
+    ],
+    seed: 999023,
+    unlockedBy: 'puzzle_14'
+  },
+
+  puzzle_24: {
+    id: 'puzzle_24',
+    name: 'The Gauntlet',
+    description: 'Survive 5 minutes with enemies attacking while maintaining resource balance. Multi-tasking mastery.',
+    difficulty: 'hard',
+    category: 'defense',
+    startingResources: {
+      ore: 200,
+      energy: 200,
+      biomass: 200,
+      data: 200
+    },
+    constraints: [
+      { type: 'time_limit', value: 600 },
+      { type: 'resource_min', resource: 'ore', value: 50 },
+      { type: 'resource_min', resource: 'energy', value: 50 }
+    ],
+    winCondition: {
+      type: 'survival',
+      description: 'Survive 5 minutes while maintaining equilibrium and keeping resources above minimums',
+      duration: 300
+    },
+    hints: [
+      'Balance defense with resource management',
+      'Don\'t let resources drop too low',
+      'Build defensive structures',
+      'This tests all your skills'
+    ],
+    seed: 999024,
+    unlockedBy: 'puzzle_5'
   }
 };
 
