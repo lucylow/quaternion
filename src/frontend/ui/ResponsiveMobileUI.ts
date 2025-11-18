@@ -1,7 +1,8 @@
+// PATCHED BY CURSOR - phaser hitArea fix - 2024-11-18
 // src/frontend/ui/ResponsiveMobileUI.ts
 
 import Phaser from 'phaser';
-import { safeSetInteractive } from '../utils/inputSafe';
+import { safeSetInteractive } from '../../utils/inputSafe';
 
 interface TouchControl {
   bg?: Phaser.GameObjects.Arc;

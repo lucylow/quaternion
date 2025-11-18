@@ -75,7 +75,8 @@ export class MapScene extends Phaser.Scene {
         }
       );
 
-      buttonsafeSetInteractive(.setInteractive({ useHandCursor: true });, { useHandCursor: true });
+      // PATCHED BY CURSOR - phaser hitArea fix - 2024-11-18
+      safeSetInteractive(button, { useHandCursor: true });
       button.setDepth(100);
       button.setScrollFactor(0);
 
@@ -106,7 +107,8 @@ export class MapScene extends Phaser.Scene {
       }
     );
 
-    regenerateButtonsafeSetInteractive(.setInteractive({ useHandCursor: true });, { useHandCursor: true });
+    // PATCHED BY CURSOR - phaser hitArea fix - 2024-11-18
+    safeSetInteractive(regenerateButton, { useHandCursor: true });
     regenerateButton.setDepth(100);
     regenerateButton.setScrollFactor(0);
 

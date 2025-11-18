@@ -1,52 +1,146 @@
-// PATCHED BY CURSOR - phaser hitArea fix - 2024-11-18
+// PATCHED BY CURSOR - 2024-12-19 - safe bootstrap & debug
 // src/engine/phaserShim.js
+//
+// Phaser compatibility shim to prevent "input.hitAreaCallback is not a function" errors.
+// This shim runs early at app bootstrap to monkey-patch Phaser's input system.
 
-// Run this early during app bootstrap to patch Phaser input behaviors.
+console.log('[QUAT DEBUG] phaserShim: installing Phaser input compatibility shims');
 
-export function applyPhaserInputShims() {
+// Wait for Phaser to be available
+function installPhaserShim() {
+  if (typeof window === 'undefined') return;
+  
+  // Check if Phaser is already loaded
+  if (typeof window.Phaser === 'undefined') {
+    // Wait a bit and try again
+    setTimeout(installPhaserShim, 100);
+    return;
+  }
+
+  const Phaser = window.Phaser;
+  console.log('[QUAT DEBUG] phaserShim: Phaser detected, installing shims');
+
+  // Monkey-patch InputPlugin.setHitArea to ensure hitAreaCallback is always a function
   try {
-    if (typeof window.Phaser === 'undefined') {
-      console.warn('[QUAT DEBUG] Phaser not detected; skipping input shims');
-      return;
-    }
-    const InputPlugin = window.Phaser && window.Phaser.Input && window.Phaser.Input.InputPlugin;
-    if (InputPlugin && InputPlugin.prototype && !InputPlugin.prototype.__QUAT_SHIMMED__) {
-      const proto = InputPlugin.prototype;
-      proto.__QUAT_SHIMMED__ = true;
-      const originalSetHitArea = proto.setHitArea || null;
-      proto.setHitArea = function(gameObject, hitArea, callback, dropZone) {
-        try {
-          // if callback is not a function, replace with sensible default
-          if (typeof callback !== 'function') {
-            // choose default based on hitArea type if possible
-            if (window.Phaser && window.Phaser.Geom) {
-              if (window.Phaser.Geom.Rectangle && typeof window.Phaser.Geom.Rectangle.Contains === 'function') {
-                callback = window.Phaser.Geom.Rectangle.Contains;
-              } else if (window.Phaser.Geom.Circle && typeof window.Phaser.Geom.Circle.Contains === 'function') {
-                callback = window.Phaser.Geom.Circle.Contains;
+    if (Phaser.Input && Phaser.Input.InputPlugin) {
+      const InputPlugin = Phaser.Input.InputPlugin;
+      const originalSetHitArea = InputPlugin.prototype.setHitArea;
+
+      if (originalSetHitArea) {
+        InputPlugin.prototype.setHitArea = function(hitArea, callback) {
+          // Ensure callback is a function
+          if (callback && typeof callback !== 'function') {
+            console.warn('[QUAT DEBUG] phaserShim: hitAreaCallback is not a function, replacing with safe fallback', callback);
+            // Try to infer a safe callback based on hitArea type
+            if (hitArea && Phaser.Geom) {
+              if (hitArea instanceof Phaser.Geom.Rectangle || (hitArea.type === Phaser.Geom.RECTANGLE)) {
+                callback = Phaser.Geom.Rectangle.Contains;
+              } else if (hitArea instanceof Phaser.Geom.Circle || (hitArea.type === Phaser.Geom.CIRCLE)) {
+                callback = Phaser.Geom.Circle.Contains;
+              } else if (hitArea instanceof Phaser.Geom.Ellipse || (hitArea.type === Phaser.Geom.ELLIPSE)) {
+                callback = Phaser.Geom.Ellipse.Contains;
               } else {
-                callback = function(hitArea, x, y) { return true; };
+                // Fallback: permissive callback
+                callback = function() { return true; };
+              }
+            } else {
+              // Ultimate fallback
+              callback = function() { return true; };
+            }
+          } else if (!callback && hitArea) {
+            // If no callback provided but hitArea exists, try to infer one
+            if (Phaser.Geom) {
+              if (hitArea instanceof Phaser.Geom.Rectangle || (hitArea.type === Phaser.Geom.RECTANGLE)) {
+                callback = Phaser.Geom.Rectangle.Contains;
+              } else if (hitArea instanceof Phaser.Geom.Circle || (hitArea.type === Phaser.Geom.CIRCLE)) {
+                callback = Phaser.Geom.Circle.Contains;
+              } else if (hitArea instanceof Phaser.Geom.Ellipse || (hitArea.type === Phaser.Geom.ELLIPSE)) {
+                callback = Phaser.Geom.Ellipse.Contains;
+              }
+            }
+          }
+
+          // Call original with safe callback
+          return originalSetHitArea.call(this, hitArea, callback);
+        };
+        console.log('[QUAT DEBUG] phaserShim: InputPlugin.setHitArea patched');
+      }
+    }
+  } catch (err) {
+    console.warn('[QUAT DEBUG] phaserShim: failed to patch InputPlugin.setHitArea', err);
+  }
+
+  // Also patch GameObject.setInteractive if possible
+  try {
+    if (Phaser.GameObjects && Phaser.GameObjects.GameObject) {
+      const GameObject = Phaser.GameObjects.GameObject;
+      const originalSetInteractive = GameObject.prototype.setInteractive;
+
+      if (originalSetInteractive) {
+        GameObject.prototype.setInteractive = function(hitArea, callback, dropZone) {
+          // Ensure callback is a function if provided
+          if (callback && typeof callback !== 'function') {
+            console.warn('[QUAT DEBUG] phaserShim: setInteractive callback is not a function, replacing', callback);
+            if (hitArea && Phaser.Geom) {
+              if (hitArea instanceof Phaser.Geom.Rectangle || (hitArea.type === Phaser.Geom.RECTANGLE)) {
+                callback = Phaser.Geom.Rectangle.Contains;
+              } else if (hitArea instanceof Phaser.Geom.Circle || (hitArea.type === Phaser.Geom.CIRCLE)) {
+                callback = Phaser.Geom.Circle.Contains;
+              } else if (hitArea instanceof Phaser.Geom.Ellipse || (hitArea.type === Phaser.Geom.ELLIPSE)) {
+                callback = Phaser.Geom.Ellipse.Contains;
+              } else {
+                callback = function() { return true; };
               }
             } else {
               callback = function() { return true; };
             }
           }
-        } catch(e) {
-          console.warn('[QUAT DEBUG] setHitArea shim choose callback error', e);
-          callback = function() { return true; };
-        }
-        if (originalSetHitArea) {
-          return originalSetHitArea.call(this, gameObject, hitArea, callback, dropZone);
+
+          // Call original
+          const result = originalSetInteractive.call(this, hitArea, callback, dropZone);
+
+          // Post-patch: ensure input.hitAreaCallback is a function
+          if (this.input && this.input.hitAreaCallback && typeof this.input.hitAreaCallback !== 'function') {
+            console.warn('[QUAT DEBUG] phaserShim: post-patch fix needed for', this);
+            if (this.input.hitArea && Phaser.Geom) {
+              const h = this.input.hitArea;
+              if (h instanceof Phaser.Geom.Rectangle || (h.type === Phaser.Geom.RECTANGLE)) {
+                this.input.hitAreaCallback = Phaser.Geom.Rectangle.Contains;
+              } else if (h instanceof Phaser.Geom.Circle || (h.type === Phaser.Geom.CIRCLE)) {
+                this.input.hitAreaCallback = Phaser.Geom.Circle.Contains;
+              } else if (h instanceof Phaser.Geom.Ellipse || (h.type === Phaser.Geom.ELLIPSE)) {
+                this.input.hitAreaCallback = Phaser.Geom.Ellipse.Contains;
+              } else {
+                this.input.hitAreaCallback = function() { return true; };
+              }
         } else {
-          // fallback: call original setInteractive to ensure interactive state
-          try { gameObject.setInteractive(hitArea, callback); } catch(e){}
-          return gameObject;
+              this.input.hitAreaCallback = function() { return true; };
+            }
         }
+
+          return result;
       };
-      console.log('[QUAT DEBUG] Phaser InputPlugin.setHitArea shim installed');
+        console.log('[QUAT DEBUG] phaserShim: GameObject.setInteractive patched');
+      }
     }
   } catch (err) {
-    console.error('[QUAT DEBUG] applyPhaserInputShims error', err);
+    console.warn('[QUAT DEBUG] phaserShim: failed to patch GameObject.setInteractive', err);
   }
+
+  console.log('[QUAT DEBUG] phaserShim: installation complete');
 }
 
+// Install immediately if Phaser is already loaded, otherwise wait
+if (typeof window !== 'undefined') {
+  if (typeof window.Phaser !== 'undefined') {
+    installPhaserShim();
+  } else {
+    // Try to install when Phaser loads
+    const originalAddEventListener = window.addEventListener;
+    window.addEventListener('load', installPhaserShim, { once: true });
+    // Also try periodically (in case Phaser loads after 'load' event)
+    setTimeout(installPhaserShim, 500);
+    setTimeout(installPhaserShim, 1000);
+    setTimeout(installPhaserShim, 2000);
+  }
+}

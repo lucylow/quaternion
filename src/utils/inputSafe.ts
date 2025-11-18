@@ -1,3 +1,4 @@
+// PATCHED BY CURSOR - phaser hitArea fix - 2024-11-18
 /**
  * Safe input utilities for Phaser interactive objects
  * 
@@ -6,6 +7,7 @@
  */
 
 import Phaser from 'phaser';
+import { applyHitAreaCallbackSafely } from './phaserHelpers';
 
 /**
  * Safely test if a pointer is inside an interactive object's hit area
@@ -117,8 +119,12 @@ export function safeSetInteractive(
           obj,
           input
         );
-        // Try to fix it by using default interactive
-        (obj as any).setInteractive({ useHandCursor });
+        // PATCHED BY CURSOR - phaser hitArea fix - 2024-11-18
+        // Use helper to safely apply callback
+        applyHitAreaCallbackSafely(input, hitAreaCallback);
+      } else if (!input.hitAreaCallback || typeof input.hitAreaCallback !== 'function') {
+        // Ensure callback exists even if not provided
+        applyHitAreaCallbackSafely(input, hitAreaCallback);
       }
     }
   } catch (e) {
