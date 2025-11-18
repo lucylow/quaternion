@@ -473,6 +473,9 @@ export class QuaternionGameState {
       this.resourceManager.addResource(resourceType, amount * deltaTime);
     });
     
+    // Update buildings first (so they can generate resources)
+    this.mapManager.updateBuildings(deltaTime);
+    
     // Get building resource generation
     const buildingProduction = this.mapManager.getBuildingResourceGeneration();
     
@@ -482,11 +485,8 @@ export class QuaternionGameState {
       buildingProductionMap.set(type, amount);
     });
     
-    // Process resource tick
+    // Process resource tick (includes node generation and building production)
     this.resourceManager.processResourceTick(controlledNodes, buildingProductionMap);
-    
-    // Update buildings
-    this.mapManager.updateBuildings(deltaTime);
     
     // Process unit production
     const completedUnits = this.unitManager.processProductionTicks();
@@ -628,24 +628,11 @@ export class QuaternionGameState {
   /**
    * Calculate system instability based on resource imbalance
    */
+  // Instability is now calculated by ResourceManager
+  // This method is kept for backwards compatibility but does nothing
   private updateInstability(): void {
-    const player = this.players.get(1);
-    if (!player) return;
-    
-    const { ore, energy, biomass, data } = player.resources;
-    const avg = (ore + energy + biomass + data) / 4;
-    
-    // Calculate variance from average
-    const variance = [ore, energy, biomass, data]
-      .reduce((sum, val) => sum + Math.abs(val - avg), 0) / 4;
-    
-    // Instability increases with imbalance
-    this.instability = (variance / avg) * 100;
-    
-    // Check for critical resources at zero
-    if (ore === 0 || energy === 0 || biomass === 0 || data === 0) {
-      this.instability = this.maxInstability;
-    }
+    // Instability is now handled by ResourceManager.getInstability()
+    // This method is deprecated but kept to avoid breaking existing code
   }
   
   /**

@@ -151,51 +151,7 @@ export class ResourceManager {
     return true;
   }
 
-  /**
-   * Spend resources (returns false if can't afford)
-   */
-  public spendResources(cost: ResourceCost): boolean {
-    if (!this.canAfford(cost)) {
-      return false;
-    }
 
-    for (const [type, amount] of Object.entries(cost)) {
-      if (amount && amount > 0) {
-        const resource = this.resources.get(type as ResourceType);
-        if (resource) {
-          resource.currentAmount = Math.max(0, resource.currentAmount - amount);
-          this.notifyResourceChanged(type as ResourceType, resource.currentAmount);
-        }
-      }
-    }
-
-    return true;
-  }
-
-  /**
-   * Add resource (respects max capacity)
-   */
-  public addResource(type: ResourceType, amount: number): void {
-    const resource = this.resources.get(type);
-    if (resource) {
-      resource.currentAmount = Math.min(
-        resource.currentAmount + amount,
-        resource.maxCapacity
-      );
-      this.notifyResourceChanged(type, resource.currentAmount);
-    }
-  }
-
-  /**
-   * Set resource amount (respects max capacity)
-   */
-  public setResource(type: ResourceType, amount: number): void {
-    const resource = this.resources.get(type);
-    if (resource) {
-      resource.currentAmount = Math.min(amount, resource.maxCapacity);
-      this.notifyResourceChanged(type, resource.currentAmount);
-    }
-  }
 
   /**
    * Get resource amount

@@ -375,7 +375,7 @@ export class MapManager {
       maxHealth: this.getBuildingMaxHealth(type),
       buildProgress: 0,
       isComplete: false,
-      resourceGeneration: this.getBuildingResourceGeneration(type)
+      resourceGeneration: this.getBuildingResourceGenerationRate(type)
     };
 
     this.buildings.set(gridKey, building);
@@ -480,9 +480,9 @@ export class MapManager {
   }
 
   /**
-   * Get building resource generation rate
+   * Get building resource generation rate for a specific building type
    */
-  private getBuildingResourceGeneration(type: BuildingType): number {
+  private getBuildingResourceGenerationRate(type: BuildingType): number {
     const rates: Record<BuildingType, number> = {
       'MiningFacility': 20, // ore per tick
       'PowerPlant': 15, // energy per tick
