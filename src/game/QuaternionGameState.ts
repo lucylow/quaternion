@@ -301,66 +301,90 @@ export class QuaternionGameState {
   public update(deltaTime: number): void {
     if (!this.isRunning || this.gameOver) return;
     
-    this.tick++;
-    this.gameTime += deltaTime;
+    // Validate deltaTime
+    if (!deltaTime || deltaTime <= 0 || !isFinite(deltaTime)) {
+      console.warn('QuaternionGameState: Invalid deltaTime in update:', deltaTime);
+      return;
+    }
     
-    // Process enhanced managers
-    this.processManagers();
-    
-    // Update resources (passive generation and consumption)
-    this.updateResources(deltaTime);
-    
-    // Calculate instability
-    this.updateInstability();
-    
-    // Update fun experience systems
-    this.updateFunSystems(deltaTime);
-    
-    // Update win conditions
-    this.checkWinConditions();
-    
-    // Check lose conditions
-    this.checkLoseConditions();
+    try {
+      this.tick++;
+      this.gameTime += deltaTime;
+      
+      // Process enhanced managers
+      this.processManagers();
+      
+      // Update resources (passive generation and consumption)
+      this.updateResources(deltaTime);
+      
+      // Calculate instability
+      this.updateInstability();
+      
+      // Update fun experience systems
+      this.updateFunSystems(deltaTime);
+      
+      // Update win conditions
+      this.checkWinConditions();
+      
+      // Check lose conditions
+      this.checkLoseConditions();
+    } catch (error) {
+      console.error('QuaternionGameState: Error in update loop:', error);
+      // Don't crash the game, but log the error
+      // In production, you might want to pause the game or show an error message
+    }
   }
   
   /**
    * Process all enhanced managers
    */
   private processManagers(): void {
+    // Safety checks for managers
+    if (!this.mapManager || !this.resourceManager || !this.unitManager || !this.techTreeManager) {
+      console.warn('QuaternionGameState: Managers not initialized, skipping processManagers');
+      return;
+    }
+
     // Get resource generation from map nodes
     const resourceGeneration = this.mapManager.getResourceGeneration();
     const controlledNodes = new Map<ResourceType, number>();
     
     // Convert map generation to ResourceType enum
-    resourceGeneration.forEach((amount, nodeType) => {
-      switch (nodeType) {
-        case 'ore':
-          controlledNodes.set(ResourceType.ORE, 
-            (controlledNodes.get(ResourceType.ORE) || 0) + 1);
-          break;
-        case 'energy':
-          controlledNodes.set(ResourceType.ENERGY,
-            (controlledNodes.get(ResourceType.ENERGY) || 0) + 1);
-          break;
-        case 'biomass':
-          controlledNodes.set(ResourceType.BIOMASS,
-            (controlledNodes.get(ResourceType.BIOMASS) || 0) + 1);
-          break;
-        case 'data':
-          controlledNodes.set(ResourceType.DATA,
-            (controlledNodes.get(ResourceType.DATA) || 0) + 1);
-          break;
-      }
-    });
+    if (resourceGeneration) {
+      resourceGeneration.forEach((amount, nodeType) => {
+        switch (nodeType) {
+          case 'ore':
+            controlledNodes.set(ResourceType.ORE, 
+              (controlledNodes.get(ResourceType.ORE) || 0) + 1);
+            break;
+          case 'energy':
+            controlledNodes.set(ResourceType.ENERGY,
+              (controlledNodes.get(ResourceType.ENERGY) || 0) + 1);
+            break;
+          case 'biomass':
+            controlledNodes.set(ResourceType.BIOMASS,
+              (controlledNodes.get(ResourceType.BIOMASS) || 0) + 1);
+            break;
+          case 'data':
+            controlledNodes.set(ResourceType.DATA,
+              (controlledNodes.get(ResourceType.DATA) || 0) + 1);
+            break;
+        }
+      });
+    }
     
     // Process resource tick
     this.resourceManager.processResourceTick(controlledNodes, new Map());
     
     // Process unit production
     const completedUnits = this.unitManager.processProductionTicks();
-    completedUnits.forEach(unit => {
-      this.units.push(unit);
-    });
+    if (completedUnits && Array.isArray(completedUnits)) {
+      completedUnits.forEach(unit => {
+        if (unit) {
+          this.units.push(unit);
+        }
+      });
+    }
     
     // Process unit ticks
     this.unitManager.processUnitTicks();
@@ -413,42 +437,60 @@ export class QuaternionGameState {
    * Update fun experience systems
    */
   private updateFunSystems(deltaTime: number): void {
-    // Update Kaiju events
-    const kaijuUpdate = this.kaijuEventSystem.update(deltaTime, this);
-    if (kaijuUpdate?.spawned) {
-      this.logAction('kaiju_spawn', { 
-        kaiju: kaijuUpdate.kaiju?.name,
-        position: kaijuUpdate.position 
-      });
-      this.events.push({
-        type: 'kaiju_spawn',
-        kaiju: kaijuUpdate.kaiju,
-        position: kaijuUpdate.position,
-        time: this.gameTime
-      });
-    }
-    if (kaijuUpdate?.defeated) {
-      this.logAction('kaiju_defeated', { kaiju: kaijuUpdate.kaiju?.name });
-      this.events.push({
-        type: 'kaiju_defeated',
-        kaiju: kaijuUpdate.kaiju,
-        time: this.gameTime
-      });
+    if (!deltaTime || deltaTime <= 0 || !isFinite(deltaTime)) {
+      return; // Invalid deltaTime
     }
 
-    // Update Arena Seed (if active)
-    if (this.arenaSeedManager) {
-      const arenaStatus = this.arenaSeedManager.getStatus();
-      if (arenaStatus.isActive) {
-        const arenaUpdate = this.arenaSeedManager.update(deltaTime, this);
-        if (arenaUpdate?.completed) {
-          this.logAction('arena_complete', { 
-            victory: arenaUpdate.completed,
-            progress: arenaUpdate.progress,
-            max: arenaUpdate.max
+    try {
+      // Update Kaiju events
+      if (this.kaijuEventSystem) {
+        const kaijuUpdate = this.kaijuEventSystem.update(deltaTime, this);
+        if (kaijuUpdate?.spawned) {
+          this.logAction('kaiju_spawn', { 
+            kaiju: kaijuUpdate.kaiju?.name,
+            position: kaijuUpdate.position 
           });
+          if (this.events && Array.isArray(this.events)) {
+            this.events.push({
+              type: 'kaiju_spawn',
+              kaiju: kaijuUpdate.kaiju,
+              position: kaijuUpdate.position,
+              time: this.gameTime
+            });
+          }
+        }
+        if (kaijuUpdate?.defeated) {
+          this.logAction('kaiju_defeated', { kaiju: kaijuUpdate.kaiju?.name });
+          if (this.events && Array.isArray(this.events)) {
+            this.events.push({
+              type: 'kaiju_defeated',
+              kaiju: kaijuUpdate.kaiju,
+              time: this.gameTime
+            });
+          }
         }
       }
+
+      // Update Arena Seed (if active)
+      if (this.arenaSeedManager) {
+        try {
+          const arenaStatus = this.arenaSeedManager.getStatus();
+          if (arenaStatus && arenaStatus.isActive) {
+            const arenaUpdate = this.arenaSeedManager.update(deltaTime, this);
+            if (arenaUpdate?.completed) {
+              this.logAction('arena_complete', { 
+                victory: arenaUpdate.completed,
+                progress: arenaUpdate.progress,
+                max: arenaUpdate.max
+              });
+            }
+          }
+        } catch (error) {
+          console.warn('QuaternionGameState: Error updating arena seed manager', error);
+        }
+      }
+    } catch (error) {
+      console.warn('QuaternionGameState: Error in updateFunSystems', error);
     }
   }
 
@@ -469,27 +511,40 @@ export class QuaternionGameState {
    * which is called every 30 seconds (1800 ticks at 60 ticks/sec)
    */
   private updateResources(deltaTime: number): void {
+    if (!deltaTime || deltaTime <= 0 || !isFinite(deltaTime)) {
+      return; // Invalid deltaTime
+    }
+
     this.players.forEach((player, playerId) => {
+      if (!player || !player.resources) return;
+
       // Energy depletes constantly (reduced consumption for faster gameplay)
-      player.resources.energy -= 0.3 * deltaTime; // Reduced from 0.5 to 0.3
+      player.resources.energy = Math.max(0, player.resources.energy - 0.3 * deltaTime);
       
       // Resource generation from buildings
-      this.buildings
-        .filter(b => b.playerId === playerId && b.isComplete)
-        .forEach(building => {
-          if (building.produces) {
-            Object.keys(building.produces).forEach(resource => {
-              player.resources[resource as keyof Resources] += 
-                building.produces[resource] * deltaTime;
-            });
-          }
-        });
+      if (this.buildings && Array.isArray(this.buildings)) {
+        this.buildings
+          .filter(b => b && b.playerId === playerId && b.isComplete)
+          .forEach(building => {
+            if (building.produces && typeof building.produces === 'object') {
+              Object.keys(building.produces).forEach(resource => {
+                const produceAmount = building.produces[resource];
+                if (typeof produceAmount === 'number' && isFinite(produceAmount)) {
+                  const resourceKey = resource as keyof Resources;
+                  if (player.resources[resourceKey] !== undefined) {
+                    player.resources[resourceKey] += produceAmount * deltaTime;
+                  }
+                }
+              });
+            }
+          });
+      }
       
       // Clamp resources
-      player.resources.ore = Math.max(0, Math.min(1000, player.resources.ore));
-      player.resources.energy = Math.max(0, Math.min(1000, player.resources.energy));
-      player.resources.biomass = Math.max(0, Math.min(1000, player.resources.biomass));
-      player.resources.data = Math.max(0, Math.min(1000, player.resources.data));
+      player.resources.ore = Math.max(0, Math.min(1000, player.resources.ore || 0));
+      player.resources.energy = Math.max(0, Math.min(1000, player.resources.energy || 0));
+      player.resources.biomass = Math.max(0, Math.min(1000, player.resources.biomass || 0));
+      player.resources.data = Math.max(0, Math.min(1000, player.resources.data || 0));
     });
   }
   
@@ -498,20 +553,33 @@ export class QuaternionGameState {
    */
   private updateInstability(): void {
     const player = this.players.get(1);
-    if (!player) return;
+    if (!player || !player.resources) return;
     
     const { ore, energy, biomass, data } = player.resources;
-    const avg = (ore + energy + biomass + data) / 4;
-    
-    // Calculate variance from average
-    const variance = [ore, energy, biomass, data]
-      .reduce((sum, val) => sum + Math.abs(val - avg), 0) / 4;
-    
-    // Instability increases with imbalance
-    this.instability = (variance / avg) * 100;
+    const total = (ore || 0) + (energy || 0) + (biomass || 0) + (data || 0);
     
     // Check for critical resources at zero
-    if (ore === 0 || energy === 0 || biomass === 0 || data === 0) {
+    if ((ore || 0) === 0 || (energy || 0) === 0 || (biomass || 0) === 0 || (data || 0) === 0) {
+      this.instability = this.maxInstability;
+      return;
+    }
+    
+    // Avoid division by zero
+    if (total === 0) {
+      this.instability = this.maxInstability;
+      return;
+    }
+    
+    const avg = total / 4;
+    
+    // Calculate variance from average
+    const variance = [(ore || 0), (energy || 0), (biomass || 0), (data || 0)]
+      .reduce((sum, val) => sum + Math.abs(val - avg), 0) / 4;
+    
+    // Instability increases with imbalance (avoid division by zero)
+    if (avg > 0) {
+      this.instability = Math.min(this.maxInstability, (variance / avg) * 100);
+    } else {
       this.instability = this.maxInstability;
     }
   }
@@ -524,6 +592,12 @@ export class QuaternionGameState {
     const player = this.players.get(1);
     if (!player) return;
     
+    // Safety check for mapManager
+    if (!this.mapManager) {
+      console.warn('QuaternionGameState: mapManager not initialized in checkWinConditions');
+      return;
+    }
+    
     // Check puzzle constraints first (failures)
     if (this.puzzleConfig && this.checkPuzzleConstraints(player) === false) {
       // Constraint violated - puzzle failed
@@ -533,8 +607,8 @@ export class QuaternionGameState {
     // Check puzzle win condition if in puzzle mode
     if (this.puzzleConfig) {
       const puzzleWin = this.checkPuzzleWinCondition(player);
-      if (puzzleWin.won) {
-        this.endGame(1, `Puzzle Complete: ${this.puzzleConfig.winCondition.description}`, undefined);
+      if (puzzleWin && puzzleWin.won) {
+        this.endGame(1, `Puzzle Complete: ${this.puzzleConfig.winCondition?.description || 'Puzzle completed'}`, undefined);
         return;
       }
     }
@@ -542,8 +616,10 @@ export class QuaternionGameState {
     const centralNodeControlled = this.mapManager.isCentralNodeControlledByPlayer();
     const centralNodeUnderAttack = this.checkCentralNodeUnderAttack();
     
-    const enemyNodeCount = this.mapManager.getNodesByFaction(Faction.ENEMY).length;
-    const totalNodeCount = this.mapManager.getAllNodes().length;
+    const enemyNodes = this.mapManager.getNodesByFaction(Faction.ENEMY);
+    const allNodes = this.mapManager.getAllNodes();
+    const enemyNodeCount = enemyNodes ? enemyNodes.length : 0;
+    const totalNodeCount = allNodes ? allNodes.length : 0;
     const enemyNodeControl = totalNodeCount > 0 ? enemyNodeCount / totalNodeCount : 0;
     
     // Check victory conditions (for non-puzzle modes)
@@ -710,30 +786,38 @@ export class QuaternionGameState {
    * Check if central node is under attack
    */
   private checkCentralNodeUnderAttack(): boolean {
+    if (!this.mapManager) return false;
+    
     // Simplified: check if enemy units are near central node
     // In full implementation, this would check actual unit positions
     const enemyNodes = this.mapManager.getNodesByFaction(Faction.ENEMY);
-    return enemyNodes.length > 0; // Simplified check
+    return enemyNodes && enemyNodes.length > 0; // Simplified check
   }
   
   /**
    * Check if player is under attack
    */
   private checkIfUnderAttack(): boolean {
+    if (!this.units || !Array.isArray(this.units)) {
+      return false;
+    }
+
     // Check if any enemy units are attacking player units or buildings
     const playerUnits = this.units.filter(u => {
+      if (!u) return false;
       const player = this.players.get(1);
       return player && u.playerId === 1;
     });
     
     // Simplified: check if there are enemy units near player units
     const enemyUnits = this.units.filter(u => {
+      if (!u) return false;
       const player = this.players.get(2);
       return player && u.playerId === 2;
     });
     
     // Check if any enemy units are in combat state
-    return enemyUnits.some(unit => unit.state === 'attacking' || unit.inCombat);
+    return enemyUnits.some(unit => unit && (unit.state === 'attacking' || unit.inCombat));
   }
   
   /**
@@ -741,16 +825,18 @@ export class QuaternionGameState {
    */
   private checkEnemyWeakness(): boolean {
     const enemyPlayer = this.players.get(2);
-    if (!enemyPlayer) return false;
+    if (!enemyPlayer || !enemyPlayer.resources) return false;
     
     // Check if enemy has low resources
-    const totalResources = enemyPlayer.resources.ore + enemyPlayer.resources.energy + 
-                          enemyPlayer.resources.biomass + enemyPlayer.resources.data;
+    const totalResources = (enemyPlayer.resources.ore || 0) + (enemyPlayer.resources.energy || 0) + 
+                          (enemyPlayer.resources.biomass || 0) + (enemyPlayer.resources.data || 0);
     if (totalResources < 100) return true;
     
     // Check if enemy has few units
-    const enemyUnits = this.units.filter(u => u.playerId === 2);
-    if (enemyUnits.length < 3) return true;
+    if (this.units && Array.isArray(this.units)) {
+      const enemyUnits = this.units.filter(u => u && u.playerId === 2);
+      if (enemyUnits.length < 3) return true;
+    }
     
     return false;
   }
@@ -855,12 +941,20 @@ export class QuaternionGameState {
     const player = this.players.get(1);
     if (!player) return;
     
+    // Safety check for mapManager and victoryDefeatSystem
+    if (!this.mapManager || !this.victoryDefeatSystem) {
+      console.warn('QuaternionGameState: mapManager or victoryDefeatSystem not initialized in checkLoseConditions');
+      return;
+    }
+    
     const deltaTime = 1 / this.tickRate; // Time per tick
     
     const centralNodeControlled = this.mapManager.isCentralNodeControlledByPlayer();
     
-    const enemyNodeCount = this.mapManager.getNodesByFaction(Faction.ENEMY).length;
-    const totalNodeCount = this.mapManager.getAllNodes().length;
+    const enemyNodes = this.mapManager.getNodesByFaction(Faction.ENEMY);
+    const allNodes = this.mapManager.getAllNodes();
+    const enemyNodeCount = enemyNodes ? enemyNodes.length : 0;
+    const totalNodeCount = allNodes ? allNodes.length : 0;
     const enemyNodeControl = totalNodeCount > 0 ? enemyNodeCount / totalNodeCount : 0;
     
     // Baseline resources (starting values)

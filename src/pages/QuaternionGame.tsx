@@ -33,9 +33,11 @@ import { AXIS_DESIGNS, getAxisDesign, hexToPhaserColor, AI_THOUGHT_VISUALS, BIOM
 import { AIStoryGenerator, NarrativeEvent, NarrativeContext } from '@/game/narrative/AIStoryGenerator';
 import { NarrativeDisplay } from '@/components/narrative/NarrativeDisplay';
 import { ChronicleExporter } from '@/components/narrative/ChronicleExporter';
-import { BookOpen, Handshake, Sparkles } from 'lucide-react';
+import { BookOpen, Handshake, Sparkles, Target } from 'lucide-react';
 import { AIOffersPanel } from '@/components/creative/AIOffersPanel';
 import { AlternativeVictoriesDisplay } from '@/components/creative/AlternativeVictoriesDisplay';
+import DebugOverlay from '@/components/DebugOverlay';
+import { loadDevSampleIfNoEntities } from '@/utils/dev_fallback_renderer';
 import {
   EmergentDiplomacyAI,
   LivingWorldEvents,
@@ -80,6 +82,8 @@ const QuaternionGame = () => {
   const [showTechTree, setShowTechTree] = useState(false);
   const [showBuildMenu, setShowBuildMenu] = useState(false);
   const [buildQueue, setBuildQueue] = useState<Array<{ id: string; building: string; progress: number; totalTime: number }>>([]);
+  const [buildingPlacementMode, setBuildingPlacementMode] = useState<string | null>(null);
+  const buildingPreviewRef = useRef<Phaser.GameObjects.GameObject | null>(null);
   const [researchedTechs, setResearchedTechs] = useState<Set<string>>(new Set());
   const [aiMessages, setAiMessages] = useState<Array<{ commander: string; message: string; id: number }>>([]);
   const [gameOver, setGameOver] = useState<{ won: boolean; reason: string; scenario?: EndgameScenario } | null>(null);
@@ -88,6 +92,8 @@ const QuaternionGame = () => {
   const [performanceStats, setPerformanceStats] = useState<PerformanceStats | null>(null);
   const [winConditionProgress, setWinConditionProgress] = useState<Record<string, { progress: number; max: number; label: string }>>({});
   const [showTutorial, setShowTutorial] = useState(true);
+  const [showVictoryConditions, setShowVictoryConditions] = useState(true);
+  const [showAlternativeVictories, setShowAlternativeVictories] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const gameLoopRef = useRef<GameLoop | null>(null);
@@ -1295,6 +1301,17 @@ const QuaternionGame = () => {
           }
         });
       });
+      // ESC to cancel building placement
+      this.input.keyboard?.on('keydown-ESC', () => {
+        if (buildingPlacementMode) {
+          setBuildingPlacementMode(null);
+          if (buildingPreviewRef.current && buildingPreviewRef.current.active) {
+            buildingPreviewRef.current.destroy();
+            buildingPreviewRef.current = null;
+          }
+          toast.info('Building placement cancelled');
+        }
+      });
       
       // Center camera on player base at start
       const playerBaseX = 150;
@@ -2453,15 +2470,30 @@ const QuaternionGame = () => {
         
         // Store game reference
         phaserGameRef.current = game;
+        // Store globally for debug overlay access
+        (window as any).__QUAT_PHASER_GAME__ = game;
+        if (game.canvas) {
+          game.canvas.id = 'game-canvas';
+        }
 
         // Log game initialization
-        game.events.once('ready', () => {
-          console.log('✅ Phaser game ready!');
-          console.log('Phaser game instance:', game);
-          console.log('Canvas element:', game.canvas);
-          console.log('Canvas parent:', game.canvas?.parentElement);
-          console.log('Input enabled:', game.input.enabled);
-          console.log('Input active:', game.input.isActive());
+        game.events.once('ready', async () => {
+          console.log('[QUAT DEBUG] Phaser game ready!');
+          console.log('[QUAT DEBUG] Phaser game instance:', game);
+          console.log('[QUAT DEBUG] Canvas element:', game.canvas);
+          console.log('[QUAT DEBUG] Canvas parent:', game.canvas?.parentElement);
+          console.log('[QUAT DEBUG] Input enabled:', game.input.enabled);
+          console.log('[QUAT DEBUG] Input active:', game.input.isActive());
+          
+          // Check for entities and load fallback if needed
+          try {
+            const didFallback = await loadDevSampleIfNoEntities();
+            if (didFallback) {
+              console.warn('[QUAT DEBUG] dev fallback renderer activated');
+            }
+          } catch (e) {
+            console.warn('[QUAT DEBUG] fallback check failed', e);
+          }
           
           // Log input system status and ensure it's enabled
           const scene = game.scene.getScenes(true)[0];
@@ -2623,24 +2655,74 @@ const QuaternionGame = () => {
     });
 
     if (canAfford) {
-      // Deduct costs - map resource names
-      const newResources = { ...resources };
-      Object.entries(building.cost).forEach(([resource, cost]) => {
-        const mappedResource = mapResourceName(resource);
-        newResources[mappedResource] -= (cost || 0);
+      // Enter placement mode instead of immediately building
+      setBuildingPlacementMode(buildingId);
+      setShowBuildMenu(false);
+      toast.info(`Select a location to place ${building.name}`, {
+        description: 'Click on the map to place, or press ESC to cancel'
       });
-      setResources(newResources);
+    } else {
+      toast.error('Insufficient resources', {
+        description: 'Cannot afford this building'
+      });
+    }
+  };
 
-      // Add to build queue
-      const buildId = Date.now().toString();
-      setBuildQueue(prev => [...prev, {
-        id: buildId,
-        building: buildingId,
-        progress: 0,
-        totalTime: building.buildTime
-      }]);
+  const placeBuilding = (x: number, y: number) => {
+    if (!buildingPlacementMode) return;
+    
+    const building = BUILDINGS[buildingPlacementMode];
+    if (!building) return;
 
-      // Simulate building progress
+    // Deduct costs - map resource names
+    const newResources = { ...resources };
+    Object.entries(building.cost).forEach(([resource, cost]) => {
+      const mappedResource = mapResourceName(resource);
+      newResources[mappedResource] -= (cost || 0);
+    });
+    setResources(newResources);
+
+    // Add to build queue
+    const buildId = Date.now().toString();
+    setBuildQueue(prev => [...prev, {
+      id: buildId,
+      building: buildingPlacementMode,
+      progress: 0,
+      totalTime: building.buildTime
+    }]);
+
+    // Create building sprite on Phaser scene
+    if (phaserGameRef.current && phaserGameRef.current.scene.scenes[0]) {
+      const scene = phaserGameRef.current.scene.scenes[0];
+      
+      // Create building visual
+      const buildingSprite = scene.add.rectangle(x, y, 60, 60, 0x00ffea, 0.8);
+      buildingSprite.setStrokeStyle(3, 0x00ffea, 1);
+      buildingSprite.setDepth(50);
+      buildingSprite.setData('type', 'building');
+      buildingSprite.setData('buildingId', buildingPlacementMode);
+      buildingSprite.setData('buildId', buildId);
+      buildingSprite.setData('progress', 0);
+      buildingSprite.setData('totalTime', building.buildTime);
+      
+      // Add building name label
+      const label = scene.add.text(x, y + 40, building.name, {
+        fontSize: '12px',
+        color: '#00ffea',
+        fontFamily: 'Arial',
+        fontStyle: 'bold',
+        stroke: '#000000',
+        strokeThickness: 2
+      }).setOrigin(0.5);
+      label.setDepth(51);
+      buildingSprite.setData('label', label);
+      
+      // Add to buildings array
+      if (buildingsRef.current) {
+        buildingsRef.current.push(buildingSprite as Phaser.GameObjects.Sprite);
+      }
+
+      // Simulate building progress with visual feedback
       let progress = 0;
       const progressInterval = setInterval(() => {
         progress += 0.1;
@@ -2650,26 +2732,59 @@ const QuaternionGame = () => {
             : item
         ));
         
+        // Update building visual progress
+        if (buildingSprite && buildingSprite.active) {
+          const progressPercent = progress / building.buildTime;
+          buildingSprite.setAlpha(0.5 + (progressPercent * 0.5)); // Fade in as it builds
+          buildingSprite.setData('progress', progress);
+          
+          // Update label
+          const label = buildingSprite.getData('label');
+          if (label && label.active) {
+            label.setText(`${building.name}\n${Math.floor(progressPercent * 100)}%`);
+          }
+        }
+        
         if (progress >= building.buildTime) {
           clearInterval(progressInterval);
           setBuildQueue(prev => prev.filter(item => item.id !== buildId));
+          
+          // Finalize building visual
+          if (buildingSprite && buildingSprite.active) {
+            buildingSprite.setAlpha(1.0);
+            buildingSprite.setFillStyle(0x00ffea, 1.0);
+            const label = buildingSprite.getData('label');
+            if (label && label.active) {
+              label.setText(building.name);
+            }
+            
+            // Add completion effect
+            const particles = scene.add.particles(x, y, 'particle', {
+              speed: { min: 20, max: 60 },
+              scale: { start: 0.5, end: 0 },
+              tint: 0x00ffea,
+              lifespan: 1000,
+              quantity: 20
+            });
+            setTimeout(() => particles.destroy(), 1000);
+          }
+          
           toast.success(`Building ${building.name} complete!`, {
             description: building.description
           });
           addAIMessage('AUREN', `${building.name} construction complete.`);
         }
       }, 100);
-
-      toast.success(`Building ${building.name}`, {
-        description: `Construction time: ${building.buildTime}s`
-      });
-
-      gameStateRef.current?.logAction('build_building', { buildingId, cost: building.cost });
-    } else {
-      toast.error('Insufficient resources', {
-        description: 'Cannot afford this building'
-      });
     }
+
+    toast.success(`Building ${building.name}`, {
+      description: `Construction time: ${building.buildTime}s`
+    });
+
+    gameStateRef.current?.logAction('build_building', { buildingId: buildingPlacementMode, cost: building.cost, x, y });
+    
+    // Exit placement mode
+    setBuildingPlacementMode(null);
   };
 
   const handleResearchTech = (techId: string) => {
@@ -3273,30 +3388,51 @@ const QuaternionGame = () => {
 
           {/* Win Condition Progress */}
           <div className="absolute top-20 left-4 z-20 space-y-2 max-w-xs">
-            <div className="bg-gray-800/90 border border-cyan-400/50 rounded-lg p-4">
-              <h3 className="text-cyan-300 text-base font-bold mb-3 flex items-center gap-2 text-readable-neon">
-                <Trophy className="w-5 h-5" />
+            {!showVictoryConditions ? (
+              <Button
+                onClick={() => setShowVictoryConditions(true)}
+                className="bg-gray-800/90 border border-cyan-400/50 hover:bg-gray-700/90"
+                variant="outline"
+              >
+                <Trophy className="w-4 h-4 mr-2" />
                 Victory Conditions
-              </h3>
-              <div className="space-y-3">
-                {Object.entries(winConditionProgress).map(([key, condition]) => (
-                  <div key={key} className="space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-cyan-200 text-readable">{condition.label}</span>
-                      <span className="text-cyan-300 text-readable-neon font-semibold">
-                        {Math.floor((condition.progress / condition.max) * 100)}%
-                      </span>
+              </Button>
+            ) : (
+              <div className="bg-gray-800/90 border border-cyan-400/50 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-cyan-300 text-base font-bold flex items-center gap-2 text-readable-neon">
+                    <Trophy className="w-5 h-5" />
+                    Victory Conditions
+                  </h3>
+                  <Button
+                    onClick={() => setShowVictoryConditions(false)}
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 hover:bg-gray-700/50"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+                <div className="space-y-3">
+                  {Object.entries(winConditionProgress).map(([key, condition]) => (
+                    <div key={key} className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-cyan-200 text-readable">{condition.label}</span>
+                        <span className="text-cyan-300 text-readable-neon font-semibold">
+                          {Math.floor((condition.progress / condition.max) * 100)}%
+                        </span>
+                      </div>
+                      <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-cyan-400 to-cyan-600 transition-all duration-300"
+                          style={{ width: `${Math.min((condition.progress / condition.max) * 100, 100)}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-cyan-400 to-cyan-600 transition-all duration-300"
-                        style={{ width: `${Math.min((condition.progress / condition.max) * 100, 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Minimap */}
@@ -3517,7 +3653,83 @@ const QuaternionGame = () => {
           {/* Alternative Victories Display */}
           {alternativeVictories.length > 0 && (
             <div className="absolute top-80 left-4 z-20 w-80">
-              <AlternativeVictoriesDisplay victories={alternativeVictories} />
+              {!showAlternativeVictories ? (
+                <Button
+                  onClick={() => setShowAlternativeVictories(true)}
+                  className="bg-gray-800/90 border border-yellow-400/50 hover:bg-gray-700/90"
+                  variant="outline"
+                >
+                  <Trophy className="w-4 h-4 mr-2" />
+                  Alternative Victories
+                </Button>
+              ) : (
+                <div className="relative bg-gray-800/90 border border-yellow-400/50 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Trophy className="w-5 h-5 text-yellow-400" />
+                      <h3 className="font-semibold text-lg text-yellow-400">Alternative Victory Conditions</h3>
+                    </div>
+                    <Button
+                      onClick={() => setShowAlternativeVictories(false)}
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 hover:bg-gray-700/50"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {alternativeVictories.map((victory) => (
+                      <div
+                        key={victory.id}
+                        className={`p-4 rounded-lg border ${
+                          victory.unlocked
+                            ? 'bg-yellow-900/20 border-yellow-500/50'
+                            : 'bg-background/50 border-border'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          {victory.unlocked ? (
+                            <Trophy className="w-5 h-5 text-yellow-400 mt-0.5" />
+                          ) : (
+                            <Target className="w-5 h-5 text-muted-foreground mt-0.5" />
+                          )}
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-1">
+                              <h4 className={`font-semibold ${victory.unlocked ? 'text-yellow-200' : ''}`}>
+                                {victory.title}
+                              </h4>
+                              {victory.unlocked && (
+                                <Sparkles className="w-4 h-4 text-yellow-400" />
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground mb-2">{victory.description}</p>
+                            
+                            {!victory.unlocked && (
+                              <div className="space-y-1">
+                                <div className="flex justify-between text-xs text-muted-foreground">
+                                  <span>Progress</span>
+                                  <span>
+                                    {victory.progress} / {victory.maxProgress}
+                                  </span>
+                                </div>
+                                <div className="w-full bg-muted rounded-full h-2">
+                                  <div
+                                    className="bg-primary h-2 rounded-full transition-all"
+                                    style={{
+                                      width: `${Math.min(100, (victory.progress / victory.maxProgress) * 100)}%`,
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -3591,6 +3803,9 @@ const QuaternionGame = () => {
               </Button>
             </div>
           )}
+
+          {/* Debug Overlay */}
+          <DebugOverlay />
         </>
       )}
     </div>

@@ -163,6 +163,17 @@ All colors MUST be HSL.
     display: block !important;
     width: 100% !important;
     height: 100% !important;
+    background: linear-gradient(180deg, #04102a, #020214) !important;
+  }
+
+  /* ensure canvas is visible and fills background */
+  #game-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    background: linear-gradient(180deg, #04102a, #020214);
   }
 
   /* Game container styles */
