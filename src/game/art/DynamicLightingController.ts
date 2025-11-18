@@ -22,9 +22,9 @@ export class DynamicLightingController {
 
   // Lighting gradient for stability states
   private gradient: LightingGradient = {
-    calm: Phaser.Display.Color.HexStringToColor('#0F3A3A'), // Deep Teal
-    tension: Phaser.Display.Color.HexStringToColor('#7DF9B6'), // Chroma Neon
-    chaos: Phaser.Display.Color.HexStringToColor('#FF7BA9') // Soft Pink (chaos)
+    calm: Phaser.Display.Color.IntegerToColor(Phaser.Display.Color.GetColor(15, 58, 58)), // Deep Teal #0F3A3A
+    tension: Phaser.Display.Color.IntegerToColor(Phaser.Display.Color.GetColor(125, 249, 182)), // Chroma Neon #7DF9B6
+    chaos: Phaser.Display.Color.IntegerToColor(Phaser.Display.Color.GetColor(255, 123, 169)) // Soft Pink #FF7BA9
   };
 
   constructor(scene: Phaser.Scene, graphics: NeoBiotechGraphics) {
@@ -37,10 +37,12 @@ export class DynamicLightingController {
    */
   update(deltaTime: number, worldState: WorldStabilityState): void {
     // Smoothly transition to target stability
+    // Lerp towards target stability
+    const lerpFactor = Phaser.Math.Clamp(deltaTime * this.transitionSpeed, 0, 1);
     this.currentStability = Phaser.Math.Linear(
       this.currentStability,
       worldState.stability,
-      deltaTime * this.transitionSpeed
+      lerpFactor
     );
 
     // Update graphics system with current state

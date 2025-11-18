@@ -213,8 +213,8 @@ export default class SFXManager {
   playUIError() { return this.playCue('UI_Error_Beep', { volume: 0.9 }); }
   playUIConfirm() { return this.playCue('UI_Confirm_Long', { volume: 0.8 }); }
   
-  playTerrainAmbient(biome: string) {
-    const key = `Ambient_${biome}` as keyof typeof SFX_CUES;
+  playTerrainAmbient(biome: string): PlaybackHandle | null {
+    const key = `Ambient_${biome}`;
     const cue = this.cueRegistry.get(key);
     if (cue) return this.playCue(key, { volume: 0.5 });
     return null;

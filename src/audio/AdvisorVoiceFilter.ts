@@ -22,9 +22,19 @@ export interface VoiceFilterSettings {
  * Applies emotional filters to advisor/narrative voices
  */
 export default class AdvisorVoiceFilter {
+  private static _instance: AdvisorVoiceFilter | null = null;
+  public static instance(): AdvisorVoiceFilter {
+    if (!this._instance) this._instance = new AdvisorVoiceFilter();
+    return this._instance;
+  }
+
   private audioManager: AudioManager;
   private audioContext!: AudioContext;
   private currentEmotion: EmotionType = 'neutral';
+
+  private constructor() {
+    this.audioManager = AudioManager.instance();
+  }
 
   // Audio processing nodes
   private voiceSource?: AudioBufferSourceNode;
@@ -72,10 +82,6 @@ export default class AdvisorVoiceFilter {
       reverbDecay: 0.3
     }
   };
-
-  constructor() {
-    this.audioManager = AudioManager.instance();
-  }
 
   async init(): Promise<void> {
     await this.audioManager.init();

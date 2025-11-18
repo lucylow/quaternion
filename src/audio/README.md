@@ -4,6 +4,13 @@ This directory contains a complete audio system for the Quaternion game, includi
 
 - **AudioManager**: WebAudio manager for SFX, TTS, ducking, and preloading
 - **MusicManager**: Adaptive multi-stem music manager with crossfades
+- **SFXManager**: Comprehensive sound effects system with 40+ cues
+- **AdaptiveEffects**: Chroma & Instability reactive audio processing
+- **TerrainAudio**: Biome-specific ambient loops and events
+- **CombatAudio**: Combat event sound hooks
+- **AdvisorVoiceFilter**: Emotional audio filters for narrative voices
+- **CinematicAudio**: Big event and cinematic sound triggers
+- **ChromaPulseSynth**: Procedural chroma pulse synthesis
 - **TTS Client**: Client for requesting TTS audio from edge functions
 - **Subtitle Generator**: WebVTT generation from dialogue entries
 - **Telemetry**: Audio event logging for analytics
@@ -24,9 +31,16 @@ await initializeAudio();
 
 ```typescript
 import { playSfx } from '@/audio/ttsHelpers';
+import { SFXManager } from '@/audio';
 
+// Old method (still supported)
 playSfx('ui_click', 0.8); // Play UI click at 80% volume
-playSfx('boom', 1.0); // Play explosion at full volume
+
+// New method with SFXManager (recommended)
+const sfx = SFXManager.instance();
+sfx.playUIClick(); // Convenience method
+sfx.playCue('Unit_Attack_Shot', { volume: 0.9 }); // Direct cue access
+sfx.playKaijuRise(); // Cinematic events
 ```
 
 ### 3. Play TTS Narration
@@ -62,6 +76,70 @@ AudioManager.instance().setMasterVolume(0.8);
 AudioManager.instance().setMusicVolume(0.6);
 AudioManager.instance().setSfxVolume(1.0);
 AudioManager.instance().setVoiceVolume(1.0);
+```
+
+### 6. Use SFX System
+
+```typescript
+import { SFXManager, TerrainAudio, CombatAudio, AdaptiveEffects, CinematicAudio } from '@/audio';
+
+// SFX Manager - play any of 40+ cues
+const sfx = SFXManager.instance();
+sfx.playUIClick();
+sfx.playUnitAttack();
+sfx.playNodeCapture();
+
+// Terrain Audio - biome-specific ambients
+const terrain = TerrainAudio.create({
+  biome: 'LavaField',
+  ambientVolume: 0.5,
+  eventCooldown: 8.0
+});
+terrain.start();
+terrain.update(deltaTime); // Call in game loop
+
+// Combat Audio - combat event hooks
+const combat = CombatAudio.instance();
+combat.onCombatEvent({ type: 'attack', volume: 0.9 });
+combat.onCombatEvent({ type: 'destroyed', volume: 1.0 });
+
+// Adaptive Effects - reactive to game state
+const adaptive = AdaptiveEffects.instance();
+adaptive.update({
+  chromaLevel: 0.7,      // World energy (0-1)
+  instabilityLevel: 0.5, // World collapse (0-1)
+  particleCount: 100     // Optional: for granular effects
+});
+
+// Cinematic Audio - big events
+const cinematic = CinematicAudio.instance();
+cinematic.playEvent('kaiju_rise', { volume: 1.0, duckMusic: true });
+cinematic.playEvent('victory', { volume: 1.0 });
+```
+
+### 7. Use Voice Filters
+
+```typescript
+import { AdvisorVoiceFilter } from '@/audio';
+
+const voiceFilter = AdvisorVoiceFilter.instance();
+voiceFilter.setEmotion('angry'); // Apply angry filter
+voiceFilter.setEmotion('hopeful'); // Apply hopeful filter
+
+// Process audio buffer through filter
+const source = voiceFilter.processBuffer(audioBuffer, 'melancholy');
+source.start();
+```
+
+### 8. Procedural Chroma Pulse
+
+```typescript
+import { ChromaPulseSynth } from '@/audio';
+
+const synth = ChromaPulseSynth.instance();
+synth.start(); // Start procedural chroma pulse
+synth.updateFromChroma(); // Update based on chroma level
+synth.stop(); // Stop when needed
 ```
 
 ## Configuration

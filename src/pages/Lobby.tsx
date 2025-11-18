@@ -57,6 +57,7 @@ interface Room {
 const Lobby = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'single' | 'multiplayer'>('single');
+  const [gameType, setGameType] = useState<'neural-frontier' | 'quaternion'>('quaternion');
   const [singlePlayerMode, setSinglePlayerMode] = useState<'arena' | 'campaign' | 'puzzle' | 'theater'>('arena');
   
   // Single player config
@@ -157,6 +158,13 @@ const Lobby = () => {
   }, []);
 
   const handleStartSinglePlayer = () => {
+    // Neural Frontier (simple game) doesn't need complex config
+    if (gameType === 'neural-frontier') {
+      navigate('/game');
+      return;
+    }
+
+    // Quaternion game needs full config
     const config = { ...singlePlayerConfig };
     
     // Add selected map ID if available
@@ -389,6 +397,56 @@ const Lobby = () => {
           <div className="w-24" /> {/* Spacer for centering */}
         </div>
 
+        {/* Game Type Selection */}
+        <Card className="bg-card/70 border-primary/30 mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Gamepad2 className="w-5 h-5 text-primary" />
+              Select Game Mode
+            </CardTitle>
+            <CardDescription>
+              Choose between the streamlined Neural Frontier or the full Quaternion Strategy experience
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-2 gap-4">
+              <Card 
+                className={`bg-card/70 border-primary/30 cursor-pointer transition-all ${
+                  gameType === 'neural-frontier' ? 'border-2 border-primary ring-2 ring-primary/20' : ''
+                }`}
+                onClick={() => setGameType('neural-frontier')}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Gamepad2 className="w-5 h-5 text-cyan-400" />
+                    <CardTitle className="text-lg">Neural Frontier</CardTitle>
+                  </div>
+                  <CardDescription className="text-xs">
+                    Streamlined RTS - Quick 15-20 min matches, simplified resource management, perfect for beginners
+                  </CardDescription>
+                </CardContent>
+              </Card>
+
+              <Card 
+                className={`bg-card/70 border-primary/30 cursor-pointer transition-all ${
+                  gameType === 'quaternion' ? 'border-2 border-primary ring-2 ring-primary/20' : ''
+                }`}
+                onClick={() => setGameType('quaternion')}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Brain className="w-5 h-5 text-purple-400" />
+                    <CardTitle className="text-lg">Quaternion Strategy</CardTitle>
+                  </div>
+                  <CardDescription className="text-xs">
+                    Full 4-axis strategy - Resource puzzles, black market, multiple victory paths, multiplayer support
+                  </CardDescription>
+                </CardContent>
+              </Card>
+            </div>
+          </CardContent>
+        </Card>
+
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'single' | 'multiplayer')} className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="single" className="flex items-center gap-2">
@@ -403,8 +461,11 @@ const Lobby = () => {
 
           {/* Single Player Tab */}
           <TabsContent value="single">
-            {/* Single Player Mode Selection */}
-            <div className="grid md:grid-cols-4 gap-4 mb-6">
+            {/* Show mode selection only for Quaternion game */}
+            {gameType === 'quaternion' && (
+              <>
+                {/* Single Player Mode Selection */}
+                <div className="grid md:grid-cols-4 gap-4 mb-6">
               <Card 
                 className={`bg-card/70 border-primary/30 cursor-pointer transition-all ${
                   singlePlayerMode === 'arena' ? 'border-2 border-primary ring-2 ring-primary/20' : ''

@@ -91,8 +91,10 @@ export default class ChromaPulseSynth {
     delay.connect(delayGain);
     delayGain.connect(this.gain);
 
-    // Connect to ambient/SFX gain (not music)
-    this.gain.connect(this.audioManager.getSfxGainNode());
+    // Connect to ambient/SFX gain (not music)  
+    if (this.gain) {
+      this.gain.connect(this.audioManager.getSfxGainNode());
+    }
 
     // Start oscillators
     this.oscillator.start(0);
@@ -166,7 +168,7 @@ export default class ChromaPulseSynth {
    * Set volume
    */
   setVolume(volume: number): void {
-    if (this.gain) {
+    if (this.gain && this.audioContext) {
       const now = this.audioContext.currentTime;
       this.gain.gain.cancelScheduledValues(now);
       this.gain.gain.setValueAtTime(volume, now);

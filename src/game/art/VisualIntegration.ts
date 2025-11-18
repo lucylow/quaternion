@@ -47,8 +47,8 @@ export class VisualIntegration {
   private calculateWorldState(gameState: QuaternionState): WorldStabilityState {
     // Calculate stability from balance
     // Perfect balance (all axes equal) = high stability
-    const { w, x, y, z } = gameState;
-    const total = Math.abs(w) + Math.abs(x) + Math.abs(y) + Math.abs(z);
+    const { ore, energy, biomass, data } = gameState;
+    const total = Math.abs(ore) + Math.abs(energy) + Math.abs(biomass) + Math.abs(data);
     
     if (total === 0) {
       return {
@@ -61,20 +61,24 @@ export class VisualIntegration {
     // Calculate how balanced the state is
     const avg = total / 4;
     const variance = Math.sqrt(
-      (Math.pow(Math.abs(w) - avg, 2) +
-       Math.pow(Math.abs(x) - avg, 2) +
-       Math.pow(Math.abs(y) - avg, 2) +
-       Math.pow(Math.abs(z) - avg, 2)) / 4
+      (Math.pow(Math.abs(ore) - avg, 2) +
+       Math.pow(Math.abs(energy) - avg, 2) +
+       Math.pow(Math.abs(biomass) - avg, 2) +
+       Math.pow(Math.abs(data) - avg, 2)) / 4
     );
     
     // Lower variance = higher stability
-    const stability = Math.max(0, Math.min(1, 1 - (variance / avg)));
+    // Use stability from gameState if available, otherwise calculate
+    const calculatedStability = Math.max(0, Math.min(1, 1 - (variance / Math.max(avg, 1))));
+    const stability = gameState.stability !== undefined 
+      ? Math.max(0, Math.min(1, gameState.stability / 2)) // Normalize 0-2 to 0-1
+      : calculatedStability;
 
     // Calculate faction blend
-    // Quaternion = Life + Knowledge (y + z)
-    // Corp = Matter + Energy (w + x)
-    const quaternionPower = Math.abs(y) + Math.abs(z);
-    const corpPower = Math.abs(w) + Math.abs(x);
+    // Quaternion = Life + Knowledge (biomass + data)
+    // Corp = Matter + Energy (ore + energy)
+    const quaternionPower = Math.abs(biomass) + Math.abs(data);
+    const corpPower = Math.abs(ore) + Math.abs(energy);
     const totalPower = quaternionPower + corpPower;
     
     const factionBlend = totalPower > 0 ? corpPower / totalPower : 0.5;
