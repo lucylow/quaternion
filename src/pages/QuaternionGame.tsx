@@ -452,6 +452,15 @@ const QuaternionGame = () => {
           console.warn('[Preload] WARNING: No map textures loaded! Check asset paths and file names.');
         }
         
+        // Log which monster textures were successfully loaded
+        const monsterKeys = ImageAssetLoader.getMonsterKeys();
+        const loadedMonsters = monsterKeys.filter(key => this.textures.exists(key));
+        console.log(`[Preload] Successfully loaded ${loadedMonsters.length}/${monsterKeys.length} monster textures:`, loadedMonsters);
+        
+        if (loadedMonsters.length === 0) {
+          console.warn('[Preload] WARNING: No monster textures loaded! Check asset paths and file names.');
+        }
+        
         setTimeout(() => {
           setLoading(false);
           gameStateRef.current?.start();
@@ -1264,15 +1273,22 @@ const QuaternionGame = () => {
             const worldX = pointer.worldX;
             const worldY = pointer.worldY;
             
-            // Check if clicking on enemy
+            // Check if any unit is in attack mode
+            const inAttackMode = selectedUnits.some(unit => unit.getData('attackMode'));
+            
+            // Check if clicking on enemy (prioritize if in attack mode)
             let targetFound = false;
             aiUnits.forEach(enemy => {
+              if (!enemy.active) return;
               const dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, worldX, worldY);
-              if (dist < 30) {
+              if (dist < 30 || (inAttackMode && dist < 100)) {
                 selectedUnits.forEach(unit => {
-                  unit.setData('target', enemy);
-                  unit.setData('state', 'attacking');
-                  this.physics.moveToObject(unit, enemy, 120);
+                  if (unit.active) {
+                    unit.setData('target', enemy);
+                    unit.setData('state', 'attacking');
+                    unit.setData('attackMode', false); // Clear attack mode
+                    this.physics.moveToObject(unit, enemy, 120);
+                  }
                 });
                 targetFound = true;
               }
@@ -1330,6 +1346,64 @@ const QuaternionGame = () => {
           isSelecting = true;
           selectionStart = { x: pointer.worldX, y: pointer.worldY };
         }
+      });
+
+      // Handle command events from CommandPanel
+      this.events.on('command-move', (data: { units: Phaser.Physics.Arcade.Sprite[], target?: any }) => {
+        if (data.target) {
+          // Move to specific target position
+          data.units.forEach(unit => {
+            if (unit.active) {
+              unit.setData('state', 'moving');
+              this.physics.moveTo(unit, data.target.x, data.target.y, 120);
+            }
+          });
+        }
+        // If no target, wait for right-click to set destination
+      });
+
+      this.events.on('command-attack', (data: { units: Phaser.Physics.Arcade.Sprite[], target?: any }) => {
+        // Set units to attack mode - they will attack on next right-click
+        data.units.forEach(unit => {
+          if (unit.active) {
+            unit.setData('attackMode', true);
+          }
+        });
+        // If target provided, attack immediately
+        if (data.target) {
+          data.units.forEach(unit => {
+            if (unit.active) {
+              unit.setData('target', data.target);
+              unit.setData('state', 'attacking');
+              this.physics.moveToObject(unit, data.target, 120);
+            }
+          });
+        }
+      });
+
+      this.events.on('command-patrol', (data: { units: Phaser.Physics.Arcade.Sprite[], points?: any[] }) => {
+        // Set patrol mode
+        data.units.forEach(unit => {
+          if (unit.active) {
+            unit.setData('patrolMode', true);
+            if (data.points && data.points.length > 0) {
+              unit.setData('patrolPoints', data.points);
+            }
+          }
+        });
+      });
+
+      this.events.on('command-special', (data: { units: Phaser.Physics.Arcade.Sprite[] }) => {
+        // Execute special ability
+        data.units.forEach(unit => {
+          if (unit.active) {
+            const abilities = unit.getData('abilities') || [];
+            if (abilities.length > 0) {
+              // Execute first ability
+              console.log('Executing special ability for unit:', unit.getData('type'));
+            }
+          }
+        });
       });
 
       this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
@@ -2121,27 +2195,86 @@ const QuaternionGame = () => {
         }
       });
 
-      // Player unit vs AI unit combat
+      // Player unit vs AI unit combat and auto-engagement
       playerUnits.forEach(playerUnit => {
         if (!playerUnit.active) return;
+        
+        const unitState = playerUnit.getData('state');
+        const currentTarget = playerUnit.getData('target');
+        
+        // Auto-engage nearby enemies if not already targeting or if target is dead
+        if (unitState !== 'attacking' || !currentTarget || !currentTarget.active) {
+          let nearestEnemy: Phaser.Physics.Arcade.Sprite | null = null;
+          let nearestDist = Infinity;
+          
+          aiUnits.forEach(aiUnit => {
+            if (!aiUnit.active) return;
+            const dist = Phaser.Math.Distance.Between(playerUnit.x, playerUnit.y, aiUnit.x, aiUnit.y);
+            if (dist < 80 && dist < nearestDist) { // Auto-engage within 80 pixels
+              nearestDist = dist;
+              nearestEnemy = aiUnit;
+            }
+          });
+          
+          // Also check AI base
+          if (aiBase && aiBase.active) {
+            const dist = Phaser.Math.Distance.Between(playerUnit.x, playerUnit.y, aiBase.x, aiBase.y);
+            if (dist < 100 && dist < nearestDist) {
+              nearestDist = dist;
+              nearestEnemy = aiBase as any;
+            }
+          }
+          
+          if (nearestEnemy) {
+            playerUnit.setData('target', nearestEnemy);
+            playerUnit.setData('state', 'attacking');
+            this.physics.moveToObject(playerUnit, nearestEnemy, 120);
+          }
+        }
+        
+        // Combat with current target
+        const target = playerUnit.getData('target');
+        if (target && target.active) {
+          const dist = Phaser.Math.Distance.Between(playerUnit.x, playerUnit.y, target.x, target.y);
+          const attackRange = playerUnit.getData('range') || 40;
+          
+          if (dist < attackRange) {
+            // In range - stop moving and attack
+            playerUnit.setVelocity(0, 0);
+            
+            if (time > (playerUnit.getData('lastCombat') || 0) + 1000) {
+              const playerDamage = playerUnit.getData('damage') || 10;
+              const targetHealth = target.getData('health') || (target === aiBase ? 1000 : 200);
+              target.setData('health', Math.max(0, targetHealth - playerDamage));
+              playerUnit.setData('lastCombat', time);
+              
+              // Create attack effect
+              createParticleEmitter(this, target.x, target.y, 0xff0000, 'explosion');
+              
+              if (target.getData('health') <= 0) {
+                if (target === aiBase) {
+                  setGameOver({ won: true, reason: 'Enemy base destroyed!' });
+                }
+                const graphic = target.getData('graphic');
+                if (graphic) graphic.destroy();
+                const healthBar = target.getData('floatingHealthBar');
+                if (healthBar) {
+                  healthBar.bg.destroy();
+                  healthBar.fill.destroy();
+                }
+                target.destroy();
+                playerUnit.setData('target', null);
+                playerUnit.setData('state', 'idle');
+              }
+            }
+          }
+        }
+        
+        // Take damage from nearby enemies
         aiUnits.forEach(aiUnit => {
           if (!aiUnit.active) return;
           const dist = Phaser.Math.Distance.Between(playerUnit.x, playerUnit.y, aiUnit.x, aiUnit.y);
           if (dist < 40) {
-            // Combat
-            if (time > (playerUnit.getData('lastCombat') || 0) + 1000) {
-              const playerDamage = playerUnit.getData('damage') || 10;
-              const aiHealth = aiUnit.getData('health') || 200;
-              aiUnit.setData('health', Math.max(0, aiHealth - playerDamage));
-              playerUnit.setData('lastCombat', time);
-              
-              if (aiUnit.getData('health') <= 0) {
-                const graphic = aiUnit.getData('graphic');
-                if (graphic) graphic.destroy();
-                aiUnit.destroy();
-              }
-            }
-            
             if (time > (aiUnit.getData('lastCombat') || 0) + 1000) {
               const aiDamage = aiUnit.getData('damage') || 25;
               const playerHealth = playerUnit.getData('health') || 100;
@@ -3185,76 +3318,6 @@ const QuaternionGame = () => {
                   key={tile.id}
                   className="bg-gray-800/90 border-2 border-yellow-400 rounded-lg p-4 mb-2 animate-in zoom-in shadow-2xl"
                   style={{
-                    boxShadow: '0 0 20px rgba(255, 255, 0, 0.5)'
-                  }}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <Sparkles className="w-5 h-5 text-yellow-400" />
-                    <h3 className="text-lg font-bold text-yellow-400">{tile.name}</h3>
-                  </div>
-                  <p className="text-sm text-gray-300 mb-3">{tile.description}</p>
-                  <p className="text-xs text-yellow-400">{tile.benefit}</p>
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      if (dungeonMasterRef.current) {
-                        dungeonMasterRef.current.activateDynamicTile(tile.id);
-                        setDynamicTiles(prev => prev.filter(t => t.id !== tile.id));
-                        toast.success(`${tile.name} activated!`);
-                      }
-                    }}
-                    className="mt-3 w-full bg-yellow-600 hover:bg-yellow-700"
-                  >
-                    Activate
-                  </Button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Chronicle Exporter (shown after game ends) */}
-          {gameOver && chronicleData && showChronicle && (
-            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4">
-              <div className="max-w-2xl w-full">
-                <ChronicleExporter
-                  chronicle={chronicleData}
-                  onExport={(format) => {
-                    if (format === 'pdf' || format === 'html') {
-                      setShowChronicle(false);
-                    }
-                  }}
-                />
-                <Button
-                  onClick={() => setShowChronicle(false)}
-                  variant="outline"
-                  className="mt-4 w-full"
-                >
-                  Close
-                </Button>
-              </div>
-            </div>
-          )}
-          
-          {/* Chronicle Button (show after game ends) */}
-          {gameOver && chronicleData && !showChronicle && (
-            <div className="absolute bottom-4 right-4 z-30">
-              <Button
-                onClick={() => setShowChronicle(true)}
-                className="bg-purple-600/90 hover:bg-purple-700 backdrop-blur-sm border border-purple-400/30"
-              >
-                <BookOpen className="w-4 h-4 mr-2" />
-                View Chronicle
-              </Button>
-            </div>
-          )}
-        </>
-      )}
-    </div>
-  );
-};
-
-export default QuaternionGame;
-
                     boxShadow: '0 0 20px rgba(255, 255, 0, 0.5)'
                   }}
                 >

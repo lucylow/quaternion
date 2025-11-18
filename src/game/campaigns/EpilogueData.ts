@@ -38,14 +38,35 @@ export const EPILOGUE_DATA: EpilogueData[] = [
     campaignId: 'archive',
     choices: ['harvest'],
     tone: 'somber',
-    text: 'The earth shudders; fungus withers. Dr. Mara whispers, "We took its breath." The archive stands empty, and the silence weighs heavier than any resource we gained.'
+    text: 'The earth shudders; fungus withers. Dr. Mara whispers, "We took its breath." The archive stands empty, and the silence weighs heavier than any resource we gained. In the depths, something that had slept for eons finally stopped dreaming. We filled our crates with ore and left with hollow hands.'
   },
   {
     id: 'archive-preserve',
     campaignId: 'archive',
     choices: ['preserve'],
     tone: 'hopeful',
-    text: 'Tiny green filaments push through the ruin; a whisper of tomorrow. The Bio-Seed remembers our care, and the land begins to heal.'
+    text: 'Tiny green filaments push through the ruin; a whisper of tomorrow. The Bio-Seed remembers our care, and the land begins to heal. In the quiet dark, life stirs again. We chose patience over plunder, and the future unfurls like a slow-blooming flower.'
+  },
+  {
+    id: 'archive-harvest-extended',
+    campaignId: 'archive',
+    choices: ['harvest'],
+    tone: 'somber',
+    text: 'The machines hummed with stolen life. We extracted what we needed, and the archive fell silent—a tomb we had emptied ourselves. Years later, when the last resource ran dry, we looked back and understood: we had traded tomorrow for today, and tomorrow never came.'
+  },
+  {
+    id: 'archive-preserve-extended',
+    campaignId: 'archive',
+    choices: ['preserve'],
+    tone: 'hopeful',
+    text: 'We sealed the chamber and walked away, leaving the Bio-Seed to its slow awakening. Generations passed. When our descendants returned, they found not an empty vault, but a garden—a living testament to the choice we made. The land had remembered our mercy, and it repaid us a thousandfold.'
+  },
+  {
+    id: 'archive-mixed',
+    campaignId: 'archive',
+    choices: ['harvest', 'preserve'],
+    tone: 'mixed',
+    text: 'We took what we needed to survive, then sealed what remained. A compromise carved from necessity. The archive stands divided—one half hollowed, one half healing. The land remembers both our hunger and our restraint. Perhaps that balance is enough.'
   }
 ];
 

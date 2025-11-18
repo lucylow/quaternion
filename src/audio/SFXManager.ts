@@ -99,6 +99,7 @@ export default class SFXManager {
   private audioManager: AudioManager;
   private activeLoops: Map<string, PlaybackHandle> = new Map();
   private cueRegistry: Map<string, SFXCue> = new Map();
+  private nextId = 1;
 
   private constructor() {
     this.audioManager = AudioManager.instance();
@@ -138,14 +139,15 @@ export default class SFXManager {
   }
 
   /**
-   * Play SFX cue by key
+   * Play SFX cue by key with enhanced features
    */
   playCue(
     key: string,
     options: {
       volume?: number;
       pitch?: number;
-      position?: { x: number; y: number }; // For spatial audio (future)
+      position?: { x: number; y: number; z?: number }; // For spatial audio
+      pan?: number; // -1 (left) to 1 (right)
     } = {}
   ): PlaybackHandle | null {
     const cue = this.cueRegistry.get(key);
@@ -159,10 +161,83 @@ export default class SFXManager {
       this.stopCue(key);
     }
 
-    const handle = this.audioManager.playSfx(key, {
-      volume: options.volume ?? 1.0,
-      loop: cue.loop
-    });
+    const audioCtx = this.audioManager.getAudioContext();
+    const buffer = this.audioManager.getBuffer(key);
+    
+    if (!buffer) {
+      console.warn(`SFX buffer not loaded: ${key}`);
+      return null;
+    }
+
+    // Create source
+    const source = audioCtx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = cue.loop;
+
+    // Apply pitch variation
+    const pitch = options.pitch ?? 1.0;
+    if (pitch !== 1.0) {
+      source.playbackRate.value = pitch;
+    }
+
+    // Create gain node
+    const gain = audioCtx.createGain();
+    gain.gain.value = options.volume ?? 1.0;
+
+    // Spatial audio (if position provided)
+    let panner: StereoPannerNode | PannerNode | null = null;
+    if (options.position) {
+      // Use 3D panner for full spatial audio
+      panner = audioCtx.createPanner();
+      panner.panningModel = 'HRTF';
+      panner.distanceModel = 'inverse';
+      panner.refDistance = 1;
+      panner.maxDistance = 100;
+      panner.rolloffFactor = 1;
+      panner.coneInnerAngle = 360;
+      panner.coneOuterAngle = 0;
+      panner.coneOuterGain = 0;
+      
+      panner.positionX.value = options.position.x;
+      panner.positionY.value = options.position.y;
+      panner.positionZ.value = options.position.z ?? 0;
+    } else if (options.pan !== undefined) {
+      // Use stereo panner for simple left/right panning
+      panner = audioCtx.createStereoPanner();
+      panner.pan.value = Math.max(-1, Math.min(1, options.pan));
+    }
+
+    // Connect nodes
+    source.connect(gain);
+    if (panner) {
+      gain.connect(panner);
+      panner.connect(this.audioManager.getSfxGainNode());
+    } else {
+      gain.connect(this.audioManager.getSfxGainNode());
+    }
+
+    // Start playback
+    source.start(0);
+
+    const id = `sfx-${this.nextId++}`;
+    const stop = () => {
+      try {
+        source.stop();
+      } catch (e) {
+        // Already stopped
+      }
+      source.disconnect();
+      gain.disconnect();
+      panner?.disconnect();
+    };
+
+    source.onended = () => {
+      gain.disconnect();
+      panner?.disconnect();
+      source.disconnect();
+    };
+
+    const handle: PlaybackHandle = { id, stop };
 
     // Track loops
     if (cue.loop) {
@@ -208,8 +283,15 @@ export default class SFXManager {
   /**
    * Convenience methods for common actions
    */
-  playUIClick() { return this.playCue('UI_Click_Soft', { volume: 0.8 }); }
-  playUIHover() { return this.playCue('UI_Hover_Glow', { volume: 0.6 }); }
+  playUIClick() { 
+    // Add slight pitch variation for organic feel
+    const pitch = 0.95 + Math.random() * 0.1;
+    return this.playCue('UI_Click_Soft', { volume: 0.8, pitch }); 
+  }
+  playUIHover() { 
+    const pitch = 0.98 + Math.random() * 0.04;
+    return this.playCue('UI_Hover_Glow', { volume: 0.6, pitch }); 
+  }
   playUIError() { return this.playCue('UI_Error_Beep', { volume: 0.9 }); }
   playUIConfirm() { return this.playCue('UI_Confirm_Long', { volume: 0.8 }); }
   
@@ -220,9 +302,17 @@ export default class SFXManager {
     return null;
   }
 
-  playUnitAttack() { return this.playCue('Unit_Attack_Shot', { volume: 0.9 }); }
-  playUnitHit() { return this.playCue('Unit_Hit_Impact', { volume: 0.8 }); }
-  playUnitDestroyed() { return this.playCue('Unit_Destroyed_Blast', { volume: 1.0 }); }
+  playUnitAttack(position?: { x: number; y: number; z?: number }) { 
+    const pitch = 0.9 + Math.random() * 0.2; // More variation for combat
+    return this.playCue('Unit_Attack_Shot', { volume: 0.9, pitch, position }); 
+  }
+  playUnitHit(position?: { x: number; y: number; z?: number }) { 
+    const pitch = 0.85 + Math.random() * 0.3;
+    return this.playCue('Unit_Hit_Impact', { volume: 0.8, pitch, position }); 
+  }
+  playUnitDestroyed(position?: { x: number; y: number; z?: number }) { 
+    return this.playCue('Unit_Destroyed_Blast', { volume: 1.0, position }); 
+  }
 
   playNodeCapture() { return this.playCue('Node_Capture_Complete', { volume: 0.9 }); }
   playNodeCaptureStart() { return this.playCue('Node_Capture_Start', { volume: 0.8 }); }

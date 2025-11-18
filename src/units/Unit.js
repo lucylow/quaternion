@@ -152,7 +152,7 @@ export class Unit {
     if (dist > this.range) {
       // Move closer
       this.targetX = this.targetUnit.x;
-      this.targetY = this.targetY;
+      this.targetY = this.targetUnit.y;
       this.updateMovement(gameState);
     } else {
       // In range, attack every second

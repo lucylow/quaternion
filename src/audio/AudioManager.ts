@@ -22,6 +22,19 @@ export default class AudioManager {
   private voiceGain!: GainNode;
   private analyser?: AnalyserNode;
 
+  // Master processing chain
+  private masterCompressor?: DynamicsCompressorNode;
+  private masterEQ?: {
+    lowShelf: BiquadFilterNode;
+    midPeak: BiquadFilterNode;
+    highShelf: BiquadFilterNode;
+  };
+  private masterReverb?: ConvolverNode;
+  private masterReverbGain?: GainNode;
+  private masterDelay?: DelayNode;
+  private masterDelayGain?: GainNode;
+  private masterDelayFeedback?: GainNode;
+
   private buffers: AudioBufferMap = {};
   private playingMusicHandle: { id: string; nodes: AudioNode[] } | null = null;
 
@@ -32,7 +45,26 @@ export default class AudioManager {
 
   private constructor() { /* singleton */ }
 
-  async init({ enableAnalyzer = false } = {}) {
+  /**
+   * Create reverb impulse response
+   */
+  private createReverbImpulse(ctx: AudioContext, duration: number = 2.0, decay: number = 2.0): AudioBuffer {
+    const sampleRate = ctx.sampleRate;
+    const length = sampleRate * duration;
+    const impulse = ctx.createBuffer(2, length, sampleRate);
+    
+    for (let channel = 0; channel < 2; channel++) {
+      const channelData = impulse.getChannelData(channel);
+      for (let i = 0; i < length; i++) {
+        const n = length - i;
+        channelData[i] = (Math.random() * 2 - 1) * Math.pow(n / length, decay);
+      }
+    }
+    
+    return impulse;
+  }
+
+  async init({ enableAnalyzer = false, enableMasterProcessing = true } = {}) {
     if (this.audioCtx) return;
     this.audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
 
@@ -43,10 +75,84 @@ export default class AudioManager {
     this.musicGain = this.audioCtx.createGain(); this.musicGain.gain.value = 1;
     this.voiceGain = this.audioCtx.createGain(); this.voiceGain.gain.value = 1;
 
-    // Routing
-    this.sfxGain.connect(this.masterGain);
-    this.musicGain.connect(this.masterGain);
-    this.voiceGain.connect(this.masterGain);
+    // Mix all sources into a pre-master gain
+    const preMasterGain = this.audioCtx.createGain();
+    preMasterGain.gain.value = 1.0;
+    this.sfxGain.connect(preMasterGain);
+    this.musicGain.connect(preMasterGain);
+    this.voiceGain.connect(preMasterGain);
+
+    // Master processing chain (if enabled)
+    let processingChain: AudioNode = preMasterGain;
+
+    if (enableMasterProcessing) {
+      // Compressor for dynamic range control
+      this.masterCompressor = this.audioCtx.createDynamicsCompressor();
+      this.masterCompressor.threshold.value = -24; // dB
+      this.masterCompressor.knee.value = 30; // dB
+      this.masterCompressor.ratio.value = 12; // 12:1 ratio
+      this.masterCompressor.attack.value = 0.003; // 3ms attack
+      this.masterCompressor.release.value = 0.25; // 250ms release
+      processingChain.connect(this.masterCompressor);
+      processingChain = this.masterCompressor;
+
+      // 3-band EQ
+      this.masterEQ = {
+        lowShelf: this.audioCtx.createBiquadFilter(),
+        midPeak: this.audioCtx.createBiquadFilter(),
+        highShelf: this.audioCtx.createBiquadFilter()
+      };
+
+      // Low shelf (bass)
+      this.masterEQ.lowShelf.type = 'lowshelf';
+      this.masterEQ.lowShelf.frequency.value = 250;
+      this.masterEQ.lowShelf.gain.value = 0; // No boost/cut by default
+
+      // Mid peak (mids)
+      this.masterEQ.midPeak.type = 'peaking';
+      this.masterEQ.midPeak.frequency.value = 2000;
+      this.masterEQ.midPeak.Q.value = 1.0;
+      this.masterEQ.midPeak.gain.value = 0;
+
+      // High shelf (treble)
+      this.masterEQ.highShelf.type = 'highshelf';
+      this.masterEQ.highShelf.frequency.value = 5000;
+      this.masterEQ.highShelf.gain.value = 0;
+
+      // Chain EQ
+      processingChain.connect(this.masterEQ.lowShelf);
+      this.masterEQ.lowShelf.connect(this.masterEQ.midPeak);
+      this.masterEQ.midPeak.connect(this.masterEQ.highShelf);
+      processingChain = this.masterEQ.highShelf;
+
+      // Delay for depth (parallel)
+      this.masterDelay = this.audioCtx.createDelay(0.5);
+      this.masterDelay.delayTime.value = 0.1; // 100ms delay
+      this.masterDelayGain = this.audioCtx.createGain();
+      this.masterDelayGain.gain.value = 0.15; // Subtle delay
+      this.masterDelayFeedback = this.audioCtx.createGain();
+      this.masterDelayFeedback.gain.value = 0.3; // Feedback amount
+
+      // Delay routing
+      processingChain.connect(this.masterDelay);
+      this.masterDelay.connect(this.masterDelayGain);
+      this.masterDelay.connect(this.masterDelayFeedback);
+      this.masterDelayFeedback.connect(this.masterDelay); // Feedback loop
+      this.masterDelayGain.connect(this.masterGain);
+
+      // Reverb for space (parallel)
+      this.masterReverb = this.audioCtx.createConvolver();
+      this.masterReverb.buffer = this.createReverbImpulse(this.audioCtx, 1.8, 2.2);
+      this.masterReverbGain = this.audioCtx.createGain();
+      this.masterReverbGain.gain.value = 0.12; // Subtle reverb
+
+      processingChain.connect(this.masterReverb);
+      this.masterReverb.connect(this.masterReverbGain);
+      this.masterReverbGain.connect(this.masterGain);
+    }
+
+    // Connect processing chain to master gain
+    processingChain.connect(this.masterGain);
     this.masterGain.connect(this.audioCtx.destination);
 
     if (enableAnalyzer) {
@@ -145,6 +251,36 @@ export default class AudioManager {
   setSfxVolume(v: number) { this.sfxGain.gain.value = v; }
   setMusicVolume(v: number) { this.musicGain.gain.value = v; }
   setVoiceVolume(v: number) { this.voiceGain.gain.value = v; }
+
+  // Master EQ controls
+  setMasterEQ(low: number = 0, mid: number = 0, high: number = 0) {
+    if (!this.masterEQ) return;
+    const now = this.audioCtx.currentTime;
+    this.masterEQ.lowShelf.gain.cancelScheduledValues(now);
+    this.masterEQ.lowShelf.gain.setValueAtTime(low, now);
+    this.masterEQ.midPeak.gain.cancelScheduledValues(now);
+    this.masterEQ.midPeak.gain.setValueAtTime(mid, now);
+    this.masterEQ.highShelf.gain.cancelScheduledValues(now);
+    this.masterEQ.highShelf.gain.setValueAtTime(high, now);
+  }
+
+  // Master reverb control
+  setMasterReverb(amount: number) {
+    if (!this.masterReverbGain) return;
+    const now = this.audioCtx.currentTime;
+    this.masterReverbGain.gain.cancelScheduledValues(now);
+    this.masterReverbGain.gain.setValueAtTime(Math.max(0, Math.min(1, amount)), now);
+  }
+
+  // Master delay control
+  setMasterDelay(time: number, feedback: number = 0.3) {
+    if (!this.masterDelay || !this.masterDelayFeedback) return;
+    const now = this.audioCtx.currentTime;
+    this.masterDelay.delayTime.cancelScheduledValues(now);
+    this.masterDelay.delayTime.setValueAtTime(Math.max(0, Math.min(0.5, time)), now);
+    this.masterDelayFeedback.gain.cancelScheduledValues(now);
+    this.masterDelayFeedback.gain.setValueAtTime(Math.max(0, Math.min(0.9, feedback)), now);
+  }
 
   // crossfade helper (from current music to new node)
   async crossfadeToNewMusicNode(createNodeCb: (ctx: AudioContext) => AudioNode, crossfadeTime = 1.0) {

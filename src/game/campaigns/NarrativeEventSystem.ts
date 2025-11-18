@@ -6,6 +6,7 @@
 import { LLMIntegration } from '../../ai/integrations/LLMIntegration';
 import { NARRATIVE_MICRO_EVENT, EPILOGUE_GENERATOR, CHARACTER_DIALOGUE } from '../../ai/promptTemplates';
 import type { CampaignState, NarrativeEvent } from './CampaignSystem';
+import { CommanderNarrativeSystem, type CommanderNarrativeInput } from './CommanderNarrativeSystem';
 
 export interface NarrativeEventInput {
   campaign: string;
@@ -22,6 +23,7 @@ export interface NarrativeEventInput {
 export class NarrativeEventSystem {
   private llm: LLMIntegration;
   private eventCache: Map<string, NarrativeEvent> = new Map();
+  private commanderNarratives: CommanderNarrativeSystem | null = null;
 
   constructor(llmConfig?: any) {
     this.llm = new LLMIntegration({
@@ -30,6 +32,11 @@ export class NarrativeEventSystem {
       temperature: 0.7,
       maxTokens: 200
     });
+    
+    // Initialize commander narrative system if LLM is available
+    if (llmConfig?.apiKey) {
+      this.commanderNarratives = new CommanderNarrativeSystem(llmConfig);
+    }
   }
 
   /**
@@ -157,33 +164,68 @@ export class NarrativeEventSystem {
    */
   private getFallbackEvent(input: NarrativeEventInput): NarrativeEvent {
     const fallbacks: Record<string, NarrativeEvent> = {
+      'archive_breach': {
+        event: 'Archive Breach',
+        trigger: 'archive_breach',
+        flavor: 'Ancient seals crack like old bones. The archive opens—not with a whisper, but with a sigh that has waited millennia to escape. Dust motes dance in the stale air, and something stirs in the depths.',
+        effect: { resourceNode: 'archive_gate' },
+        narrativeTag: 'discovery'
+      },
+      'bio_seed_found': {
+        event: 'The Sleeping Seed',
+        trigger: 'bio_seed_found',
+        flavor: 'There, in the heart of the archive, it pulses—a slow, rhythmic thrum that seems to echo your own heartbeat. The Bio-Seed sleeps, but its dreams are vast. You can feel the weight of eons in its presence.',
+        effect: { bioSeedHealth: 85 },
+        narrativeTag: 'wonder'
+      },
       'harvest_attempt': {
         event: 'Bio-Seed Stir',
         trigger: 'harvest_attempt',
-        flavor: 'A low hum rises beneath your boots; the ground answers your greed.',
+        flavor: 'A low hum rises beneath your boots; the ground answers your greed. The Bio-Seed\'s pulse quickens—not in fear, but in recognition. It knows what you\'re about to do.',
         effect: { wildlifeAggression: 0.15, localYieldBoost: 0.30 },
         narrativeTag: 'unease'
       },
       'preserve_action': {
         event: 'Conserve Investment',
         trigger: 'preserve_action',
-        flavor: 'You seal the excavation and bind the roots in light.',
+        flavor: 'You seal the excavation and bind the roots in light. The Bio-Seed\'s breathing slows, content. In the darkness, something ancient and patient settles back into its long slumber, grateful.',
         effect: { bioSeedHealthDelta: 12, longTermYieldMultiplier: 0.2 },
         narrativeTag: 'hope'
       },
       'harvest_confirmed': {
         event: 'Immediate Gain, Lingering Cost',
         trigger: 'harvest_confirmed',
-        flavor: 'Ore pours into the crates — and something beneath grows quiet.',
+        flavor: 'Ore pours into the crates—and something beneath grows quiet. The Bio-Seed\'s pulse weakens. The archive, once alive with possibility, now feels like a tomb. You got what you came for. The question is: was it worth the silence?',
         effect: { resourceGain: 60, bioSeedHealthDelta: -25 },
         narrativeTag: 'guilt'
+      },
+      'choice_consequence': {
+        event: 'Consequences Unfold',
+        trigger: 'choice_consequence',
+        flavor: 'Time moves forward, and your choice ripples through the world. The archive remembers. The land remembers. And somewhere, in the quiet spaces between heartbeats, you remember too.',
+        effect: {},
+        narrativeTag: 'reflection'
+      },
+      'final_reckoning': {
+        event: 'The Reckoning',
+        trigger: 'final_reckoning',
+        flavor: 'The moment of truth arrives not with fanfare, but with the weight of inevitability. Every choice you made has led here. The archive holds its breath, waiting to see what you\'ve become.',
+        effect: {},
+        narrativeTag: 'climax'
+      },
+      'epilogue': {
+        event: 'Epilogue',
+        trigger: 'epilogue',
+        flavor: 'The story ends, but the world continues. Your choices echo in the silence, shaping what comes next. The archive will remember. The land will remember. And perhaps, in time, you will too.',
+        effect: {},
+        narrativeTag: 'resolution'
       }
     };
 
     return fallbacks[input.trigger] || {
       event: input.trigger,
       trigger: input.trigger,
-      flavor: 'The moment passes, leaving only echoes.',
+      flavor: 'The moment passes, leaving only echoes. Something shifts in the world, subtle but permanent. You feel it in your bones: this mattered.',
       effect: {},
       narrativeTag: 'neutral'
     };
@@ -194,11 +236,11 @@ export class NarrativeEventSystem {
    */
   private getFallbackEpilogue(state: CampaignState): string {
     if (state.bioSeedHealth && state.bioSeedHealth < 30) {
-      return 'Cities rose like glass, humming with stolen nights. We had power enough to forget the river\'s taste.';
+      return 'The machines hummed with stolen life. We extracted what we needed, and the archive fell silent—a tomb we had emptied ourselves. Years later, when the last resource ran dry, we looked back and understood: we had traded tomorrow for today, and tomorrow never came.';
     } else if (state.bioSeedHealth && state.bioSeedHealth > 70) {
-      return 'Green light stitched the ruins back together. The land taught us patience; the people learned to wait.';
+      return 'We sealed the chamber and walked away, leaving the Bio-Seed to its slow awakening. Generations passed. When our descendants returned, they found not an empty vault, but a garden—a living testament to the choice we made. The land had remembered our mercy, and it repaid us a thousandfold.';
     }
-    return 'We burned bright to survive, then learned to plant again. Steel met sap; scars healed into scaffolds.';
+    return 'We took what we needed to survive, then sealed what remained. A compromise carved from necessity. The archive stands divided—one half hollowed, one half healing. The land remembers both our hunger and our restraint. Perhaps that balance is enough.';
   }
 
   /**
@@ -214,10 +256,43 @@ export class NarrativeEventSystem {
   }
 
   /**
+   * Generate commander-specific narrative event
+   */
+  async generateCommanderNarrative(
+    input: CommanderNarrativeInput
+  ): Promise<NarrativeEvent> {
+    if (!this.commanderNarratives) {
+      // Fallback if commander narratives not initialized
+      return this.generateEvent({
+        campaign: 'commander',
+        trigger: input.situation,
+        seed: input.seed || 0,
+        narrativeTag: `commander_${input.commanderId}`
+      });
+    }
+
+    try {
+      const narrative = await this.commanderNarratives.generateNarrative(input);
+      return this.commanderNarratives.convertToNarrativeEvent(narrative, input.situation);
+    } catch (error) {
+      console.warn('Commander narrative generation failed, using fallback', error);
+      return this.generateEvent({
+        campaign: 'commander',
+        trigger: input.situation,
+        seed: input.seed || 0,
+        narrativeTag: `commander_${input.commanderId}`
+      });
+    }
+  }
+
+  /**
    * Clear cache
    */
   clearCache(): void {
     this.eventCache.clear();
+    if (this.commanderNarratives) {
+      this.commanderNarratives.clearCache();
+    }
   }
 }
 

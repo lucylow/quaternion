@@ -1,7 +1,17 @@
 // src/audio/MusicManager.ts
 import AudioManager from './AudioManager';
 
-type Stem = { key: string, buffer?: AudioBuffer, source?: AudioBufferSourceNode, gain?: GainNode };
+type Stem = { 
+  key: string, 
+  buffer?: AudioBuffer, 
+  source?: AudioBufferSourceNode, 
+  gain?: GainNode,
+  compressor?: DynamicsCompressorNode,
+  eq?: {
+    lowShelf: BiquadFilterNode;
+    highShelf: BiquadFilterNode;
+  }
+};
 
 export default class MusicManager {
   private static _instance: MusicManager | null = null;
@@ -9,6 +19,7 @@ export default class MusicManager {
 
   private stems: Record<string, Stem> = {}; // e.g., 'ambient','tension','triumph'
   private active = false;
+  private crossfadeTime = 1.5; // Default crossfade time in seconds
 
   private getAudioContext() {
     return AudioManager.instance().getAudioContext();
@@ -34,41 +45,100 @@ export default class MusicManager {
     stemIds.forEach(id => {
       const s = this.stems[id];
       if (!s || !s.buffer) return;
+      
+      // Create source
       const src = ctx.createBufferSource();
       src.buffer = s.buffer;
       src.loop = true;
+
+      // Create processing chain: EQ -> Compressor -> Gain
+      const eq = {
+        lowShelf: ctx.createBiquadFilter(),
+        highShelf: ctx.createBiquadFilter()
+      };
+      eq.lowShelf.type = 'lowshelf';
+      eq.lowShelf.frequency.value = 200;
+      eq.lowShelf.gain.value = 0;
+      eq.highShelf.type = 'highshelf';
+      eq.highShelf.frequency.value = 4000;
+      eq.highShelf.gain.value = 0;
+
+      const compressor = ctx.createDynamicsCompressor();
+      compressor.threshold.value = -20;
+      compressor.knee.value = 10;
+      compressor.ratio.value = 4;
+      compressor.attack.value = 0.01;
+      compressor.release.value = 0.2;
+
       const gain = ctx.createGain();
       gain.gain.value = 0; // start silent for crossfade-in
-      src.connect(gain);
+
+      // Connect: source -> EQ -> compressor -> gain -> music output
+      src.connect(eq.lowShelf);
+      eq.lowShelf.connect(eq.highShelf);
+      eq.highShelf.connect(compressor);
+      compressor.connect(gain);
       gain.connect(am.getMusicGainNode());
+
       src.start();
-      s.source = src; s.gain = gain;
-      // ramp up
+      s.source = src;
+      s.gain = gain;
+      s.compressor = compressor;
+      s.eq = eq;
+
+      // Smooth ramp up
       const now = ctx.currentTime;
-      gain.gain.linearRampToValueAtTime(1.0, now + 1.2);
+      gain.gain.linearRampToValueAtTime(1.0, now + this.crossfadeTime);
     });
 
     this.active = true;
   }
 
   // morph stems by policy object: { ambient:0.8, tension:0.2 }
-  setStemVolumes(volumes: Record<string, number>, ramp = 0.5) {
+  setStemVolumes(volumes: Record<string, number>, ramp?: number) {
     const ctx = this.getAudioContext();
     const now = ctx.currentTime;
+    const rampTime = ramp ?? this.crossfadeTime;
+    
     Object.entries(volumes).forEach(([id, v]) => {
       const s = this.stems[id];
       if (!s || !s.gain) return;
+      const clampedVolume = Math.max(0, Math.min(1, v));
       s.gain.gain.cancelScheduledValues(now);
       s.gain.gain.setValueAtTime(s.gain.gain.value, now);
-      s.gain.gain.linearRampToValueAtTime(v, now + ramp);
+      s.gain.gain.linearRampToValueAtTime(clampedVolume, now + rampTime);
     });
+  }
+
+  // Set EQ for a specific stem
+  setStemEQ(stemId: string, low: number = 0, high: number = 0) {
+    const s = this.stems[stemId];
+    if (!s || !s.eq) return;
+    const ctx = this.getAudioContext();
+    const now = ctx.currentTime;
+    
+    s.eq.lowShelf.gain.cancelScheduledValues(now);
+    s.eq.lowShelf.gain.setValueAtTime(low, now);
+    s.eq.highShelf.gain.cancelScheduledValues(now);
+    s.eq.highShelf.gain.setValueAtTime(high, now);
+  }
+
+  // Set crossfade time
+  setCrossfadeTime(time: number) {
+    this.crossfadeTime = Math.max(0.1, Math.min(5.0, time));
   }
 
   stopAll() {
     Object.values(this.stems).forEach(s => {
       try { s.source?.stop(); } catch(e) {}
       try { s.gain?.disconnect(); } catch(e) {}
-      s.source = undefined; s.gain = undefined;
+      try { s.compressor?.disconnect(); } catch(e) {}
+      try { s.eq?.lowShelf.disconnect(); } catch(e) {}
+      try { s.eq?.highShelf.disconnect(); } catch(e) {}
+      s.source = undefined; 
+      s.gain = undefined;
+      s.compressor = undefined;
+      s.eq = undefined;
     });
     this.active = false;
   }

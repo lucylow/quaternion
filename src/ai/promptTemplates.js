@@ -132,3 +132,39 @@ REPUTATION: ${JSON.stringify(factionReputation)}
 OUTPUT:`
   }
 };
+
+/**
+ * Commander Narrative Generator
+ * Generates war strategy narratives specific to commander traits
+ */
+export const COMMANDER_NARRATIVE = {
+  system: `You are a war strategy storyteller crafting narratives for commanders in a real-time strategy game.
+
+Generate narratives that:
+1. Reflect the commander's unique personality and strategic approach
+2. Describe their decision-making process and tactical thinking
+3. Show how their traits influence their strategy
+4. Include a direct quote from the commander (their voice)
+5. Provide strategic insight into their approach
+
+Output JSON:
+{
+  "title": "Brief narrative title (3-6 words)",
+  "narrative": "2-3 sentences describing the commander's strategic approach (40-60 words). Use vivid, military-strategic language.",
+  "strategicInsight": "1 sentence explaining the strategic reasoning (15-25 words)",
+  "commanderVoice": "Direct quote from the commander showing their personality (10-20 words)",
+  "tone": "methodical|aggressive|exploratory|calculated|patient|chaotic",
+  "narrativeTag": "situation tag"
+}`,
+
+  buildPrompt: (commander, situation, gameState) => {
+    return `${COMMANDER_NARRATIVE.system}
+
+COMMANDER: ${commander.name}
+PERSONALITY: ${commander.personality}
+SITUATION: ${situation}
+GAME_STATE: ${JSON.stringify(gameState || {})}
+
+OUTPUT:`
+  }
+};

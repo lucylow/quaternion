@@ -41,20 +41,29 @@ export class LoreGenerator {
    */
   async generateCreationMyth(seed: number, worldData?: WorldData): Promise<string> {
     const prompt = `
-Generate a creation myth for a fantasy world with these characteristics:
+You are a master storyteller crafting a creation myth for a world that blends technology and nature.
+
+World Characteristics:
 - World Type: ${worldData?.worldType || 'fantasy'}
 - Dominant Biomes: ${worldData?.dominantBiomes?.join(', ') || 'varied'}
 - Magical Level: ${worldData?.magicLevel || 0.5}
 - Technology Level: ${worldData?.techLevel || 0.5}
 
-The myth should be 2-3 paragraphs, poetic but coherent.
-Include:
-1. How the world was born
-2. The origin of magic/technology
-3. A foundational conflict
-4. The role of mortals
+Write a creation myth (2-3 paragraphs) that is:
+- Poetic and evocative, with rich imagery
+- Ancient and mysterious in tone
+- Emotionally resonant
+- Thematically consistent with the world's blend of technology and nature
 
-Make it feel ancient and mysterious.
+Structure:
+1. How the world was born (use vivid, sensory language)
+2. The origin of magic/technology (show their interconnectedness)
+3. A foundational conflict or tension (create emotional weight)
+4. The role of mortals (their purpose and burden)
+
+Use metaphors, personification, and symbolic language. Make readers feel the weight of eons and the wonder of creation.
+Avoid generic fantasy tropes—create something unique and memorable.
+
 Seed: ${seed}
 `;
 
@@ -157,8 +166,17 @@ Seed: ${seed}
    * Generate event name
    */
   private async generateEventName(index: number, worldData?: WorldData): Promise<string> {
-    const prompt = `Generate a historical event name for a ${worldData?.worldType || 'fantasy'} world. 
-    Make it dramatic and memorable. Event number ${index + 1}.`;
+    const prompt = `Generate a historical event name for a ${worldData?.worldType || 'fantasy'} world that blends technology and nature.
+    
+Requirements:
+- Dramatic and memorable (3-6 words)
+- Evocative and poetic
+- Reflects the event's significance
+- Avoid generic names like "The Great War" or "The Fall"
+- Use specific, vivid language
+
+Event number ${index + 1} in the world's history.
+Examples of good names: "The Rusting of the Green", "When Machines Learned to Dream", "The Archive's First Breath"`;
 
     try {
       const response = await this.llm.generateText(prompt);
@@ -172,8 +190,17 @@ Seed: ${seed}
    * Generate event description
    */
   private async generateEventDescription(index: number, worldData?: WorldData): Promise<string> {
-    const prompt = `Describe a major historical event in 2-3 sentences for a ${worldData?.worldType || 'fantasy'} world. 
-    Event number ${index + 1}. Make it impactful and memorable.`;
+    const prompt = `Describe a major historical event (2-3 sentences) for a ${worldData?.worldType || 'fantasy'} world that blends technology and nature.
+    
+Requirements:
+- Vivid, sensory language (what did people see, hear, feel?)
+- Emotional impact (how did it affect those who lived through it?)
+- Lasting consequences (what changed because of this event?)
+- Show, don't tell (use imagery and metaphor)
+- Make it feel significant and memorable
+
+Event number ${index + 1} in the world's history.
+Write as if you're a historian recounting a moment that shaped everything that came after.`;
 
     try {
       const response = await this.llm.generateText(prompt);
@@ -252,8 +279,19 @@ Seed: ${seed}
    * Generate conflict
    */
   private async generateConflict(index: number, worldData?: WorldData): Promise<Conflict> {
-    const prompt = `Generate a current conflict for a ${worldData?.worldType || 'fantasy'} world. 
-    Include name, involved factions, and description.`;
+    const prompt = `Generate a current conflict for a ${worldData?.worldType || 'fantasy'} world that blends technology and nature.
+
+Requirements:
+- Name: Dramatic, specific, memorable (3-6 words)
+- Involved factions: 2-3 factions with clear motivations
+- Description: 2-3 sentences that explain:
+  * What the conflict is about (not just "they fight")
+  * Why it matters (stakes and consequences)
+  * The emotional/philosophical tension at its core
+- Make it feel urgent and meaningful
+- Avoid generic conflicts—create something with thematic depth
+
+Return as JSON: {name: string, factions: string[], description: string}`;
 
     try {
       const response = await this.llm.generateText(prompt);
@@ -276,8 +314,20 @@ Seed: ${seed}
    * Generate faction
    */
   private async generateFaction(index: number, worldData?: WorldData): Promise<Faction> {
-    const prompt = `Generate a major faction for a ${worldData?.worldType || 'fantasy'} world. 
-    Include name and description.`;
+    const prompt = `Generate a major faction for a ${worldData?.worldType || 'fantasy'} world that blends technology and nature.
+
+Requirements:
+- Name: Memorable, evocative (2-4 words that suggest their identity)
+- Description: 2-3 sentences covering:
+  * Their core philosophy or goal
+  * Their relationship to technology and nature
+  * What makes them distinct and interesting
+  * Their role in the world's conflicts
+
+Make them feel like real organizations with clear motivations, not generic groups.
+Avoid clichés—create something unique.
+
+Return as JSON: {name: string, description: string}`;
 
     try {
       const response = await this.llm.generateText(prompt);
@@ -304,8 +354,20 @@ Seed: ${seed}
    * Generate secret
    */
   private async generateSecret(index: number, worldData?: WorldData): Promise<WorldSecret> {
-    const prompt = `Generate a world secret for a ${worldData?.worldType || 'fantasy'} world. 
-    Something mysterious and significant that players can discover.`;
+    const prompt = `Generate a world secret for a ${worldData?.worldType || 'fantasy'} world that blends technology and nature.
+
+Requirements:
+- Name: Mysterious, intriguing (3-6 words that hint at the secret)
+- Description: 2-3 sentences that:
+  * Hint at what the secret is without fully revealing it
+  * Create intrigue and mystery
+  * Suggest why it matters if discovered
+  * Use evocative, atmospheric language
+
+Make it feel like discovering this secret would change how players understand the world.
+It should be significant, not trivial.
+
+Return as JSON: {name: string, description: string}`;
 
     try {
       const response = await this.llm.generateText(prompt);
@@ -365,10 +427,11 @@ Seed: ${seed}
    * Fallback creation myth
    */
   private getFallbackCreationMyth(worldData?: WorldData): string {
-    return `In the beginning, there was only void. From the void emerged the first light, 
-    and from that light, the world was born. Magic flowed through the land like rivers, 
-    and technology grew from the seeds of knowledge. Mortals were given the gift of choice, 
-    and with that gift came both creation and conflict.`;
+    return `In the beginning, there was only void—a silence so profound it ached. From that void, the first light emerged, not as a single point, but as twin flames: one that dreamed of steel and circuits, one that dreamed of root and leaf. They danced together, and from their dance, the world was born.
+    
+Magic flowed through the land like rivers, and technology grew from the seeds of knowledge planted in the dark soil. They were never meant to be separate—the first machines hummed with the rhythm of living things, and the first forests learned to remember.
+    
+Mortals were given the gift of choice, and with that gift came both creation and conflict. For every choice to build, there was a choice to destroy. For every moment of harmony, a moment of discord. The world remembers all of it, and in the quiet spaces between heartbeats, you can still hear the echo of that first dance.`;
   }
 }
 
