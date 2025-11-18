@@ -1,10 +1,12 @@
 /**
  * NPC Trader System with Utility AI and Dynamic Dialogue
  * Creates living world agents that respond to player actions
+ * Enhanced with persistent memory and relationship tracking
  */
 
 import { LLMIntegration } from '../integrations/LLMIntegration';
 import { ElevenLabsIntegration } from '../integrations/ElevenLabsIntegration';
+import { MemoryManager, ContextCompressor, StructuredOutputParser } from '../memory';
 
 export interface NPCTrader {
   id: string;
@@ -22,6 +24,11 @@ export interface NPCTrader {
     playerId: string;
     favorable: boolean;
   } | null;
+  personality?: {
+    traits: string[];
+    background: string;
+    speechStyle: string;
+  };
 }
 
 export interface TradeOffer {
@@ -43,6 +50,14 @@ export class NPCTraderSystem {
     amount: number;
     price: number;
   }>> = new Map();
+  private memoryManager: MemoryManager;
+  private contextCompressor: ContextCompressor;
+  private outputParser: StructuredOutputParser;
+  private conversationHistory: Map<string, Array<{
+    role: 'player' | 'npc' | 'system';
+    content: string;
+    timestamp: number;
+  }>> = new Map();
 
   constructor(
     llmConfig?: { provider: 'google' | 'saga' | 'openai'; apiKey?: string },
@@ -53,23 +68,42 @@ export class NPCTraderSystem {
         provider: llmConfig.provider,
         apiKey: llmConfig.apiKey,
         temperature: 0.8,
-        maxTokens: 150
+        maxTokens: 200
       });
     }
 
     if (elevenLabsConfig) {
       this.elevenLabs = new ElevenLabsIntegration(elevenLabsConfig);
     }
+
+    // Initialize memory systems
+    this.memoryManager = new MemoryManager();
+    this.contextCompressor = new ContextCompressor(llmConfig);
+    this.outputParser = new StructuredOutputParser();
   }
 
   /**
-   * Create a new NPC trader
+   * Create a new NPC trader with personality
    */
-  createTrader(
+  async createTrader(
     id: string,
     name: string,
-    position: { x: number; y: number }
-  ): NPCTrader {
+    position: { x: number; y: number },
+    personality?: NPCTrader['personality']
+  ): Promise<NPCTrader> {
+    // Generate personality if not provided
+    let traderPersonality = personality;
+    if (!traderPersonality && this.llm) {
+      try {
+        traderPersonality = await this.generatePersonality(name);
+      } catch (error) {
+        console.warn('Personality generation failed, using default', error);
+        traderPersonality = this.getDefaultPersonality();
+      }
+    } else if (!traderPersonality) {
+      traderPersonality = this.getDefaultPersonality();
+    }
+
     const trader: NPCTrader = {
       id,
       name,
@@ -77,11 +111,68 @@ export class NPCTraderSystem {
       inventory: this.generateInitialInventory(),
       reputation: 0,
       state: 'idle',
-      lastTrade: null
+      lastTrade: null,
+      personality: traderPersonality
     };
 
     this.traders.set(id, trader);
+
+    // Store initial memory about trader creation
+    await this.memoryManager.storeMemory({
+      entityId: id,
+      entityType: 'npc',
+      content: `Trader ${name} established at position (${position.x}, ${position.y})`,
+      metadata: {
+        timestamp: Date.now(),
+        importance: 0.5,
+        tags: ['creation', 'setup']
+      }
+    });
+
     return trader;
+  }
+
+  /**
+   * Generate personality for trader using LLM
+   */
+  private async generatePersonality(name: string): Promise<NPCTrader['personality']> {
+    if (!this.llm) return this.getDefaultPersonality();
+
+    const prompt = `Generate a personality profile for a sci-fi RTS game trader named "${name}".
+Include:
+- 3-4 personality traits (e.g., "greedy", "honest", "cautious", "charismatic")
+- A brief background (1 sentence)
+- Speech style description (e.g., "formal", "casual", "sarcastic", "enthusiastic")
+
+Format as JSON:
+{
+  "traits": ["trait1", "trait2", "trait3"],
+  "background": "brief background",
+  "speechStyle": "style description"
+}`;
+
+    try {
+      const response = await this.llm.generateText(prompt);
+      const parsed = this.outputParser.parseJSON<NPCTrader['personality']>(response);
+      if (parsed.success && parsed.data) {
+        return parsed.data;
+      }
+    } catch (error) {
+      console.warn('Personality generation failed', error);
+    }
+
+    return this.getDefaultPersonality();
+  }
+
+  /**
+   * Get default personality
+   */
+  private getDefaultPersonality(): NPCTrader['personality'] {
+    return {
+      traits: ['pragmatic', 'opportunistic'],
+      background: 'A seasoned trader who has seen many battles',
+      speechStyle: 'professional and direct'
+    };
   }
 
   /**
@@ -281,11 +372,11 @@ export class NPCTraderSystem {
     const item = trader.inventory.find(i => i.resource === resource);
     if (!item || item.amount < amount) return null;
 
-    // Generate dialogue using LLM
+    // Generate dialogue using LLM with memory
     let dialogue: string | undefined;
     if (this.llm) {
       try {
-        dialogue = await this.generateTradeDialogue(trader, resource, amount);
+        dialogue = await this.generateTradeDialogue(trader, resource, amount, 'player');
       } catch (error) {
         console.warn('Trade dialogue generation failed', error);
         dialogue = this.getFallbackDialogue(trader, resource);
@@ -304,26 +395,82 @@ export class NPCTraderSystem {
   }
 
   /**
-   * Generate trade dialogue using LLM
+   * Generate trade dialogue using LLM with memory context
    */
   private async generateTradeDialogue(
     trader: NPCTrader,
     resource: string,
-    amount: number
+    amount: number,
+    playerId?: string
   ): Promise<string> {
     if (!this.llm) return this.getFallbackDialogue(trader, resource);
 
-    const prompt = `NPC trader "${trader.name}" with reputation ${trader.reputation.toFixed(2)}
+    // Get compressed context from memory
+    const memoryContext = await this.memoryManager.getCompressedContext(
+      trader.id,
+      'npc',
+      500
+    );
+
+    // Get conversation history
+    const conversationKey = `${trader.id}_${playerId || 'default'}`;
+    const history = this.conversationHistory.get(conversationKey) || [];
+    const compressedHistory = await this.contextCompressor.compressConversation(history, 300);
+    const historyText = this.contextCompressor.formatContext(compressedHistory);
+
+    // Build enhanced prompt with memory
+    const personalityInfo = trader.personality 
+      ? `Personality: ${trader.personality.traits.join(', ')}. Background: ${trader.personality.background}. Speech style: ${trader.personality.speechStyle}.`
+      : '';
+
+    const prompt = `You are "${trader.name}", a trader in a sci-fi RTS game.
+
+${personalityInfo}
+Reputation with player: ${trader.reputation.toFixed(2)} (range: -1 to 1)
+
+${memoryContext ? `## Memory Context\n${memoryContext}\n` : ''}
+${historyText ? `## Previous Conversation\n${historyText}\n` : ''}
+
 Player wants to buy ${amount} ${resource} for ${trader.inventory.find(i => i.resource === resource)?.price || 1} each.
 
 Generate a brief merchant dialogue (max 30 words) that:
-- Matches the trader's reputation (positive/negative)
-- Responds to the trade offer
-- Feels natural and in-character`;
+- Matches your personality and speech style
+- Reflects your relationship with the player (reputation: ${trader.reputation.toFixed(2)})
+- References past interactions if relevant
+- Feels natural and in-character
+
+Output only the dialogue text, no JSON or formatting.`;
 
     try {
       const response = await this.llm.generateText(prompt);
-      return response.trim();
+      const dialogue = this.outputParser.cleanResponse(response);
+
+      // Store in conversation history
+      if (playerId) {
+        if (!this.conversationHistory.has(conversationKey)) {
+          this.conversationHistory.set(conversationKey, []);
+        }
+        this.conversationHistory.get(conversationKey)!.push({
+          role: 'npc',
+          content: dialogue,
+          timestamp: Date.now()
+        });
+      }
+
+      // Store memory
+      await this.memoryManager.storeMemory({
+        entityId: trader.id,
+        entityType: 'npc',
+        content: `Offered ${amount} ${resource} to player. Dialogue: "${dialogue}"`,
+        metadata: {
+          timestamp: Date.now(),
+          importance: 0.6,
+          tags: ['trade', 'dialogue', resource],
+          playerId
+        }
+      });
+
+      return dialogue;
     } catch (error) {
       return this.getFallbackDialogue(trader, resource);
     }
@@ -390,11 +537,24 @@ Generate a brief merchant dialogue (max 30 words) that:
       price
     });
 
-    // Generate post-trade dialogue
+    // Store memory of trade
+    await this.memoryManager.storeMemory({
+      entityId: traderId,
+      entityType: 'npc',
+      content: `Completed trade with player: ${amount} ${resource} for ${price}. Trade was ${favorable ? 'favorable' : 'unfavorable'} for trader.`,
+      metadata: {
+        timestamp: Date.now(),
+        importance: favorable ? 0.8 : 0.5,
+        tags: ['trade', 'completed', resource, favorable ? 'positive' : 'neutral'],
+        playerId
+      }
+    });
+
+    // Generate post-trade dialogue with memory
     let dialogue: string | undefined;
     if (this.llm) {
       try {
-        dialogue = await this.generatePostTradeDialogue(trader, favorable);
+        dialogue = await this.generatePostTradeDialogue(trader, favorable, playerId);
       } catch (error) {
         dialogue = this.getFallbackPostTradeDialogue(trader, favorable);
       }
@@ -406,26 +566,60 @@ Generate a brief merchant dialogue (max 30 words) that:
   }
 
   /**
-   * Generate post-trade dialogue
+   * Generate post-trade dialogue with memory context
    */
   private async generatePostTradeDialogue(
     trader: NPCTrader,
-    favorable: boolean
+    favorable: boolean,
+    playerId?: string
   ): Promise<string> {
     if (!this.llm) return this.getFallbackPostTradeDialogue(trader, favorable);
 
-    const prompt = `NPC trader "${trader.name}" just completed a trade.
-The trade was ${favorable ? 'favorable' : 'unfavorable'} for the trader.
-Reputation: ${trader.reputation.toFixed(2)}
+    // Get memory context
+    const memoryContext = await this.memoryManager.getCompressedContext(
+      trader.id,
+      'npc',
+      400
+    );
+
+    const personalityInfo = trader.personality 
+      ? `Personality: ${trader.personality.traits.join(', ')}. Speech style: ${trader.personality.speechStyle}.`
+      : '';
+
+    const prompt = `You are "${trader.name}", a trader who just completed a trade.
+
+${personalityInfo}
+The trade was ${favorable ? 'favorable' : 'unfavorable'} for you.
+Current reputation with player: ${trader.reputation.toFixed(2)} (range: -1 to 1)
+
+${memoryContext ? `## Your Memory\n${memoryContext}\n` : ''}
 
 Generate a brief post-trade comment (max 20 words) that:
-- Reflects the trade outcome
-- Matches the trader's personality
-- Feels natural`;
+- Reflects how you feel about this trade
+- References past interactions if relevant (from memory)
+- Matches your personality and speech style
+- Feels natural
+
+Output only the dialogue text.`;
 
     try {
       const response = await this.llm.generateText(prompt);
-      return response.trim();
+      const dialogue = this.outputParser.cleanResponse(response);
+
+      // Store in conversation history
+      if (playerId) {
+        const conversationKey = `${trader.id}_${playerId}`;
+        if (!this.conversationHistory.has(conversationKey)) {
+          this.conversationHistory.set(conversationKey, []);
+        }
+        this.conversationHistory.get(conversationKey)!.push({
+          role: 'npc',
+          content: dialogue,
+          timestamp: Date.now()
+        });
+      }
+
+      return dialogue;
     } catch (error) {
       return this.getFallbackPostTradeDialogue(trader, favorable);
     }
@@ -453,6 +647,42 @@ Generate a brief post-trade comment (max 20 words) that:
    */
   getAllTraders(): NPCTrader[] {
     return Array.from(this.traders.values());
+  }
+
+  /**
+   * Get memory summary for a trader
+   */
+  async getTraderMemory(traderId: string): Promise<string> {
+    return await this.memoryManager.getCompressedContext(traderId, 'npc', 1000);
+  }
+
+  /**
+   * Add player dialogue to conversation history
+   */
+  recordPlayerDialogue(traderId: string, playerId: string, content: string): void {
+    const conversationKey = `${traderId}_${playerId}`;
+    if (!this.conversationHistory.has(conversationKey)) {
+      this.conversationHistory.set(conversationKey, []);
+    }
+    this.conversationHistory.get(conversationKey)!.push({
+      role: 'player',
+      content,
+      timestamp: Date.now()
+    });
+  }
+
+  /**
+   * Export memory data for persistence
+   */
+  exportMemory(): any {
+    return this.memoryManager.exportMemories();
+  }
+
+  /**
+   * Import memory data from persistence
+   */
+  importMemory(data: any): void {
+    this.memoryManager.importMemories(data);
   }
 }
 

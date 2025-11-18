@@ -5,6 +5,7 @@
 
 import { LLMIntegration, CommanderPersonality } from '../integrations/LLMIntegration';
 import { AIController, AIDecision } from '../AIController';
+import { MemoryManager, ContextCompressor } from '../memory';
 
 export interface CommanderBehavior {
   personality: CommanderPersonality;
@@ -29,6 +30,8 @@ export class EnhancedCommanderSystem {
   private llm: LLMIntegration | null = null;
   private commanders: Map<string, CommanderBehavior> = new Map();
   private aiControllers: Map<string, AIController> = new Map();
+  private memoryManager: MemoryManager;
+  private contextCompressor: ContextCompressor;
 
   constructor(llmConfig?: { provider: 'google' | 'saga' | 'openai'; apiKey?: string }) {
     if (llmConfig) {
@@ -39,6 +42,10 @@ export class EnhancedCommanderSystem {
         maxTokens: 300
       });
     }
+
+    // Initialize memory systems
+    this.memoryManager = new MemoryManager();
+    this.contextCompressor = new ContextCompressor(llmConfig);
   }
 
   /**
@@ -83,6 +90,18 @@ export class EnhancedCommanderSystem {
 
     this.commanders.set(commanderId, commander);
     this.aiControllers.set(commanderId, aiController);
+
+    // Store initial memory about commander
+    await this.memoryManager.storeMemory({
+      entityId: commanderId,
+      entityType: 'commander',
+      content: `Commander ${personality.name} (${archetype}) created with personality traits: ${JSON.stringify(personality.traits)}`,
+      metadata: {
+        timestamp: Date.now(),
+        importance: 0.7,
+        tags: ['creation', 'commander', archetype]
+      }
+    });
 
     return commander;
   }

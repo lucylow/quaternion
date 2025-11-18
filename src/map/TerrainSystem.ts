@@ -421,6 +421,80 @@ export class TerrainSystem {
         case 'scout_towers':
           this.createScoutTowers(feature);
           break;
+        case 'central_nexus':
+          this.createNexus(feature);
+          break;
+        case 'crystal_formations':
+          this.createCrystalFormations(feature);
+          break;
+        case 'void_barriers':
+          this.createVoidBarriers(feature);
+          break;
+      }
+    }
+  }
+
+  /**
+   * Apply environmental storytelling features from narrative metadata
+   */
+  public applyEnvironmentalStorytelling(
+    features: Array<{
+      type: 'crashed_ship' | 'memorial' | 'artifact' | 'ancient_ruins' | 'broadcast_tower' | 'research_station' | 'cataclysm_scar';
+      coordinates: number[];
+      lore: {
+        name: string;
+        description: string;
+        backstory: string;
+        eventText?: string;
+      };
+    }>
+  ): void {
+    for (const feature of features) {
+      const [x, y] = feature.coordinates;
+      const tile = this.getTile(x, y);
+      if (tile) {
+        tile.feature = feature.type as TerrainFeatureType;
+        tile.lore = {
+          name: feature.lore.name,
+          description: feature.lore.description,
+          backstory: feature.lore.backstory,
+          eventText: feature.lore.eventText
+        };
+        
+        // Apply feature-specific bonuses
+        switch (feature.type) {
+          case 'crashed_ship':
+            tile.defenseBonus += 0.3;
+            tile.resourceType = 'data_nodes';
+            tile.strategicValue += 40;
+            break;
+          case 'memorial':
+            tile.defenseBonus += 0.2;
+            tile.strategicValue += 30;
+            break;
+          case 'artifact':
+            tile.resourceType = 'crystals';
+            tile.strategicValue += 80;
+            break;
+          case 'ancient_ruins':
+            tile.defenseBonus += 0.4;
+            tile.resourceType = 'data_nodes';
+            tile.strategicValue += 50;
+            break;
+          case 'broadcast_tower':
+            tile.visibilityModifier += 0.5;
+            tile.strategicValue += 60;
+            break;
+          case 'research_station':
+            tile.defenseBonus += 0.5;
+            tile.resourceType = 'data_nodes';
+            tile.strategicValue += 90;
+            break;
+          case 'cataclysm_scar':
+            tile.elevation += 20;
+            tile.strategicValue += 70;
+            break;
+        }
       }
     }
   }
@@ -503,6 +577,82 @@ export class TerrainSystem {
         requiresVision: props.requires_vision || true,
         resourceBonus: props.resource_bonus || 3.0
       };
+    }
+  }
+
+  /**
+   * Create central nexus
+   */
+  private createNexus(feature: SpecialFeature): void {
+    const coords = feature.coordinates as number[];
+    const props = feature.properties;
+    const [x, y] = coords;
+    const radius = props.radius || 150;
+    
+    for (let dx = -radius; dx <= radius; dx++) {
+      for (let dy = -radius; dy <= radius; dy++) {
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist <= radius) {
+          const tile = this.getTile(x + dx, y + dy);
+          if (tile) {
+            tile.elevation = (props.elevation || 0.9) * 100;
+            tile.defenseBonus = Math.max(tile.defenseBonus, props.defense_bonus || 0.2);
+            tile.visibilityModifier += props.vision_bonus ? props.vision_bonus - 1 : 0;
+            tile.strategicValue += 60;
+            if (dist < radius * 0.3) {
+              tile.feature = 'artifact';
+              tile.strategicValue += 40;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Create crystal formations
+   */
+  private createCrystalFormations(feature: SpecialFeature): void {
+    const coords = feature.coordinates as number[][];
+    const props = feature.properties;
+    
+    for (const [x, y] of coords) {
+      const tile = this.getTile(x, y);
+      if (tile) {
+        tile.biome = 'crystal';
+        tile.defenseBonus = Math.max(tile.defenseBonus, props.defense_bonus || 0.4);
+        tile.resourceType = 'crystals';
+        tile.strategicValue += 50;
+        if (props.resource_bonus) {
+          tile.metadata = {
+            ...tile.metadata,
+            resourceBonus: props.resource_bonus
+          };
+        }
+      }
+    }
+  }
+
+  /**
+   * Create void barriers
+   */
+  private createVoidBarriers(feature: SpecialFeature): void {
+    const coords = feature.coordinates as number[][];
+    const props = feature.properties;
+    
+    for (const [x, y] of coords) {
+      const tile = this.getTile(x, y);
+      if (tile) {
+        tile.biome = 'void';
+        tile.passable = !props.impassable;
+        tile.strategicValue = 0;
+        if (props.damage_per_second) {
+          tile.metadata = {
+            ...tile.metadata,
+            damagePerSecond: props.damage_per_second
+          };
+        }
+      }
     }
   }
 
