@@ -117,6 +117,14 @@ const queryClient = new QueryClient({
   },
 });
 
+// Set up global error handlers for React Query
+queryClient.getQueryCache().subscribe((event) => {
+  if (event?.type === 'error') {
+    console.error('Query cache error:', event);
+    // Don't throw - allow app to continue
+  }
+});
+
 // Global error handlers
 if (typeof window !== "undefined") {
   // Handle unhandled promise rejections

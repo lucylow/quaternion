@@ -470,7 +470,7 @@ export class GameLoop {
    */
   private limitFrameRate(currentTime: number): void {
     const frameEnd = currentTime;
-    const frameTime = (frameEnd - this.lastFrameTime) / 1000; // Convert to seconds
+    const frameTime = frameEnd - this.lastFrameTime; // Both in seconds
     
     if (frameTime < this.targetFrameTime) {
       // Frame completed too quickly, sleep for remaining time
