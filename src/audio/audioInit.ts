@@ -42,14 +42,20 @@ export async function initializeAudio() {
     await chromaSynth.init();
 
     // Preload music stems (add your actual asset paths)
-    await MusicManager.instance().loadStems([
-      { id: 'ambient', url: '/assets/music/ambient.ogg' },
-      { id: 'tension', url: '/assets/music/tension.ogg' },
-      { id: 'pulse', url: '/assets/music/pulse.ogg' },
-    ]);
+    // Wrap in try-catch to prevent crashes if music files don't exist
+    try {
+      await MusicManager.instance().loadStems([
+        { id: 'ambient', url: '/assets/music/ambient.ogg' },
+        { id: 'tension', url: '/assets/music/tension.ogg' },
+        { id: 'pulse', url: '/assets/music/pulse.ogg' },
+      ]);
 
-    // Start baseline music
-    MusicManager.instance().playBase(['ambient', 'pulse']);
+      // Start baseline music
+      MusicManager.instance().playBase(['ambient', 'pulse']);
+    } catch (musicError) {
+      console.warn('Music loading failed (non-critical):', musicError);
+      // Continue without music - game will still work
+    }
 
     // Start chroma pulse synth (procedural ambient)
     // Uncomment when ready:

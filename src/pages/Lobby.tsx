@@ -54,6 +54,27 @@ interface Room {
   };
 }
 
+// Helper function to safely serialize config for navigation (removes circular references)
+const serializeConfig = (config: GameConfig): GameConfig => {
+  return {
+    mode: config.mode,
+    commanderId: config.commanderId,
+    difficulty: config.difficulty,
+    mapType: config.mapType,
+    mapId: config.mapId,
+    mapWidth: config.mapWidth,
+    mapHeight: config.mapHeight,
+    seed: config.seed,
+    roomId: config.roomId,
+    gameMode: config.gameMode,
+    quaternionAxis: config.quaternionAxis,
+    cooperativeMode: config.cooperativeMode,
+    replayId: config.replayId,
+    puzzleId: config.puzzleId,
+    playerId: (config as any).playerId, // Include playerId if present
+  };
+};
+
 const Lobby = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'single' | 'multiplayer'>('single');
@@ -201,7 +222,7 @@ const Lobby = () => {
     
     navigate('/game', {
       state: {
-        config
+        config: serializeConfig(config)
       }
     });
   };
@@ -257,31 +278,52 @@ const Lobby = () => {
           localStorage.setItem('quaternion_roomId', data.roomId);
         }
         
-        // Store room data for game loading
+        // Store room data for game loading (safely serialize to avoid circular references)
         if (data.room) {
-          localStorage.setItem('quaternion_roomData', JSON.stringify(data.room));
+          try {
+            // Only store serializable properties
+            const roomData = {
+              id: data.room.id,
+              name: data.room.name,
+              host: data.room.host,
+              players: data.room.players,
+              maxPlayers: data.room.maxPlayers,
+              status: data.room.status,
+              mapType: data.room.mapType,
+              createdAt: data.room.createdAt,
+              cooperativeMode: data.room.cooperativeMode,
+              assignedAxes: data.room.assignedAxes,
+              seed: data.room.seed,
+              mapWidth: data.room.mapWidth,
+              mapHeight: data.room.mapHeight,
+              difficulty: data.room.difficulty,
+            };
+            localStorage.setItem('quaternion_roomData', JSON.stringify(roomData));
+          } catch (error) {
+            console.warn('Failed to store room data:', error);
+          }
         }
         
         toast.success(`Room "${roomName}" created successfully!`, {
           description: `Room ID: ${data.roomId}`
         });
         
-        // Navigate to game with full config
+        // Navigate to game with full config (safely serialized)
+        const gameConfig: GameConfig = {
+          mode: 'multiplayer',
+          commanderId: multiplayerConfig.commanderId || 'AUREN',
+          mapType: data.room?.mapType || multiplayerConfig.mapType || 'crystalline_plains',
+          mapWidth: data.room?.mapWidth || multiplayerConfig.mapWidth || 40,
+          mapHeight: data.room?.mapHeight || multiplayerConfig.mapHeight || 30,
+          seed: data.room?.seed || Math.floor(Math.random() * 1000000),
+          roomId: data.roomId,
+          difficulty: data.room?.difficulty || multiplayerConfig.difficulty || 'medium',
+          cooperativeMode: data.room?.cooperativeMode || multiplayerConfig.cooperativeMode || false,
+          quaternionAxis: multiplayerConfig.quaternionAxis,
+        };
         navigate('/game', {
           state: {
-            config: {
-              ...multiplayerConfig,
-              mode: 'multiplayer',
-              roomId: data.roomId,
-              playerId: data.playerId,
-              seed: data.room?.seed,
-              mapType: data.room?.mapType,
-              mapWidth: data.room?.mapWidth,
-              mapHeight: data.room?.mapHeight,
-              cooperativeMode: data.room?.cooperativeMode,
-              quaternionAxis: multiplayerConfig.quaternionAxis,
-              difficulty: data.room?.difficulty
-            }
+            config: serializeConfig({ ...gameConfig, playerId: data.playerId } as any)
           }
         });
       } else {
@@ -332,31 +374,52 @@ const Lobby = () => {
           localStorage.setItem('quaternion_roomId', data.roomId);
         }
         
-        // Store room data for game loading
+        // Store room data for game loading (safely serialize to avoid circular references)
         if (data.room) {
-          localStorage.setItem('quaternion_roomData', JSON.stringify(data.room));
+          try {
+            // Only store serializable properties
+            const roomData = {
+              id: data.room.id,
+              name: data.room.name,
+              host: data.room.host,
+              players: data.room.players,
+              maxPlayers: data.room.maxPlayers,
+              status: data.room.status,
+              mapType: data.room.mapType,
+              createdAt: data.room.createdAt,
+              cooperativeMode: data.room.cooperativeMode,
+              assignedAxes: data.room.assignedAxes,
+              seed: data.room.seed,
+              mapWidth: data.room.mapWidth,
+              mapHeight: data.room.mapHeight,
+              difficulty: data.room.difficulty,
+            };
+            localStorage.setItem('quaternion_roomData', JSON.stringify(roomData));
+          } catch (error) {
+            console.warn('Failed to store room data:', error);
+          }
         }
         
         toast.success(`Joined room "${data.room?.name || roomId}"!`, {
           description: `Players: ${data.room?.players || 0}/${data.room?.maxPlayers || 4}`
         });
         
-        // Navigate to game with full config
+        // Navigate to game with full config (safely serialized)
+        const gameConfig: GameConfig = {
+          mode: 'multiplayer',
+          commanderId: multiplayerConfig.commanderId || 'AUREN',
+          mapType: data.room?.mapType || multiplayerConfig.mapType || 'crystalline_plains',
+          mapWidth: data.room?.mapWidth || multiplayerConfig.mapWidth || 40,
+          mapHeight: data.room?.mapHeight || multiplayerConfig.mapHeight || 30,
+          seed: data.room?.seed || Math.floor(Math.random() * 1000000),
+          roomId: data.roomId,
+          difficulty: data.room?.difficulty || multiplayerConfig.difficulty || 'medium',
+          cooperativeMode: data.room?.cooperativeMode || multiplayerConfig.cooperativeMode || false,
+          quaternionAxis: multiplayerConfig.quaternionAxis,
+        };
         navigate('/game', {
           state: {
-            config: {
-              ...multiplayerConfig,
-              mode: 'multiplayer',
-              roomId: data.roomId,
-              playerId: data.playerId,
-              seed: data.room?.seed,
-              mapType: data.room?.mapType,
-              mapWidth: data.room?.mapWidth,
-              mapHeight: data.room?.mapHeight,
-              cooperativeMode: data.room?.cooperativeMode,
-              quaternionAxis: multiplayerConfig.quaternionAxis,
-              difficulty: data.room?.difficulty
-            }
+            config: serializeConfig({ ...gameConfig, playerId: data.playerId } as any)
           }
         });
       } else {
@@ -582,7 +645,7 @@ const Lobby = () => {
                   </div>
                   <Button
                     onClick={() => navigate('/game', {
-                      state: { config: quickStartConfig }
+                      state: { config: serializeConfig(quickStartConfig) }
                     })}
                     size="lg"
                     className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white hover:shadow-lg"

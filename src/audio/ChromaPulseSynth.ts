@@ -61,6 +61,9 @@ export default class ChromaPulseSynth {
 
   async init(): Promise<void> {
     try {
+      if (!this.audioManager) {
+        throw new Error('AudioManager not available');
+      }
       await this.audioManager.init();
       this.audioContext = this.audioManager.getAudioContext();
       
