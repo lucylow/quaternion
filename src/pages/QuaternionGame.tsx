@@ -405,7 +405,7 @@ const QuaternionGame = () => {
         
         setTimeout(() => {
           setLoading(false);
-          gameStateRef.current?.start();
+          // Game already started by GameLoop initialization
         }, 500);
       });
 
@@ -431,7 +431,7 @@ const QuaternionGame = () => {
           console.warn(`Assets not fully loaded. Progress: ${(this.load.progress * 100).toFixed(1)}%`);
           console.log('Available textures:', Object.keys(this.textures.list));
           setLoading(false);
-          gameStateRef.current?.start();
+          // Game already started by GameLoop initialization
         }
       }, 5000);
     }

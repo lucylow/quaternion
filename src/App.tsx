@@ -110,12 +110,41 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       retry: 1,
       staleTime: 5 * 60 * 1000, // 5 minutes
+      onError: (error) => {
+        console.error('Query error:', error);
+        // Don't throw - allow app to continue
+      },
     },
     mutations: {
       retry: 1,
+      onError: (error) => {
+        console.error('Mutation error:', error);
+        // Don't throw - allow app to continue
+      },
     },
   },
 });
+
+// Global error handlers
+if (typeof window !== "undefined") {
+  // Handle unhandled promise rejections
+  window.addEventListener('unhandledrejection', (event) => {
+    console.error('Unhandled promise rejection:', event.reason);
+    // Prevent default browser error handling
+    event.preventDefault();
+    // Allow game to continue
+  });
+
+  // Handle uncaught errors
+  window.addEventListener('error', (event) => {
+    console.error('Uncaught error:', event.error);
+    // Prevent default browser error handling for non-critical errors
+    if (event.error?.message?.includes('ResizeObserver') || 
+        event.error?.message?.includes('Non-Error promise rejection')) {
+      event.preventDefault();
+    }
+  });
+}
 
 const App = () => (
   <ErrorBoundary>
