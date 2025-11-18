@@ -57,7 +57,6 @@ export function Transition({
     <div
       className={cn(
         baseClasses,
-        durationClass,
         typeClasses[type],
         !show && type === 'fade' && 'pointer-events-none',
         className
