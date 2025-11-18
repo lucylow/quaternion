@@ -713,6 +713,54 @@ export class QuaternionGameState {
   }
   
   /**
+   * Check if player is under attack
+   */
+  private checkIfUnderAttack(): boolean {
+    // Check if any enemy units are attacking player units or buildings
+    const playerUnits = this.units.filter(u => {
+      const player = this.players.get(1);
+      return player && u.playerId === 1;
+    });
+    
+    // Simplified: check if there are enemy units near player units
+    const enemyUnits = this.units.filter(u => {
+      const player = this.players.get(2);
+      return player && u.playerId === 2;
+    });
+    
+    // Check if any enemy units are in combat state
+    return enemyUnits.some(unit => unit.state === 'attacking' || unit.inCombat);
+  }
+  
+  /**
+   * Check if enemy has weakness
+   */
+  private checkEnemyWeakness(): boolean {
+    const enemyPlayer = this.players.get(2);
+    if (!enemyPlayer) return false;
+    
+    // Check if enemy has low resources
+    const totalResources = enemyPlayer.resources.ore + enemyPlayer.resources.energy + 
+                          enemyPlayer.resources.biomass + enemyPlayer.resources.data;
+    if (totalResources < 100) return true;
+    
+    // Check if enemy has few units
+    const enemyUnits = this.units.filter(u => u.playerId === 2);
+    if (enemyUnits.length < 3) return true;
+    
+    return false;
+  }
+  
+  /**
+   * Check if AI has trade offer
+   */
+  private checkAITradeOffer(): any | null {
+    // Simplified: return null for now
+    // In full implementation, this would check if AI wants to trade resources
+    return null;
+  }
+  
+  /**
    * Update win condition progress for UI display
    */
   private updateWinConditionProgress(): void {
