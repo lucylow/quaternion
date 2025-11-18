@@ -683,23 +683,39 @@ const QuaternionGame = () => {
           }
           
           console.log(`[Background] Creating map image with key: ${key}, dimensions: ${textureWidth}x${textureHeight}`);
+          console.log(`[Background] Game world size: ${width * 2}x${height * 2}`);
           
-          // Create map image at origin (0,0) to cover the entire game world
+          // Calculate world dimensions
+          const worldWidth = width * 2;
+          const worldHeight = height * 2;
+          
+          // Create map image at center of world, then position it to cover entire world
           const img = this.add.image(0, 0, key);
           
-          // Scale to cover the entire game world (width * 2, height * 2)
-          // Maintain aspect ratio while covering the area
-          const scaleX = (width * 2) / textureWidth;
-          const scaleY = (height * 2) / textureHeight;
-          const scale = Math.max(scaleX, scaleY);
+          // Calculate scale to cover entire world (use cover strategy - scale to fill)
+          const scaleX = worldWidth / textureWidth;
+          const scaleY = worldHeight / textureHeight;
+          const scale = Math.max(scaleX, scaleY) * 1.1; // Slightly larger to ensure full coverage
           
           img.setScale(scale);
-          img.setOrigin(0, 0); // Top-left origin for world positioning
-          img.setAlpha(0.75); // More visible map background
-          img.setTint(0xffffff); // No darkening - full color visibility
-          img.setDepth(-1000); // Behind everything
+          img.setOrigin(0.5, 0.5); // Center origin
           
-          console.log(`[Background] Map background created successfully: ${key} at scale ${scale.toFixed(2)}`);
+          // Position at center of world
+          img.setPosition(worldWidth / 2, worldHeight / 2);
+          
+          // Make it fully visible
+          img.setAlpha(1.0); // Full opacity for visibility
+          img.setTint(0xffffff); // No tint - full color
+          img.setDepth(-1000); // Behind everything
+          img.setScrollFactor(1); // Scroll with camera
+          
+          // Make sure it's visible
+          img.setVisible(true);
+          
+          console.log(`[Background] Map background created successfully: ${key}`);
+          console.log(`[Background] Position: (${worldWidth / 2}, ${worldHeight / 2}), Scale: ${scale.toFixed(2)}`);
+          console.log(`[Background] Image dimensions after scale: ${textureWidth * scale}x${textureHeight * scale}`);
+          
           return img;
         } catch (error) {
           console.error(`[Background] Failed to create map image with key ${key}:`, error);
@@ -734,12 +750,23 @@ const QuaternionGame = () => {
       // Fallback to gradient background if map image creation failed
       if (!backgroundImage) {
         console.warn('[Background] All map attempts failed, using gradient fallback');
+        const worldWidth = width * 2;
+        const worldHeight = height * 2;
         const bgGraphics = this.add.graphics();
         bgGraphics.fillGradientStyle(0x001122, 0x001122, 0x002244, 0x002244, 1);
-        bgGraphics.fillRect(0, 0, width * 2, height * 2);
+        bgGraphics.fillRect(0, 0, worldWidth, worldHeight);
         bgGraphics.setDepth(-1000);
+        bgGraphics.setScrollFactor(1);
         backgroundImage = bgGraphics;
         console.log('[Background] Gradient fallback background created');
+      } else {
+        // Ensure background is set up correctly
+        if (backgroundImage instanceof Phaser.GameObjects.Image) {
+          // Double-check visibility
+          backgroundImage.setVisible(true);
+          backgroundImage.setActive(true);
+          console.log('[Background] Map background verified and visible');
+        }
       }
       
       // Add grid overlay on top of background
@@ -1024,6 +1051,8 @@ const QuaternionGame = () => {
       cameraRef.current = camera;
       camera.setBounds(0, 0, width * 2, height * 2);
       camera.setZoom(1.0);
+      // Ensure camera background is transparent so map shows through
+      camera.setBackgroundColor('#000000', 0); // Transparent black
 
       // Keyboard shortcuts for menus
       this.input.keyboard?.on('keydown-T', () => setShowTechTree(true));
