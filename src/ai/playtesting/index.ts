@@ -13,11 +13,16 @@
  * - Automated Playtesting with Procedural Personas
  */
 
-export { ProceduralPersona, PersonaType, PersonaFactory, PersonaTraits } from './ProceduralPersona';
-export { PlaytestingAgent, PlaytestResult, PlaytestMetrics, BalanceIssue, DifficultySpike } from './PlaytestingAgent';
-export { BalanceDetector, BalanceReport, BalanceMetrics } from './BalanceDetector';
-export { ExploitDetector, ExploitDetection } from './ExploitDetector';
-export { PlaytestingCoordinator, PlaytestConfig, PlaytestSession, PlaytestSummary } from './PlaytestingCoordinator';
+export { ProceduralPersona, PersonaFactory } from './ProceduralPersona';
+export type { PersonaType, PersonaTraits } from './ProceduralPersona';
+export { PlaytestingAgent } from './PlaytestingAgent';
+export type { PlaytestResult, PlaytestMetrics, BalanceIssue, DifficultySpike } from './PlaytestingAgent';
+export { BalanceDetector } from './BalanceDetector';
+export type { BalanceReport, BalanceMetrics } from './BalanceDetector';
+export { ExploitDetector } from './ExploitDetector';
+export type { ExploitDetection } from './ExploitDetector';
+export { PlaytestingCoordinator } from './PlaytestingCoordinator';
+export type { PlaytestConfig, PlaytestSession, PlaytestSummary } from './PlaytestingCoordinator';
 
 /**
  * Quick start example:
