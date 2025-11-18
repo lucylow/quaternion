@@ -21,6 +21,7 @@ export { default as BattlePass } from "../pages/BattlePass";
 export { default as NotFound } from "../pages/NotFound";
 
 // Lazy loaded versions for App.tsx
+// These are used in App.tsx for code splitting and better performance
 export const LazyGame = lazy(() => import("../pages/Game"));
 export const LazyQuaternionGame = lazy(() => import("../pages/QuaternionGame"));
 export const LazyLobby = lazy(() => import("../pages/Lobby"));
