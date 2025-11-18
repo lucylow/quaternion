@@ -39,8 +39,17 @@ export default class ChromaPulseSynth {
   }
 
   async init(): Promise<void> {
-    await this.audioManager.init();
-    this.audioContext = this.audioManager.getAudioContext();
+    try {
+      await this.audioManager.init();
+      this.audioContext = this.audioManager.getAudioContext();
+      if (!this.audioContext) {
+        throw new Error('Audio context not available');
+      }
+    } catch (error) {
+      console.error('ChromaPulseSynth initialization failed:', error);
+      // Don't throw - allow game to continue without audio
+      // The synth will gracefully fail when start() is called
+    }
   }
 
   /**
@@ -48,61 +57,154 @@ export default class ChromaPulseSynth {
    */
   start(): void {
     if (this.isPlaying) return;
-    if (!this.audioContext) throw new Error('ChromaPulseSynth not initialized. Call init() first.');
+    
+    try {
+      if (!this.audioContext) {
+        console.warn('ChromaPulseSynth not initialized. Audio will be disabled.');
+        return;
+      }
 
-    const ctx = this.audioContext;
+      const ctx = this.audioContext;
 
-    // Main oscillator (sine + saw mix)
-    this.oscillator = ctx.createOscillator();
-    this.oscillator.type = 'sine';
-    this.oscillator.frequency.value = this.baseFreq;
+      // Check if audio context is in a valid state
+      if (ctx.state === 'closed') {
+        console.warn('Audio context is closed. Cannot start synth.');
+        return;
+      }
 
-    // LFO for filter modulation (breathing effect)
-    this.lfo = ctx.createOscillator();
-    this.lfo.type = 'sine';
-    this.lfo.frequency.value = this.lfoRate;
+      // Main oscillator (sine + saw mix)
+      try {
+        this.oscillator = ctx.createOscillator();
+        this.oscillator.type = 'sine';
+        this.oscillator.frequency.value = this.baseFreq;
+      } catch (error) {
+        console.error('Failed to create oscillator:', error);
+        return;
+      }
 
-    this.lfoGain = ctx.createGain();
-    this.lfoGain.gain.value = this.baseFreq * this.modulationDepth;
+      // LFO for filter modulation (breathing effect)
+      try {
+        this.lfo = ctx.createOscillator();
+        this.lfo.type = 'sine';
+        this.lfo.frequency.value = this.lfoRate;
 
-    // Filter (bandpass per playbook)
-    this.filter = ctx.createBiquadFilter();
-    this.filter.type = 'bandpass';
-    this.filter.frequency.value = 1200; // Centered ~1.2 kHz
-    this.filter.Q.value = 1.2;
+        this.lfoGain = ctx.createGain();
+        this.lfoGain.gain.value = this.baseFreq * this.modulationDepth;
+      } catch (error) {
+        console.error('Failed to create LFO:', error);
+        this.oscillator?.disconnect();
+        this.oscillator = undefined;
+        return;
+      }
 
-    // Gain node
-    this.gain = ctx.createGain();
-    this.gain.gain.value = 0.3; // Start at 30% volume
+      // Filter (bandpass per playbook)
+      try {
+        this.filter = ctx.createBiquadFilter();
+        this.filter.type = 'bandpass';
+        this.filter.frequency.value = 1200; // Centered ~1.2 kHz
+        this.filter.Q.value = 1.2;
+      } catch (error) {
+        console.error('Failed to create filter:', error);
+        this.cleanupNodes();
+        return;
+      }
 
-    // Create chorus effect (simple delay-based)
-    const delay = ctx.createDelay(0.02);
-    const delayGain = ctx.createGain();
-    delayGain.gain.value = 0.3;
-    delay.delayTime.value = 0.01;
+      // Gain node
+      try {
+        this.gain = ctx.createGain();
+        this.gain.gain.value = 0.3; // Start at 30% volume
+      } catch (error) {
+        console.error('Failed to create gain node:', error);
+        this.cleanupNodes();
+        return;
+      }
 
-    // Connect: LFO -> filter frequency
-    this.lfo.connect(this.lfoGain);
-    this.lfoGain.connect(this.filter.frequency);
+      // Create chorus effect (simple delay-based)
+      let delay: DelayNode | undefined;
+      let delayGain: GainNode | undefined;
+      try {
+        delay = ctx.createDelay(0.02);
+        delayGain = ctx.createGain();
+        delayGain.gain.value = 0.3;
+        delay.delayTime.value = 0.01;
+      } catch (error) {
+        console.warn('Failed to create delay effect (non-critical):', error);
+        // Continue without delay effect
+      }
 
-    // Connect: oscillator -> filter -> delay -> gain -> output
-    this.oscillator.connect(this.filter);
-    this.filter.connect(this.gain);
-    this.filter.connect(delay);
-    delay.connect(delayGain);
-    delayGain.connect(this.gain);
+      // Connect: LFO -> filter frequency
+      try {
+        this.lfo.connect(this.lfoGain);
+        this.lfoGain.connect(this.filter.frequency);
+      } catch (error) {
+        console.error('Failed to connect LFO:', error);
+        this.cleanupNodes();
+        return;
+      }
 
-    // Connect to ambient/SFX gain (not music)  
-    if (this.gain) {
-      this.gain.connect(this.audioManager.getSfxGainNode());
+      // Connect: oscillator -> filter -> delay -> gain -> output
+      try {
+        this.oscillator.connect(this.filter);
+        this.filter.connect(this.gain);
+        if (delay && delayGain) {
+          this.filter.connect(delay);
+          delay.connect(delayGain);
+          delayGain.connect(this.gain);
+        }
+      } catch (error) {
+        console.error('Failed to connect audio nodes:', error);
+        this.cleanupNodes();
+        return;
+      }
+
+      // Connect to ambient/SFX gain (not music)  
+      try {
+        if (this.gain) {
+          this.gain.connect(this.audioManager.getSfxGainNode());
+        }
+      } catch (error) {
+        console.error('Failed to connect to SFX gain:', error);
+        this.cleanupNodes();
+        return;
+      }
+
+      // Start oscillators
+      try {
+        this.oscillator.start(0);
+        this.lfo.start(0);
+      } catch (error) {
+        console.error('Failed to start oscillators:', error);
+        this.cleanupNodes();
+        return;
+      }
+
+      this.isPlaying = true;
+      this.updateFromChroma();
+    } catch (error) {
+      console.error('Unexpected error starting ChromaPulseSynth:', error);
+      this.cleanupNodes();
+      this.isPlaying = false;
     }
+  }
 
-    // Start oscillators
-    this.oscillator.start(0);
-    this.lfo.start(0);
-
-    this.isPlaying = true;
-    this.updateFromChroma();
+  /**
+   * Clean up audio nodes on error
+   */
+  private cleanupNodes(): void {
+    try {
+      this.oscillator?.disconnect();
+      this.lfo?.disconnect();
+      this.filter?.disconnect();
+      this.gain?.disconnect();
+      this.lfoGain?.disconnect();
+    } catch (error) {
+      // Ignore cleanup errors
+    }
+    this.oscillator = undefined;
+    this.lfo = undefined;
+    this.filter = undefined;
+    this.gain = undefined;
+    this.lfoGain = undefined;
   }
 
   /**
@@ -112,17 +214,51 @@ export default class ChromaPulseSynth {
     if (!this.isPlaying) return;
 
     try {
-      this.oscillator?.stop();
-      this.lfo?.stop();
+      // Stop oscillators safely
+      if (this.oscillator) {
+        try {
+          this.oscillator.stop();
+        } catch (e) {
+          // Ignore - might already be stopped or in invalid state
+        }
+      }
+      if (this.lfo) {
+        try {
+          this.lfo.stop();
+        } catch (e) {
+          // Ignore - might already be stopped or in invalid state
+        }
+      }
     } catch (e) {
-      // Ignore - might already be stopped
+      // Ignore stop errors
     }
 
-    this.oscillator?.disconnect();
-    this.lfo?.disconnect();
-    this.filter?.disconnect();
-    this.gain?.disconnect();
-    this.lfoGain?.disconnect();
+    // Disconnect all nodes safely
+    try {
+      this.oscillator?.disconnect();
+    } catch (e) {
+      // Ignore disconnect errors
+    }
+    try {
+      this.lfo?.disconnect();
+    } catch (e) {
+      // Ignore disconnect errors
+    }
+    try {
+      this.filter?.disconnect();
+    } catch (e) {
+      // Ignore disconnect errors
+    }
+    try {
+      this.gain?.disconnect();
+    } catch (e) {
+      // Ignore disconnect errors
+    }
+    try {
+      this.lfoGain?.disconnect();
+    } catch (e) {
+      // Ignore disconnect errors
+    }
 
     this.oscillator = undefined;
     this.lfo = undefined;
@@ -140,29 +276,46 @@ export default class ChromaPulseSynth {
     if (!this.isPlaying || !this.oscillator || !this.filter) return;
     if (!this.audioContext) return;
 
-    const adaptiveEffects = AdaptiveEffects.instance();
-    const chromaLevel = adaptiveEffects.getChromaLevel();
+    try {
+      const adaptiveEffects = AdaptiveEffects.instance();
+      const chromaLevel = adaptiveEffects.getChromaLevel();
 
-    const now = this.audioContext.currentTime;
+      const now = this.audioContext.currentTime;
 
-    // Frequency scales with chroma (0.8x - 1.4x base freq)
-    const targetFreq = this.baseFreq * (0.8 + chromaLevel * 0.6);
-    this.oscillator.frequency.cancelScheduledValues(now);
-    this.oscillator.frequency.setValueAtTime(this.oscillator.frequency.value, now);
-    this.oscillator.frequency.linearRampToValueAtTime(targetFreq, now + 0.1);
+      // Frequency scales with chroma (0.8x - 1.4x base freq)
+      try {
+        const targetFreq = this.baseFreq * (0.8 + chromaLevel * 0.6);
+        this.oscillator.frequency.cancelScheduledValues(now);
+        this.oscillator.frequency.setValueAtTime(this.oscillator.frequency.value, now);
+        this.oscillator.frequency.linearRampToValueAtTime(targetFreq, now + 0.1);
+      } catch (error) {
+        console.warn('Failed to update oscillator frequency:', error);
+      }
 
-    // Filter Q increases with chroma (more resonance = more harmonics)
-    const targetQ = 0.8 + (chromaLevel * 0.6);
-    this.filter.Q.cancelScheduledValues(now);
-    this.filter.Q.setValueAtTime(this.filter.Q.value, now);
-    this.filter.Q.linearRampToValueAtTime(targetQ, now + 0.1);
+      // Filter Q increases with chroma (more resonance = more harmonics)
+      try {
+        const targetQ = 0.8 + (chromaLevel * 0.6);
+        this.filter.Q.cancelScheduledValues(now);
+        this.filter.Q.setValueAtTime(this.filter.Q.value, now);
+        this.filter.Q.linearRampToValueAtTime(targetQ, now + 0.1);
+      } catch (error) {
+        console.warn('Failed to update filter Q:', error);
+      }
 
-    // Volume increases with chroma
-    const targetVolume = 0.2 + (chromaLevel * 0.3);
-    if (this.gain) {
-      this.gain.gain.cancelScheduledValues(now);
-      this.gain.gain.setValueAtTime(this.gain.gain.value, now);
-      this.gain.gain.linearRampToValueAtTime(targetVolume, now + 0.1);
+      // Volume increases with chroma
+      if (this.gain) {
+        try {
+          const targetVolume = 0.2 + (chromaLevel * 0.3);
+          this.gain.gain.cancelScheduledValues(now);
+          this.gain.gain.setValueAtTime(this.gain.gain.value, now);
+          this.gain.gain.linearRampToValueAtTime(targetVolume, now + 0.1);
+        } catch (error) {
+          console.warn('Failed to update gain:', error);
+        }
+      }
+    } catch (error) {
+      console.error('Error updating chroma synth:', error);
+      // Don't throw - allow game to continue
     }
   }
 
@@ -170,11 +323,14 @@ export default class ChromaPulseSynth {
    * Set volume
    */
   setVolume(volume: number): void {
-    if (!this.audioContext) return;
-    if (this.gain) {
+    if (!this.audioContext || !this.gain) return;
+    
+    try {
       const now = this.audioContext.currentTime;
       this.gain.gain.cancelScheduledValues(now);
       this.gain.gain.setValueAtTime(volume, now);
+    } catch (error) {
+      console.warn('Failed to set volume:', error);
     }
   }
 
@@ -189,7 +345,11 @@ export default class ChromaPulseSynth {
    * Clean up
    */
   dispose(): void {
-    this.stop();
+    try {
+      this.stop();
+    } catch (error) {
+      console.error('Error disposing ChromaPulseSynth:', error);
+    }
   }
 }
 

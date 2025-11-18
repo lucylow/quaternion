@@ -63,44 +63,91 @@ export default class AudioEngine {
   private originalMusicVolume = 0.7;
 
   constructor() {
-    // Initialize AudioContext (handle browser prefixes)
-    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-    this.ctx = new AudioContextClass();
-    
-    // Create gain nodes for mixing
-    this.master = this.ctx.createGain();
-    this.musicGain = this.ctx.createGain();
-    this.sfxGain = this.ctx.createGain();
-    this.dialogGain = this.ctx.createGain();
-    
-    // Create compressor for master bus
-    this.compressor = this.ctx.createDynamicsCompressor();
-    this.compressor.threshold.value = -24;
-    this.compressor.knee.value = 30;
-    this.compressor.ratio.value = 12;
-    this.compressor.attack.value = 0.003;
-    this.compressor.release.value = 0.25;
-    
-    // Connect signal chain: channels -> master -> compressor -> destination
-    this.musicGain.connect(this.master);
-    this.sfxGain.connect(this.master);
-    this.dialogGain.connect(this.master);
-    this.master.connect(this.compressor);
-    this.compressor.connect(this.ctx.destination);
-    
-    // Set initial volumes
-    this.master.gain.value = 0.9; // Headroom
-    this.musicGain.gain.value = this.musicVolume;
-    this.sfxGain.gain.value = this.sfxVolume;
-    this.dialogGain.gain.value = this.dialogVolume;
+    try {
+      // Initialize AudioContext (handle browser prefixes)
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) {
+        throw new Error('Web Audio API not supported in this browser');
+      }
+      this.ctx = new AudioContextClass();
+      
+      // Create gain nodes for mixing
+      try {
+        this.master = this.ctx.createGain();
+        this.musicGain = this.ctx.createGain();
+        this.sfxGain = this.ctx.createGain();
+        this.dialogGain = this.ctx.createGain();
+      } catch (error) {
+        console.error('Failed to create gain nodes:', error);
+        throw error;
+      }
+      
+      // Create compressor for master bus
+      try {
+        this.compressor = this.ctx.createDynamicsCompressor();
+        this.compressor.threshold.value = -24;
+        this.compressor.knee.value = 30;
+        this.compressor.ratio.value = 12;
+        this.compressor.attack.value = 0.003;
+        this.compressor.release.value = 0.25;
+      } catch (error) {
+        console.error('Failed to create compressor:', error);
+        // Continue without compressor - non-critical
+      }
+      
+      // Connect signal chain: channels -> master -> compressor -> destination
+      try {
+        this.musicGain.connect(this.master);
+        this.sfxGain.connect(this.master);
+        this.dialogGain.connect(this.master);
+        if (this.compressor) {
+          this.master.connect(this.compressor);
+          this.compressor.connect(this.ctx.destination);
+        } else {
+          // Fallback: connect master directly to destination
+          this.master.connect(this.ctx.destination);
+        }
+      } catch (error) {
+        console.error('Failed to connect audio nodes:', error);
+        throw error;
+      }
+      
+      // Set initial volumes
+      try {
+        this.master.gain.value = 0.9; // Headroom
+        this.musicGain.gain.value = this.musicVolume;
+        this.sfxGain.gain.value = this.sfxVolume;
+        this.dialogGain.gain.value = this.dialogVolume;
+      } catch (error) {
+        console.warn('Failed to set initial volumes:', error);
+        // Non-critical, continue
+      }
+    } catch (error) {
+      console.error('AudioEngine constructor failed:', error);
+      // Create a minimal fallback context if possible
+      // The game should continue even if audio fails
+      throw error;
+    }
   }
 
   /**
    * Ensure audio context is started (required for autoplay policies)
    */
   async ensureStarted(): Promise<void> {
-    if (this.ctx.state === 'suspended') {
-      await this.ctx.resume();
+    try {
+      if (!this.ctx) {
+        console.warn('Audio context not available');
+        return;
+      }
+      if (this.ctx.state === 'suspended') {
+        await this.ctx.resume();
+      }
+      if (this.ctx.state === 'closed') {
+        console.warn('Audio context is closed and cannot be resumed');
+      }
+    } catch (error) {
+      console.error('Failed to ensure audio context started:', error);
+      // Don't throw - allow game to continue without audio
     }
   }
 
@@ -114,57 +161,96 @@ export default class AudioEngine {
     
     if (bufferMap[key]) return bufferMap[key];
     
+    if (!this.ctx) {
+      throw new Error('Audio context not initialized');
+    }
+    
     try {
       const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
       const arrayBuffer = await response.arrayBuffer();
+      if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+        throw new Error('Empty audio file');
+      }
       const buffer = await this.ctx.decodeAudioData(arrayBuffer);
+      if (!buffer) {
+        throw new Error('Failed to decode audio data');
+      }
       bufferMap[key] = buffer;
       return buffer;
     } catch (error) {
       console.error(`Failed to load audio buffer ${key} from ${url}:`, error);
+      // For non-critical audio (SFX), return a silent buffer instead of throwing
+      if (category === 'sfx') {
+        console.warn(`Using silent fallback for SFX: ${key}`);
+        return this.createSilentBuffer(0.1); // 100ms silent buffer
+      }
       throw error;
     }
+  }
+
+  /**
+   * Create a silent audio buffer as fallback
+   */
+  private createSilentBuffer(duration: number): AudioBuffer {
+    if (!this.ctx) {
+      throw new Error('Audio context not initialized');
+    }
+    const sampleRate = this.ctx.sampleRate;
+    const frameCount = Math.floor(sampleRate * duration);
+    return this.ctx.createBuffer(2, frameCount, sampleRate);
   }
 
   /**
    * Generate fallback ambient music
    */
   private generateFallbackMusic(stemId: string): AudioBuffer {
-    if (!this.ctx) throw new Error('Audio context not initialized');
-    const sampleRate = this.ctx.sampleRate;
-    const duration = 8; // 8 second loop
-    const frameCount = sampleRate * duration;
-    const buffer = this.ctx.createBuffer(2, frameCount, sampleRate);
-    const leftChannel = buffer.getChannelData(0);
-    const rightChannel = buffer.getChannelData(1);
-
-    // Generate ambient pad based on stem type
-    let baseFreq = 65.41; // C2
-    if (stemId.includes('tension') || stemId.includes('combat')) {
-      baseFreq = 82.41; // E2 - slightly higher for tension
+    if (!this.ctx) {
+      throw new Error('Audio context not initialized');
     }
+    
+    try {
+      const sampleRate = this.ctx.sampleRate;
+      const duration = 8; // 8 second loop
+      const frameCount = Math.floor(sampleRate * duration);
+      const buffer = this.ctx.createBuffer(2, frameCount, sampleRate);
+      const leftChannel = buffer.getChannelData(0);
+      const rightChannel = buffer.getChannelData(1);
 
-    for (let i = 0; i < frameCount; i++) {
-      const t = i / sampleRate;
-      
-      // Multiple harmonics for rich sound
-      const wave1 = Math.sin(2 * Math.PI * baseFreq * t) * 0.3;
-      const wave2 = Math.sin(2 * Math.PI * baseFreq * 2 * t) * 0.2;
-      const wave3 = Math.sin(2 * Math.PI * baseFreq * 3 * t) * 0.1;
-      
-      // Slow LFO for movement
-      const lfo = Math.sin(2 * Math.PI * 0.1 * t) * 0.05;
-      
-      const sample = (wave1 + wave2 + wave3) * (1 + lfo);
-      
-      // Fade in/out at loop points
-      const fade = Math.min(1, Math.min(t * 2, (duration - t) * 2));
-      
-      leftChannel[i] = sample * fade * 0.12;
-      rightChannel[i] = sample * fade * 0.12;
+      // Generate ambient pad based on stem type
+      let baseFreq = 65.41; // C2
+      if (stemId.includes('tension') || stemId.includes('combat')) {
+        baseFreq = 82.41; // E2 - slightly higher for tension
+      }
+
+      for (let i = 0; i < frameCount; i++) {
+        const t = i / sampleRate;
+        
+        // Multiple harmonics for rich sound
+        const wave1 = Math.sin(2 * Math.PI * baseFreq * t) * 0.3;
+        const wave2 = Math.sin(2 * Math.PI * baseFreq * 2 * t) * 0.2;
+        const wave3 = Math.sin(2 * Math.PI * baseFreq * 3 * t) * 0.1;
+        
+        // Slow LFO for movement
+        const lfo = Math.sin(2 * Math.PI * 0.1 * t) * 0.05;
+        
+        const sample = (wave1 + wave2 + wave3) * (1 + lfo);
+        
+        // Fade in/out at loop points
+        const fade = Math.min(1, Math.min(t * 2, (duration - t) * 2));
+        
+        leftChannel[i] = sample * fade * 0.12;
+        rightChannel[i] = sample * fade * 0.12;
+      }
+
+      return buffer;
+    } catch (error) {
+      console.error('Failed to generate fallback music:', error);
+      // Return a minimal silent buffer as last resort
+      return this.createSilentBuffer(8);
     }
-
-    return buffer;
   }
 
   /**
@@ -193,42 +279,75 @@ export default class AudioEngine {
    * Play music stem
    */
   playMusicStem(stemId: string, fadeIn = 0.5): void {
-    const stem = this.musicStems.get(stemId);
-    if (!stem || !stem.buffer) {
-      console.warn(`Music stem not loaded: ${stemId}`);
-      return;
-    }
-
-    // Stop existing source if playing
-    if (stem.source) {
-      stem.source.stop();
-    }
-
-    const source = this.ctx.createBufferSource();
-    source.buffer = stem.buffer;
-    source.loop = stem.loop;
-    
-    const gainNode = this.ctx.createGain();
-    gainNode.gain.value = 0;
-    source.connect(gainNode);
-    gainNode.connect(this.musicGain);
-    
-    const now = this.ctx.currentTime;
-    source.start(now);
-    
-    // Fade in
-    gainNode.gain.linearRampToValueAtTime(0, now);
-    gainNode.gain.linearRampToValueAtTime(stem.volume, now + fadeIn);
-    
-    stem.source = source;
-    this.activeStems.add(stemId);
-    
-    // Handle loop end
-    source.onended = () => {
-      if (stem.loop && this.activeStems.has(stemId)) {
-        this.playMusicStem(stemId, 0);
+    try {
+      if (!this.ctx || this.ctx.state === 'closed') {
+        console.warn('Audio context not available for playing music');
+        return;
       }
-    };
+
+      const stem = this.musicStems.get(stemId);
+      if (!stem || !stem.buffer) {
+        console.warn(`Music stem not loaded: ${stemId}`);
+        return;
+      }
+
+      // Stop existing source if playing
+      if (stem.source) {
+        try {
+          stem.source.stop();
+        } catch (error) {
+          // Ignore - might already be stopped
+        }
+      }
+
+      const source = this.ctx.createBufferSource();
+      source.buffer = stem.buffer;
+      source.loop = stem.loop;
+      
+      const gainNode = this.ctx.createGain();
+      gainNode.gain.value = 0;
+      
+      try {
+        source.connect(gainNode);
+        gainNode.connect(this.musicGain);
+      } catch (error) {
+        console.error('Failed to connect music source:', error);
+        return;
+      }
+      
+      const now = this.ctx.currentTime;
+      try {
+        source.start(now);
+      } catch (error) {
+        console.error('Failed to start music source:', error);
+        return;
+      }
+      
+      // Fade in
+      try {
+        gainNode.gain.linearRampToValueAtTime(0, now);
+        gainNode.gain.linearRampToValueAtTime(stem.volume, now + fadeIn);
+      } catch (error) {
+        console.warn('Failed to set fade in:', error);
+      }
+      
+      stem.source = source;
+      this.activeStems.add(stemId);
+      
+      // Handle loop end
+      source.onended = () => {
+        try {
+          if (stem.loop && this.activeStems.has(stemId)) {
+            this.playMusicStem(stemId, 0);
+          }
+        } catch (error) {
+          console.error('Error in music loop handler:', error);
+        }
+      };
+    } catch (error) {
+      console.error(`Failed to play music stem ${stemId}:`, error);
+      // Don't throw - allow game to continue
+    }
   }
 
   /**
