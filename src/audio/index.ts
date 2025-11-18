@@ -8,6 +8,12 @@ export { default as AdaptiveEffects, type AdaptiveEffectParams } from './Adaptiv
 export { default as TerrainAudio, type BiomeType, type TerrainAudioConfig } from './TerrainAudio';
 export { default as CombatAudio, type CombatEvent } from './CombatAudio';
 export { default as AdvisorVoiceFilter, type EmotionType } from './AdvisorVoiceFilter';
+export { AdvisorDialogSystem } from './AdvisorDialogSystem';
+export type { AdvisorName, DialogEvent, DialogLine } from './AdvisorDialogSystem';
+export { AdaptiveMusicSystem } from './AdaptiveMusicSystem';
+export type { MusicState } from './AdaptiveMusicSystem';
+export { DialogEventManager } from './DialogEventManager';
+export type { GameEvent } from './DialogEventManager';
 export { default as CinematicAudio, type CinematicEventType } from './CinematicAudio';
 export { default as ChromaPulseSynth } from './ChromaPulseSynth';
 export { requestTtsAudio } from './ttsClient';

@@ -545,9 +545,9 @@ const Lobby = () => {
                   </CardDescription>
                 </CardContent>
               </Card>
-            </div>
+                </div>
 
-            {/* Quick Start for Chroma Awards */}
+                {/* Quick Start for Chroma Awards */}
             <Card className="bg-card/70 border-primary/30 mb-6 border-2 border-yellow-400/50">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -590,9 +590,50 @@ const Lobby = () => {
                 </div>
               </CardContent>
             </Card>
+              </>
+            )}
 
-            {/* Puzzle Selection - Only shown when puzzle mode is selected */}
-            {singlePlayerMode === 'puzzle' && (
+            {/* Show simplified config for Neural Frontier */}
+            {gameType === 'neural-frontier' && (
+              <Card className="bg-card/70 border-primary/30 mb-6">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Gamepad2 className="w-5 h-5 text-cyan-400" />
+                    Neural Frontier - Quick Start
+                  </CardTitle>
+                  <CardDescription>
+                    A streamlined RTS experience with AI commanders and tactical gameplay. Perfect for quick matches!
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="p-4 bg-background/50 rounded-lg border border-primary/20">
+                        <h4 className="font-semibold mb-2 text-primary">Features</h4>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          <li>• Quick 15-20 minute matches</li>
+                          <li>• AI commander suggestions</li>
+                          <li>• Simplified resource management</li>
+                          <li>• Tactical unit control</li>
+                        </ul>
+                      </div>
+                      <div className="p-4 bg-background/50 rounded-lg border border-primary/20">
+                        <h4 className="font-semibold mb-2 text-primary">Perfect For</h4>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          <li>• Beginners learning RTS</li>
+                          <li>• Quick gaming sessions</li>
+                          <li>• Casual play</li>
+                          <li>• Testing game mechanics</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Puzzle Selection - Only shown when puzzle mode is selected (Quaternion only) */}
+            {gameType === 'quaternion' && singlePlayerMode === 'puzzle' && (
               <Card className="bg-card/70 border-primary/30">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -696,8 +737,8 @@ const Lobby = () => {
               </Card>
             )}
 
-            {/* Map Selection */}
-            {singlePlayerMode !== 'puzzle' && (
+            {/* Map Selection - Only for Quaternion */}
+            {gameType === 'quaternion' && singlePlayerMode !== 'puzzle' && (
               <Card className="bg-card/70 border-primary/30 mb-6">
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -758,21 +799,23 @@ const Lobby = () => {
               </Card>
             )}
 
-            <Card className="bg-card/70 border-primary/30">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="w-5 h-5 text-primary" />
-                  Single Player Configuration
-                </CardTitle>
-                <CardDescription>
-                  {singlePlayerMode === 'puzzle' 
-                    ? 'Puzzle mode uses preset configurations'
-                    : 'Configure your single player game against AI opponents'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Hide config for puzzle mode */}
-                {singlePlayerMode !== 'puzzle' && (
+            {/* Configuration - Only show for Quaternion */}
+            {gameType === 'quaternion' && (
+              <Card className="bg-card/70 border-primary/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="w-5 h-5 text-primary" />
+                    Single Player Configuration
+                  </CardTitle>
+                  <CardDescription>
+                    {singlePlayerMode === 'puzzle' 
+                      ? 'Puzzle mode uses preset configurations'
+                      : 'Configure your single player game against AI opponents'}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Hide config for puzzle mode */}
+                  {singlePlayerMode !== 'puzzle' && (
                 <div className="grid md:grid-cols-2 gap-6">
                   {/* Commander Selection */}
                   <div className="space-y-2">
@@ -903,24 +946,59 @@ const Lobby = () => {
                 </div>
                 )}
 
-                {/* Start Button */}
-                <Button
-                  onClick={handleStartSinglePlayer}
-                  size="lg"
-                  className="w-full bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:shadow-neon"
-                  disabled={singlePlayerMode === 'puzzle' && !selectedPuzzle}
-                >
-                  <Gamepad2 className="w-5 h-5 mr-2" />
-                  {singlePlayerMode === 'puzzle' 
-                    ? (selectedPuzzle ? `Start Puzzle: ${getPuzzle(selectedPuzzle)?.name}` : 'Select a Puzzle to Start')
-                    : 'Start Single Player Game'}
-                </Button>
-              </CardContent>
-            </Card>
+                  {/* Start Button */}
+                  <Button
+                    onClick={handleStartSinglePlayer}
+                    size="lg"
+                    className="w-full bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:shadow-neon"
+                    disabled={singlePlayerMode === 'puzzle' && !selectedPuzzle}
+                  >
+                    <Gamepad2 className="w-5 h-5 mr-2" />
+                    {singlePlayerMode === 'puzzle' 
+                      ? (selectedPuzzle ? `Start Puzzle: ${getPuzzle(selectedPuzzle)?.name}` : 'Select a Puzzle to Start')
+                      : 'Start Single Player Game'}
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Start Button for Neural Frontier */}
+            {gameType === 'neural-frontier' && (
+              <Card className="bg-card/70 border-primary/30">
+                <CardContent className="p-6">
+                  <Button
+                    onClick={handleStartSinglePlayer}
+                    size="lg"
+                    className="w-full bg-gradient-to-r from-cyan-500 to-cyan-600 text-white hover:shadow-lg"
+                  >
+                    <Gamepad2 className="w-5 h-5 mr-2" />
+                    Launch Neural Frontier
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
-          {/* Multiplayer Tab */}
+          {/* Multiplayer Tab - Only available for Quaternion */}
           <TabsContent value="multiplayer">
+            {gameType === 'neural-frontier' ? (
+              <Card className="bg-card/70 border-primary/30">
+                <CardContent className="p-8 text-center">
+                  <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-xl font-bold mb-2">Multiplayer Not Available</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Neural Frontier is currently single-player only. Switch to Quaternion Strategy for multiplayer support.
+                  </p>
+                  <Button
+                    onClick={() => setGameType('quaternion')}
+                    variant="outline"
+                  >
+                    Switch to Quaternion Strategy
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
             {/* Multiplayer Mode Selection */}
             <div className="grid md:grid-cols-2 gap-4 mb-6">
               <Card 
@@ -1279,6 +1357,8 @@ const Lobby = () => {
                 </CardContent>
               </Card>
             </div>
+              </>
+            )}
           </TabsContent>
         </Tabs>
       </div>

@@ -28,6 +28,10 @@ import { ResourceAdvisorPanel } from '@/components/game/ResourceAdvisorPanel';
 import { ResourceType } from '@/game/ResourceManager';
 import { initializeAudio } from '@/audio/audioInit';
 import { AXIS_DESIGNS, getAxisDesign, hexToPhaserColor, AI_THOUGHT_VISUALS, BIOME_THEMES } from '@/design/QuaternionDesignSystem';
+import { AIStoryGenerator, NarrativeEvent, NarrativeContext } from '@/game/narrative/AIStoryGenerator';
+import { NarrativeDisplay } from '@/components/narrative/NarrativeDisplay';
+import { ChronicleExporter } from '@/components/narrative/ChronicleExporter';
+import { BookOpen } from 'lucide-react';
 
 interface GameResources {
   ore: number;
@@ -79,6 +83,13 @@ const QuaternionGame = () => {
   const [marketOffers, setMarketOffers] = useState<MarketOffer[]>([]);
   const [advisorAdvice, setAdvisorAdvice] = useState<AdvisorResponse | null>(null);
   const [lastAdvisorCheck, setLastAdvisorCheck] = useState(0);
+  
+  // AI Storytelling System
+  const storyGeneratorRef = useRef<AIStoryGenerator | null>(null);
+  const [narrativeEvents, setNarrativeEvents] = useState<NarrativeEvent[]>([]);
+  const [showChronicle, setShowChronicle] = useState(false);
+  const [chronicleData, setChronicleData] = useState<any>(null);
+  const [lastNarrativeUpdate, setLastNarrativeUpdate] = useState(0);
   
   // Get game configuration from route state or use defaults
   const location = useLocation();
@@ -176,6 +187,33 @@ const QuaternionGame = () => {
       );
       puzzleManagerRef.current.initialize(Date.now());
     }
+
+    // Initialize AI Story Generator
+    storyGeneratorRef.current = new AIStoryGenerator();
+    
+    // Generate initial lore
+    const initialContext: NarrativeContext = {
+      biome: mapConfig.type,
+      resourceBalance: {
+        matter: resources.ore,
+        energy: resources.energy,
+        life: resources.biomass,
+        knowledge: resources.data
+      },
+      instability: 0,
+      playerDecisions: [],
+      gameTime: 0,
+      ethicalAlignment: 0,
+      techTier: 0
+    };
+    
+    storyGeneratorRef.current.updateContext(initialContext);
+    
+    // Generate initial biome lore
+    storyGeneratorRef.current.generateNarrativeEvent('lore', initialContext).then(event => {
+      setNarrativeEvents([event]);
+      sendAIMessage('CORE', event.content);
+    });
 
     const playerUnits: Phaser.Physics.Arcade.Sprite[] = [];
     const aiUnits: Phaser.Physics.Arcade.Sprite[] = [];
@@ -1122,6 +1160,49 @@ const QuaternionGame = () => {
         if (state.gameOver) {
           const scenario = state.endgameScenario || null;
           setEndgameScenario(scenario);
+          
+          // Generate final chronicle
+          if (storyGeneratorRef.current) {
+            const narrativeContext: NarrativeContext = {
+              biome: mapConfig.type,
+              resourceBalance: {
+                matter: resources.ore,
+                energy: resources.energy,
+                life: resources.biomass,
+                knowledge: resources.data
+              },
+              instability: instability,
+              playerDecisions: [],
+              gameTime: gameTime,
+              ethicalAlignment: state.players[0]?.moralAlignment || 0,
+              techTier: researchedTechs.size
+            };
+            
+            const timeline = storyGeneratorRef.current.detectTimeline(narrativeContext);
+            const currentPlayerId = playerId || effectiveConfig?.playerId || 'player_' + Date.now();
+            
+            storyGeneratorRef.current.updatePlayerPhilosophy(
+              currentPlayerId,
+              narrativeContext,
+              timeline,
+              state.winner === 1 ? 'Victory' : 'Defeat'
+            );
+            
+            // Generate ending narrative
+            storyGeneratorRef.current.generateNarrativeEvent('chronicle', narrativeContext).then(event => {
+              setNarrativeEvents(prev => [...prev, event]);
+            });
+            
+            // Generate chronicle for export
+            storyGeneratorRef.current.generateChronicle(
+              currentPlayerId,
+              narrativeContext,
+              timeline
+            ).then(chronicle => {
+              setChronicleData(chronicle);
+            });
+          }
+          
           setGameOver({ 
             won: state.winner === 1, 
             reason: 'Game ended',
@@ -1176,6 +1257,54 @@ const QuaternionGame = () => {
             }
           });
           setWinConditionProgress(progress);
+        }
+
+        // Update AI Storytelling System
+        if (storyGeneratorRef.current && !gameOver) {
+          const currentTime = Date.now();
+          
+          // Update narrative context
+          const narrativeContext: NarrativeContext = {
+            biome: mapConfig.type,
+            resourceBalance: {
+              matter: resources.ore,
+              energy: resources.energy,
+              life: resources.biomass,
+              knowledge: resources.data
+            },
+            instability: instability,
+            playerDecisions: [],
+            gameTime: gameTime,
+            ethicalAlignment: state.players[0]?.moralAlignment || 0,
+            techTier: researchedTechs.size
+          };
+          
+          storyGeneratorRef.current.updateContext(narrativeContext);
+          
+          // Generate narrative events periodically (every 30 seconds)
+          if (currentTime - lastNarrativeUpdate > 30000) {
+            const timeline = storyGeneratorRef.current.detectTimeline(narrativeContext);
+            
+            // Generate dialogue event
+            storyGeneratorRef.current.generateNarrativeEvent('dialogue', narrativeContext).then(event => {
+              if (event.content) {
+                setNarrativeEvents(prev => [...prev, event]);
+                const axisCommander: Record<string, string> = {
+                  matter: 'AUREN',
+                  energy: 'LIRA',
+                  life: 'LIRA',
+                  knowledge: 'VIREL'
+                };
+                const commander = event.axis ? axisCommander[event.axis] : 'CORE';
+                sendAIMessage(commander, event.content);
+              }
+            });
+            
+            setLastNarrativeUpdate(currentTime);
+          }
+          
+          // Update narrative log
+          setNarrativeEvents(storyGeneratorRef.current.getNarrativeLog());
         }
 
         // Update Resource Puzzle Systems
@@ -2424,6 +2553,47 @@ const QuaternionGame = () => {
               advice={advisorAdvice}
               onDismiss={() => setAdvisorAdvice(null)}
             />
+          )}
+
+          {/* Narrative Display */}
+          <div className="absolute top-20 right-4 z-20 w-80 max-h-[500px]">
+            <NarrativeDisplay events={narrativeEvents} maxHeight="400px" />
+          </div>
+
+          {/* Chronicle Exporter (shown after game ends) */}
+          {gameOver && chronicleData && showChronicle && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4">
+              <div className="max-w-2xl w-full">
+                <ChronicleExporter
+                  chronicle={chronicleData}
+                  onExport={(format) => {
+                    if (format === 'pdf' || format === 'html') {
+                      setShowChronicle(false);
+                    }
+                  }}
+                />
+                <Button
+                  onClick={() => setShowChronicle(false)}
+                  variant="outline"
+                  className="mt-4 w-full"
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          {/* Chronicle Button (show after game ends) */}
+          {gameOver && chronicleData && !showChronicle && (
+            <div className="absolute bottom-4 right-4 z-30">
+              <Button
+                onClick={() => setShowChronicle(true)}
+                className="bg-purple-600/90 hover:bg-purple-700 backdrop-blur-sm border border-purple-400/30"
+              >
+                <BookOpen className="w-4 h-4 mr-2" />
+                View Chronicle
+              </Button>
+            </div>
           )}
         </>
       )}
