@@ -47,7 +47,7 @@ export function JudgeHUD({ seed, commanderId, mapConfig, outcome }: JudgeHUDProp
         <div className="flex items-center justify-between p-4 border-b border-game-panel-border/30">
           <div className="flex items-center gap-2">
             <FileJson className="w-5 h-5 text-primary" />
-            <h3 className="font-semibold text-foreground">Judge Replay</h3>
+            <h3 className="font-semibold text-base text-foreground text-readable-neon">Judge Replay</h3>
           </div>
           <Button
             variant="ghost"
@@ -65,27 +65,27 @@ export function JudgeHUD({ seed, commanderId, mapConfig, outcome }: JudgeHUDProp
             {/* Metadata */}
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div>
-                <span className="text-muted-foreground">Seed:</span>
-                <div className="font-mono text-foreground">{seed}</div>
+                <span className="text-muted-foreground text-readable">Seed:</span>
+                <div className="font-mono text-foreground text-base text-readable-neon">{seed}</div>
               </div>
               <div>
-                <span className="text-muted-foreground">Commander:</span>
-                <div className="font-semibold text-foreground">{commanderId}</div>
+                <span className="text-muted-foreground text-readable">Commander:</span>
+                <div className="font-semibold text-foreground text-base text-readable-neon">{commanderId}</div>
               </div>
               <div>
-                <span className="text-muted-foreground">Map Type:</span>
-                <div className="text-foreground">{mapConfig.type}</div>
+                <span className="text-muted-foreground text-readable">Map Type:</span>
+                <div className="text-foreground text-base text-readable-neon">{mapConfig.type}</div>
               </div>
               {outcome && (
                 <div>
-                  <span className="text-muted-foreground">Outcome:</span>
-                  <div className="text-foreground">{outcome}</div>
+                  <span className="text-muted-foreground text-readable">Outcome:</span>
+                  <div className="text-foreground text-base text-readable-neon">{outcome}</div>
                 </div>
               )}
               {metadata?.meta?.engineCommit && (
                 <div className="col-span-2">
-                  <span className="text-muted-foreground">Engine:</span>
-                  <div className="font-mono text-xs text-foreground">{metadata.meta.engineCommit.substring(0, 8)}</div>
+                  <span className="text-muted-foreground text-readable">Engine:</span>
+                  <div className="font-mono text-sm text-foreground text-readable-neon">{metadata.meta.engineCommit.substring(0, 8)}</div>
                 </div>
               )}
             </div>

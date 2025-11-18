@@ -29,21 +29,85 @@ export class MapLoader {
   }
 
   /**
-   * Preload map image
+   * Encode image path to handle special characters
    */
-  async preloadImage(imagePath: string): Promise<HTMLImageElement> {
+  private encodeImagePath(path: string): string {
+    // Handle absolute paths (starting with /)
+    if (path.startsWith('/')) {
+      const parts = path.split('/');
+      return parts.map((part, index) => {
+        if (index === 0 || !part) return part; // Keep leading slash and empty segments
+        return encodeURIComponent(part);
+      }).join('/');
+    }
+    // For relative paths, encode the entire path
+    return encodeURIComponent(path);
+  }
+
+  /**
+   * Preload map image with retry logic
+   */
+  async preloadImage(imagePath: string, retries: number = 3): Promise<HTMLImageElement> {
     if (this.imageCache.has(imagePath)) {
       return this.imageCache.get(imagePath)!;
     }
 
+    // Try both encoded and original paths
+    const encodedPath = this.encodeImagePath(imagePath);
+    const pathsToTry = [encodedPath, imagePath];
+
+    for (let attempt = 0; attempt < retries; attempt++) {
+      for (const path of pathsToTry) {
+        try {
+          const img = await this.loadImageWithPath(path);
+          this.imageCache.set(imagePath, img);
+          return img;
+        } catch (error) {
+          console.warn(`[MapLoader] Attempt ${attempt + 1}/${retries} failed for path: ${path}`, error);
+          if (attempt === retries - 1 && path === pathsToTry[pathsToTry.length - 1]) {
+            // Last attempt with last path - throw error
+            throw new Error(`Failed to load image after ${retries} attempts: ${imagePath}`);
+          }
+        }
+      }
+      
+      // Wait before retry (exponential backoff)
+      if (attempt < retries - 1) {
+        await new Promise(resolve => setTimeout(resolve, 100 * Math.pow(2, attempt)));
+      }
+    }
+
+    throw new Error(`Failed to load image: ${imagePath}`);
+  }
+
+  /**
+   * Load image with a specific path
+   */
+  private loadImageWithPath(path: string, useCors: boolean = false): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
       const img = new Image();
+      
+      // Only set crossOrigin if loading from external source (e.g., GitHub)
+      // For local assets, this can cause CORS issues if server doesn't send CORS headers
+      if (useCors || path.startsWith('http://') || path.startsWith('https://')) {
+        img.crossOrigin = 'anonymous';
+      }
+      
+      const timeout = setTimeout(() => {
+        reject(new Error(`Image load timeout: ${path}`));
+      }, 10000); // 10 second timeout
+      
       img.onload = () => {
-        this.imageCache.set(imagePath, img);
+        clearTimeout(timeout);
         resolve(img);
       };
-      img.onerror = () => reject(new Error(`Failed to load image: ${imagePath}`));
-      img.src = imagePath;
+      
+      img.onerror = (error) => {
+        clearTimeout(timeout);
+        reject(new Error(`Failed to load image: ${path}`));
+      };
+      
+      img.src = path;
     });
   }
 

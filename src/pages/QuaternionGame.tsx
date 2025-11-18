@@ -417,6 +417,15 @@ const QuaternionGame = () => {
       this.load.on('loaderror', (file: Phaser.Loader.File) => {
         console.error(`[Preload] Failed to load: ${file.key} from ${file.src}`);
         console.error(`[Preload] Error details:`, file);
+        
+        // For map assets, try to reload with better encoding
+        if (file.key.startsWith('map-')) {
+          console.log(`[Preload] Attempting to reload map asset: ${file.key}`);
+          // The path might need re-encoding - Phaser should handle this, but log for debugging
+          const originalSrc = file.src;
+          console.log(`[Preload] Original src: ${originalSrc}`);
+          console.log(`[Preload] Encoded src would be: ${encodeURI(originalSrc)}`);
+        }
       });
 
       this.load.on('fileprogress', (file: Phaser.Loader.File, value: number) => {
@@ -2394,53 +2403,53 @@ const QuaternionGame = () => {
               <div className="flex items-center gap-4">
                 {/* Enhanced Resources with Axis-Specific Styling */}
                 <div 
-                  className="flex items-center gap-2 bg-gray-800/85 backdrop-blur-sm px-3 py-2 rounded-lg border border-blue-400/30 hover:border-blue-400/60 transition-all group"
+                  className="flex items-center gap-2 bg-gray-800/85 backdrop-blur-sm px-3 py-2 rounded-lg border border-orange-400/50 hover:border-orange-400/80 transition-all group"
                   style={{ 
-                    boxShadow: `0 0 10px rgba(74, 144, 226, ${resources.ore > 50 ? 0.3 : 0.1})`,
+                    boxShadow: `0 0 15px rgba(255, 165, 0, ${resources.ore > 50 ? 0.5 : 0.2})`,
                     animation: resources.ore < 50 ? 'pulse 2s infinite' : 'none'
                   }}
                 >
-                  <Box className="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform" />
-                  <span className="text-white font-mono font-semibold">{resources.ore}</span>
+                  <Box className="w-5 h-5 text-orange-400 group-hover:scale-110 transition-transform" />
+                  <span className="text-orange-300 font-mono font-bold text-base text-readable-neon">{resources.ore}</span>
                   {resources.ore < 50 && (
-                    <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                    <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
                   )}
                 </div>
                 <div 
-                  className="flex items-center gap-2 bg-gray-800/85 backdrop-blur-sm px-3 py-2 rounded-lg border border-yellow-400/30 hover:border-yellow-400/60 transition-all group"
+                  className="flex items-center gap-2 bg-gray-800/85 backdrop-blur-sm px-3 py-2 rounded-lg border border-yellow-400/50 hover:border-yellow-400/80 transition-all group"
                   style={{ 
-                    boxShadow: `0 0 10px rgba(255, 107, 53, ${resources.energy > 50 ? 0.3 : 0.1})`,
+                    boxShadow: `0 0 15px rgba(255, 255, 0, ${resources.energy > 50 ? 0.5 : 0.2})`,
                     animation: resources.energy < 50 ? 'pulse 2s infinite' : 'none'
                   }}
                 >
-                  <Zap className="w-4 h-4 text-yellow-400 group-hover:scale-110 transition-transform" />
-                  <span className="text-white font-mono font-semibold">{resources.energy}</span>
+                  <Zap className="w-5 h-5 text-yellow-300 group-hover:scale-110 transition-transform" />
+                  <span className="text-yellow-200 font-mono font-bold text-base text-readable-neon">{resources.energy}</span>
                   {resources.energy < 50 && (
                     <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
                   )}
                 </div>
                 <div 
-                  className="flex items-center gap-2 bg-gray-800/85 backdrop-blur-sm px-3 py-2 rounded-lg border border-green-400/30 hover:border-green-400/60 transition-all group"
+                  className="flex items-center gap-2 bg-gray-800/85 backdrop-blur-sm px-3 py-2 rounded-lg border border-green-400/50 hover:border-green-400/80 transition-all group"
                   style={{ 
-                    boxShadow: `0 0 10px rgba(80, 200, 120, ${resources.biomass > 50 ? 0.3 : 0.1})`,
+                    boxShadow: `0 0 15px rgba(0, 255, 0, ${resources.biomass > 50 ? 0.5 : 0.2})`,
                     animation: resources.biomass < 50 ? 'pulse 2s infinite' : 'none'
                   }}
                 >
-                  <Leaf className="w-4 h-4 text-green-400 group-hover:scale-110 transition-transform" />
-                  <span className="text-white font-mono font-semibold">{resources.biomass}</span>
+                  <Leaf className="w-5 h-5 text-green-300 group-hover:scale-110 transition-transform" />
+                  <span className="text-green-200 font-mono font-bold text-base text-readable-neon">{resources.biomass}</span>
                   {resources.biomass < 50 && (
                     <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
                   )}
                 </div>
                 <div 
-                  className="flex items-center gap-2 bg-gray-800/85 backdrop-blur-sm px-3 py-2 rounded-lg border border-purple-400/30 hover:border-purple-400/60 transition-all group"
+                  className="flex items-center gap-2 bg-gray-800/85 backdrop-blur-sm px-3 py-2 rounded-lg border border-purple-400/50 hover:border-purple-400/80 transition-all group"
                   style={{ 
-                    boxShadow: `0 0 10px rgba(157, 78, 221, ${resources.data > 50 ? 0.3 : 0.1})`,
+                    boxShadow: `0 0 15px rgba(255, 0, 255, ${resources.data > 50 ? 0.5 : 0.2})`,
                     animation: resources.data < 50 ? 'pulse 2s infinite' : 'none'
                   }}
                 >
-                  <Brain className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform" />
-                  <span className="text-white font-mono font-semibold">{resources.data}</span>
+                  <Brain className="w-5 h-5 text-purple-300 group-hover:scale-110 transition-transform" />
+                  <span className="text-purple-200 font-mono font-bold text-base text-readable-neon">{resources.data}</span>
                   {resources.data < 50 && (
                     <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
                   )}
@@ -2448,30 +2457,30 @@ const QuaternionGame = () => {
               </div>
 
               <div className="flex items-center gap-4">
-                <div className="text-white font-mono flex items-center gap-1">
-                  <Clock className="w-4 h-4" />
+                <div className="text-cyan-200 font-mono text-base font-semibold flex items-center gap-1 text-readable-neon">
+                  <Clock className="w-5 h-5" />
                   {formatTime(gameTime)}
                   {gameTime > 0 && (
                     <>
                       {gameTime < 1800 ? (
-                        <span className="text-xs text-green-400 ml-1">
+                        <span className="text-sm text-green-300 ml-1 text-readable-neon">
                           ({Math.floor((gameTime / 1800) * 100)}% of 30min)
                         </span>
                       ) : (
-                        <span className="text-xs text-yellow-400 ml-1">
+                        <span className="text-sm text-yellow-300 ml-1 text-readable-neon">
                           (Over 30min)
                         </span>
                       )}
-                      <span className="text-xs text-cyan-400 ml-2">
+                      <span className="text-sm text-cyan-300 ml-2 text-readable-neon">
                         Target: &lt;25min
                       </span>
                     </>
                   )}
                 </div>
-                <div className="text-white font-mono">
+                <div className="text-cyan-200 font-mono text-base font-semibold text-readable-neon">
                   Pop: {population.current}/{population.max}
                 </div>
-                <div className={`font-mono ${instability > 150 ? 'text-red-400' : instability > 100 ? 'text-yellow-400' : 'text-green-400'}`}>
+                <div className={`font-mono text-base font-semibold text-readable-neon ${instability > 150 ? 'text-red-300' : instability > 100 ? 'text-yellow-300' : 'text-green-300'}`}>
                   Instability: {instability}%
                 </div>
                 <Button
@@ -2553,8 +2562,8 @@ const QuaternionGame = () => {
                     Tech
                   </Button>
                 </div>
-                <div className="text-xs text-gray-400 flex items-center gap-2 bg-gray-800/50 px-2 py-1 rounded backdrop-blur-sm">
-                  <Trophy className="w-3 h-3 text-yellow-400" />
+                <div className="text-sm text-cyan-200 flex items-center gap-2 bg-gray-800/50 px-2 py-1 rounded backdrop-blur-sm text-readable-neon">
+                  <Trophy className="w-4 h-4 text-yellow-300" />
                   <span>Chroma Awards 2025 - Puzzle/Strategy | Tools: ElevenLabs, OpenArt, Google AI, Fuser, Luma AI</span>
                 </div>
               </div>
@@ -2565,8 +2574,8 @@ const QuaternionGame = () => {
           {buildQueue.length > 0 && (
             <div className="absolute bottom-20 left-4 z-20 space-y-2">
               {buildQueue.map(item => (
-                <div key={item.id} className="bg-gray-800/90 border border-cyan-400/30 rounded-lg p-2 min-w-[200px]">
-                  <div className="text-white text-sm mb-1">{BUILDINGS[item.building]?.name}</div>
+                <div key={item.id} className="bg-gray-800/90 border border-cyan-400/50 rounded-lg p-2 min-w-[200px]">
+                  <div className="text-cyan-200 text-base font-semibold mb-1 text-readable-neon">{BUILDINGS[item.building]?.name}</div>
                   <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-cyan-400 transition-all"
@@ -2582,8 +2591,8 @@ const QuaternionGame = () => {
           {showPerformanceStats && performanceStats && (
             <div className="absolute top-20 left-4 z-20 bg-gray-800/90 border border-cyan-400/30 rounded-lg p-4 min-w-[200px]">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-cyan-400 text-sm font-bold flex items-center gap-2">
-                  <Activity className="w-4 h-4" />
+                <h3 className="text-cyan-300 text-base font-bold flex items-center gap-2 text-readable-neon">
+                  <Activity className="w-5 h-5" />
                   Performance
                 </h3>
                 <Button
@@ -2595,37 +2604,37 @@ const QuaternionGame = () => {
                   <X className="w-3 h-3" />
                 </Button>
               </div>
-              <div className="space-y-2 text-xs font-mono">
+              <div className="space-y-2 text-sm font-mono">
                 <div className="flex justify-between">
-                  <span className="text-gray-400">FPS:</span>
-                  <span className={`font-bold ${performanceStats.fps >= 55 ? 'text-green-400' : performanceStats.fps >= 30 ? 'text-yellow-400' : 'text-red-400'}`}>
+                  <span className="text-cyan-200 text-readable">FPS:</span>
+                  <span className={`font-bold text-readable-neon ${performanceStats.fps >= 55 ? 'text-green-300' : performanceStats.fps >= 30 ? 'text-yellow-300' : 'text-red-300'}`}>
                     {performanceStats.fps}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">UPS:</span>
-                  <span className="text-cyan-400 font-bold">{performanceStats.ups}</span>
+                  <span className="text-cyan-200 text-readable">UPS:</span>
+                  <span className="text-cyan-300 font-bold text-readable-neon">{performanceStats.ups}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Frame:</span>
-                  <span className="text-white">{performanceStats.frameTime.toFixed(1)}ms</span>
+                  <span className="text-cyan-200 text-readable">Frame:</span>
+                  <span className="text-cyan-200 text-readable-neon">{performanceStats.frameTime.toFixed(1)}ms</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Update:</span>
-                  <span className="text-white">{performanceStats.updateTime.toFixed(2)}ms</span>
+                  <span className="text-cyan-200 text-readable">Update:</span>
+                  <span className="text-cyan-200 text-readable-neon">{performanceStats.updateTime.toFixed(2)}ms</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Render:</span>
-                  <span className="text-white">{performanceStats.renderTime.toFixed(2)}ms</span>
+                  <span className="text-cyan-200 text-readable">Render:</span>
+                  <span className="text-cyan-200 text-readable-neon">{performanceStats.renderTime.toFixed(2)}ms</span>
                 </div>
                 {performanceStats.droppedFrames > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-gray-400">Dropped:</span>
-                    <span className="text-red-400">{performanceStats.droppedFrames}</span>
+                    <span className="text-cyan-200 text-readable">Dropped:</span>
+                    <span className="text-red-300 text-readable-neon">{performanceStats.droppedFrames}</span>
                   </div>
                 )}
-                <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-700">
-                  <span className="text-gray-400">Quality:</span>
+                <div className="flex justify-between items-center mt-2 pt-2 border-t border-cyan-400/30">
+                  <span className="text-cyan-200 text-readable">Quality:</span>
                   <div className="flex items-center gap-2">
                     <div className="w-16 h-2 bg-gray-700 rounded-full overflow-hidden">
                       <div 
@@ -2633,7 +2642,7 @@ const QuaternionGame = () => {
                         style={{ width: `${performanceStats.qualityLevel * 100}%` }}
                       />
                     </div>
-                    <span className="text-white text-xs">{(performanceStats.qualityLevel * 100).toFixed(0)}%</span>
+                    <span className="text-cyan-200 text-sm text-readable-neon">{(performanceStats.qualityLevel * 100).toFixed(0)}%</span>
                   </div>
                 </div>
               </div>
@@ -2642,17 +2651,17 @@ const QuaternionGame = () => {
 
           {/* Win Condition Progress */}
           <div className="absolute top-20 left-4 z-20 space-y-2 max-w-xs">
-            <div className="bg-gray-800/90 border border-cyan-400/30 rounded-lg p-4">
-              <h3 className="text-cyan-400 text-sm font-bold mb-3 flex items-center gap-2">
-                <Trophy className="w-4 h-4" />
+            <div className="bg-gray-800/90 border border-cyan-400/50 rounded-lg p-4">
+              <h3 className="text-cyan-300 text-base font-bold mb-3 flex items-center gap-2 text-readable-neon">
+                <Trophy className="w-5 h-5" />
                 Victory Conditions
               </h3>
               <div className="space-y-3">
                 {Object.entries(winConditionProgress).map(([key, condition]) => (
                   <div key={key} className="space-y-1">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-300">{condition.label}</span>
-                      <span className="text-cyan-400">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-cyan-200 text-readable">{condition.label}</span>
+                      <span className="text-cyan-300 text-readable-neon font-semibold">
                         {Math.floor((condition.progress / condition.max) * 100)}%
                       </span>
                     </div>
@@ -2704,14 +2713,14 @@ const QuaternionGame = () => {
                       style={{ backgroundColor: commanderColor }}
                     />
                     <span 
-                      className="text-sm font-bold"
+                      className="text-base font-bold text-readable-neon"
                       style={{ color: commanderColor }}
                     >
                       {commander.name}
                     </span>
-                    <span className="text-xs text-gray-400 ml-auto">{commander.role}</span>
+                    <span className="text-sm text-cyan-200 ml-auto text-readable">{commander.role}</span>
                   </div>
-                  <p className="text-white text-sm leading-relaxed">{msg.message}</p>
+                  <p className="text-cyan-100 text-base leading-relaxed text-readable">{msg.message}</p>
                   
                   {/* Subtle waveform indicator */}
                   <div className="mt-2 h-0.5 bg-gradient-to-r from-transparent via-current to-transparent opacity-20" style={{ color: commanderColor }} />

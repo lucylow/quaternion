@@ -25,17 +25,63 @@ export const MapSelector: React.FC<MapSelectorProps> = ({
     const availableMaps = mapLoader.getAvailableMaps();
     setMaps(availableMaps);
 
-    // Preload preview images
+    // Preload preview images with retry logic
     availableMaps.forEach(map => {
-      const img = new Image();
-      img.onload = () => {
-        setPreviewImages(prev => new Map(prev).set(map.id, map.imagePath));
+      const loadImageWithRetry = async (path: string, retries: number = 3) => {
+        // Encode the path to handle special characters
+        const encodePath = (p: string) => {
+          if (p.startsWith('/')) {
+            const parts = p.split('/');
+            return parts.map((part, index) => {
+              if (index === 0 || !part) return part;
+              return encodeURIComponent(part);
+            }).join('/');
+          }
+          return encodeURIComponent(p);
+        };
+
+        const encodedPath = encodePath(path);
+        const pathsToTry = [encodedPath, path];
+
+        for (let attempt = 0; attempt < retries; attempt++) {
+          for (const tryPath of pathsToTry) {
+            try {
+              await new Promise<void>((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = 'anonymous';
+                
+                const timeout = setTimeout(() => {
+                  reject(new Error('Timeout'));
+                }, 8000);
+
+                img.onload = () => {
+                  clearTimeout(timeout);
+                  setPreviewImages(prev => new Map(prev).set(map.id, tryPath));
+                  resolve();
+                };
+
+                img.onerror = () => {
+                  clearTimeout(timeout);
+                  reject(new Error('Load failed'));
+                };
+
+                img.src = tryPath;
+              });
+              return; // Success, exit function
+            } catch (error) {
+              if (attempt === retries - 1 && tryPath === pathsToTry[pathsToTry.length - 1]) {
+                // Last attempt failed
+                console.warn(`Failed to load preview for map: ${map.id} after ${retries} attempts`);
+              } else {
+                // Wait before retry
+                await new Promise(resolve => setTimeout(resolve, 200 * (attempt + 1)));
+              }
+            }
+          }
+        }
       };
-      img.onerror = () => {
-        // If image fails to load, still show the card but without preview
-        console.warn(`Failed to load preview for map: ${map.id}`);
-      };
-      img.src = map.imagePath;
+
+      loadImageWithRetry(map.imagePath);
     });
   }, []);
 
