@@ -133,7 +133,7 @@ export default function JudgeHUDOverlay({ seed, mapConfig, commanderId }) {
               <strong>Top AI Highlights</strong>
               <ol style={{ marginTop: 6 }}>
                 {meta?.aiHighlights?.slice(0,3)?.map((h, idx) => (
-                  <li key={idx} style={{ fontSize: 12 }}>
+                  <li key={`highlight-${h.action || h.actor || ''}-${h.t}-${idx}`} style={{ fontSize: 12 }}>
                     <span style={{ color:'#9bd' }}>{h.t}s</span> — <strong>{h.actor}</strong> — {h.action} — <span title={h.reason}>{short(h.reason)}</span>
                   </li>
                 )) || <li style={{ opacity: 0.6 }}>None yet</li>}
@@ -144,7 +144,7 @@ export default function JudgeHUDOverlay({ seed, mapConfig, commanderId }) {
               <strong>Recent Actions</strong>
               <ul style={{ maxHeight: 120, overflowY: 'auto', marginTop: 6 }}>
                 {meta?.actions?.slice(-8).reverse().map((a, i) => (
-                  <li key={`action-${a.type}-${a.timestamp || Date.now()}-${i}`} style={{ fontSize: 12 }}>
+                  <li key={`action-${a.type}-${a.t || a.timestamp || i}-${i}`} style={{ fontSize: 12 }}>
                     <span style={{ color:'#9bd' }}>{a.t}s</span> — {a.actor} — {a.type} — <span title={a.reason}>{short(a.reason, 80)}</span>
                   </li>
                 )) || <li style={{ opacity: 0.6 }}>No actions</li>}

@@ -134,7 +134,7 @@ export const GameLauncher = () => {
                     </h3>
                     <ul className="space-y-1">
                       {mode.features.map((feature, idx) => (
-                        <li key={idx} className="text-sm text-quaternion-light/70 flex items-start gap-2">
+                        <li key={`${mode.id}-feature-${feature.slice(0, 20)}-${idx}`} className="text-sm text-quaternion-light/70 flex items-start gap-2">
                           <span className="text-quaternion-primary mt-1">•</span>
                           <span>{feature}</span>
                         </li>
