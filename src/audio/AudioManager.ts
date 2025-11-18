@@ -61,20 +61,34 @@ export default class AudioManager {
    * Initialize music system with stems
    */
   async initializeMusic(stems: MusicStem[]): Promise<void> {
-    await this.engine.ensureStarted();
-    
-    // Load all stems
-    for (const stem of stems) {
-      await this.engine.loadMusicStem(stem);
+    try {
+      await this.engine.ensureStarted();
+      
+      // Load all stems with error handling
+      for (const stem of stems) {
+        try {
+          await this.engine.loadMusicStem(stem);
+        } catch (error) {
+          console.error(`Failed to load music stem ${stem.id}:`, error);
+          // Continue loading other stems
+        }
+      }
+      
+      // Start with ambient stem
+      const ambientStem = stems.find(s => s.id.includes('ambient'));
+      if (ambientStem) {
+        try {
+          this.engine.playMusicStem(ambientStem.id, 1.0);
+        } catch (error) {
+          console.error(`Failed to play ambient stem:`, error);
+        }
+      }
+      
+      this.musicInitialized = true;
+    } catch (error) {
+      console.error('Music initialization failed:', error);
+      // Don't throw - allow game to continue without music
     }
-    
-    // Start with ambient stem
-    const ambientStem = stems.find(s => s.id.includes('ambient'));
-    if (ambientStem) {
-      this.engine.playMusicStem(ambientStem.id, 1.0);
-    }
-    
-    this.musicInitialized = true;
   }
 
   /**
@@ -94,14 +108,24 @@ export default class AudioManager {
     delay?: number;
     pan?: number;
   }): void {
-    this.engine.playSFX(name, options);
+    try {
+      this.engine.playSFX(name, options);
+    } catch (error) {
+      console.warn(`Failed to play SFX ${name}:`, error);
+      // Don't throw - SFX failures are non-critical
+    }
   }
 
   /**
    * Preload SFX
    */
   async preloadSFX(name: string, url: string): Promise<void> {
-    await this.engine.loadBuffer(name, url, 'sfx');
+    try {
+      await this.engine.loadBuffer(name, url, 'sfx');
+    } catch (error) {
+      console.warn(`Failed to preload SFX ${name}:`, error);
+      // Don't throw - preload failures are non-critical
+    }
   }
 
   /**
@@ -288,21 +312,37 @@ export default class AudioManager {
    * Initialize audio system (ensure context is started)
    */
   async init(): Promise<void> {
-    await this.engine.ensureStarted();
+    try {
+      await this.engine.ensureStarted();
+    } catch (error) {
+      console.error('Audio initialization failed:', error);
+      // Don't throw - allow game to continue without audio
+    }
   }
 
   /**
    * Get AudioContext (for advanced usage)
    */
   getAudioContext(): AudioContext {
-    return this.engine.getAudioContext();
+    try {
+      return this.engine.getAudioContext();
+    } catch (error) {
+      console.error('Failed to get audio context:', error);
+      // Return a fallback - this should not happen if engine is properly initialized
+      throw error;
+    }
   }
 
   /**
    * Get SFX gain node (for connecting external audio sources)
    */
   getSfxGainNode(): GainNode {
-    return this.engine.getSfxGainNode();
+    try {
+      return this.engine.getSfxGainNode();
+    } catch (error) {
+      console.error('Failed to get SFX gain node:', error);
+      throw error;
+    }
   }
 
   /**
