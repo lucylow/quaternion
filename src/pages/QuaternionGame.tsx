@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Phaser from 'phaser';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ArrowLeft, Brain, Zap, Leaf, Box, Building, Swords, Trophy, X, RotateCcw, Activity, Clock } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -87,6 +88,8 @@ const QuaternionGame = () => {
   const [performanceStats, setPerformanceStats] = useState<PerformanceStats | null>(null);
   const [winConditionProgress, setWinConditionProgress] = useState<Record<string, { progress: number; max: number; label: string }>>({});
   const [showTutorial, setShowTutorial] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const gameLoopRef = useRef<GameLoop | null>(null);
   const gameStartedRef = useRef(false); // Flag to prevent multiple starts
   
@@ -194,12 +197,16 @@ const QuaternionGame = () => {
     console.log('Container ID:', gameRef.current?.id);
     console.log('Container classes:', gameRef.current?.className);
     
-    // Wait a frame to ensure DOM is ready
-    requestAnimationFrame(() => {
-      if (!gameRef.current) {
-        console.error('Game container ref lost after animation frame');
-        return;
-      }
+      // Wait a frame to ensure DOM is ready
+      requestAnimationFrame(() => {
+        if (!gameRef.current) {
+          const errorMsg = 'Game container not found. Please refresh the page.';
+          console.error(errorMsg);
+          setError(errorMsg);
+          setErrorDetails('The game container element was not found. This may be a rendering issue.');
+          setLoading(false);
+          return;
+        }
 
       console.log('Creating Phaser game...');
 
@@ -289,8 +296,11 @@ const QuaternionGame = () => {
             console.log('[GameLoop] Started successfully');
           }
         }).catch((error) => {
-          console.error('Failed to initialize game loop:', error);
-          toast.error('Failed to start game loop');
+          const errorMsg = 'Failed to initialize game loop';
+          console.error(errorMsg, error);
+          setError(errorMsg);
+          setErrorDetails(error instanceof Error ? error.message : 'Unknown error occurred');
+          toast.error(`Game initialization failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
         });
       }
 
@@ -361,7 +371,11 @@ const QuaternionGame = () => {
       // Use container element directly, not the ref
       const containerElement = gameRef.current;
       if (!containerElement) {
-        console.error('Container element is null when creating config!');
+        const errorMsg = 'Container element is null when creating config';
+        console.error(errorMsg);
+        setError(errorMsg);
+        setErrorDetails('The game container was lost during initialization. Please refresh the page.');
+        setLoading(false);
         return;
       }
 
@@ -2425,8 +2439,12 @@ const QuaternionGame = () => {
 
         console.log('Phaser game created, waiting for ready event...');
       } catch (error) {
-        console.error('❌ Failed to create Phaser game:', error);
+        const errorMsg = 'Failed to create Phaser game';
+        console.error('❌', errorMsg, error);
+        setError(errorMsg);
+        setErrorDetails(error instanceof Error ? error.message : 'Unknown error occurred during Phaser initialization');
         toast.error(`Failed to initialize game: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        setLoading(false);
       }
     });
 
@@ -2453,6 +2471,47 @@ const QuaternionGame = () => {
       }
     };
   }, [gameSeed, commanderId]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Ignore if typing in an input field
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      // Prevent default for game shortcuts
+      switch (event.key.toLowerCase()) {
+        case 'b':
+          event.preventDefault();
+          setShowBuildMenu(!showBuildMenu);
+          playUISound('click');
+          break;
+        case 't':
+          event.preventDefault();
+          setShowTechTree(!showTechTree);
+          playUISound('click');
+          break;
+        case 'p':
+          event.preventDefault();
+          setShowPerformanceStats(!showPerformanceStats);
+          break;
+        case 'escape':
+          event.preventDefault();
+          if (showBuildMenu) setShowBuildMenu(false);
+          if (showTechTree) setShowTechTree(false);
+          if (showTutorial) setShowTutorial(false);
+          break;
+        case 'h':
+          event.preventDefault();
+          setShowTutorial(!showTutorial);
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showBuildMenu, showTechTree, showTutorial, showPerformanceStats]);
 
   // Resource monitoring
   useEffect(() => {
@@ -2668,16 +2727,26 @@ const QuaternionGame = () => {
     <div className="relative w-full h-screen bg-gray-900 overflow-hidden">
       {/* Loading Screen */}
       {loading && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-gray-900">
-          <div className="text-center">
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm">
+          <div className="text-center max-w-md px-4">
             <h1 className="text-4xl font-bold text-cyan-400 mb-4">QUATERNION</h1>
-            <p className="text-gray-400 mb-4">Initializing game systems...</p>
-            <div className="w-64 h-2 bg-gray-700 rounded-full overflow-hidden">
+            <div className="w-16 h-16 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-300 mb-4">
+              {loadingProgress < 30 ? 'Initializing game systems...' :
+               loadingProgress < 60 ? 'Loading assets...' :
+               loadingProgress < 90 ? 'Setting up game world...' :
+               'Almost ready...'}
+            </p>
+            <div className="w-64 h-2 bg-gray-700 rounded-full overflow-hidden mx-auto">
               <div 
-                className="h-full bg-cyan-400 transition-all duration-300"
+                className="h-full bg-gradient-to-r from-cyan-400 to-cyan-600 transition-all duration-300"
                 style={{ width: `${loadingProgress}%` }}
               />
             </div>
+            <p className="text-gray-400 text-sm mt-2">{Math.round(loadingProgress)}%</p>
+            {loadingProgress > 90 && (
+              <p className="text-cyan-300 text-xs mt-2 animate-pulse">Press any key to start when ready</p>
+            )}
           </div>
         </div>
       )}
@@ -2706,6 +2775,9 @@ const QuaternionGame = () => {
                   <li><strong>Right Click:</strong> Move/Attack/Gather</li>
                   <li><strong>B:</strong> Build Menu</li>
                   <li><strong>T:</strong> Tech Tree</li>
+                  <li><strong>P:</strong> Performance Stats</li>
+                  <li><strong>H:</strong> Help/Tutorial</li>
+                  <li><strong>ESC:</strong> Close menus</li>
                   <li><strong>Arrow Keys:</strong> Pan camera</li>
                 </ul>
               </div>
@@ -2728,6 +2800,40 @@ const QuaternionGame = () => {
                 className="bg-cyan-600 hover:bg-cyan-700"
               >
                 Start Playing
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Display */}
+      {error && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm">
+          <div className="bg-gray-800 border-2 border-red-400 rounded-lg p-8 max-w-md text-center">
+            <X className="w-16 h-16 text-red-400 mx-auto mb-4" />
+            <h2 className="text-3xl font-bold text-red-400 mb-2">Game Error</h2>
+            <p className="text-gray-300 mb-2">{error}</p>
+            {errorDetails && (
+              <p className="text-gray-400 text-sm mb-6">{errorDetails}</p>
+            )}
+            <div className="flex gap-4 justify-center">
+              <Button
+                onClick={() => {
+                  setError(null);
+                  setErrorDetails(null);
+                  window.location.reload();
+                }}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                <RotateCcw className="w-4 h-4 mr-2" />
+                Reload Game
+              </Button>
+              <Button
+                onClick={() => navigate('/')}
+                variant="outline"
+                className="border-cyan-400 text-cyan-400"
+              >
+                Main Menu
               </Button>
             </div>
           </div>
@@ -2801,58 +2907,102 @@ const QuaternionGame = () => {
 
               <div className="flex items-center gap-4 pointer-events-auto">
                 {/* Enhanced Resources with Axis-Specific Styling */}
-                <div 
-                  className="flex items-center gap-2 bg-gray-800/85 backdrop-blur-sm px-3 py-2 rounded-lg border border-orange-400/50 hover:border-orange-400/80 transition-all group"
-                  style={{ 
-                    boxShadow: `0 0 15px rgba(255, 165, 0, ${resources.ore > 50 ? 0.5 : 0.2})`,
-                    animation: resources.ore < 50 ? 'pulse 2s infinite' : 'none'
-                  }}
-                >
-                  <Box className="w-5 h-5 text-orange-400 group-hover:scale-110 transition-transform" />
-                  <span className="text-orange-300 font-mono font-bold text-base text-readable-neon">{resources.ore}</span>
-                  {resources.ore < 50 && (
-                    <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
-                  )}
-                </div>
-                <div 
-                  className="flex items-center gap-2 bg-gray-800/85 backdrop-blur-sm px-3 py-2 rounded-lg border border-yellow-400/50 hover:border-yellow-400/80 transition-all group"
-                  style={{ 
-                    boxShadow: `0 0 15px rgba(255, 255, 0, ${resources.energy > 50 ? 0.5 : 0.2})`,
-                    animation: resources.energy < 50 ? 'pulse 2s infinite' : 'none'
-                  }}
-                >
-                  <Zap className="w-5 h-5 text-yellow-300 group-hover:scale-110 transition-transform" />
-                  <span className="text-yellow-200 font-mono font-bold text-base text-readable-neon">{resources.energy}</span>
-                  {resources.energy < 50 && (
-                    <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
-                  )}
-                </div>
-                <div 
-                  className="flex items-center gap-2 bg-gray-800/85 backdrop-blur-sm px-3 py-2 rounded-lg border border-green-400/50 hover:border-green-400/80 transition-all group"
-                  style={{ 
-                    boxShadow: `0 0 15px rgba(0, 255, 0, ${resources.biomass > 50 ? 0.5 : 0.2})`,
-                    animation: resources.biomass < 50 ? 'pulse 2s infinite' : 'none'
-                  }}
-                >
-                  <Leaf className="w-5 h-5 text-green-300 group-hover:scale-110 transition-transform" />
-                  <span className="text-green-200 font-mono font-bold text-base text-readable-neon">{resources.biomass}</span>
-                  {resources.biomass < 50 && (
-                    <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-                  )}
-                </div>
-                <div 
-                  className="flex items-center gap-2 bg-gray-800/85 backdrop-blur-sm px-3 py-2 rounded-lg border border-purple-400/50 hover:border-purple-400/80 transition-all group"
-                  style={{ 
-                    boxShadow: `0 0 15px rgba(255, 0, 255, ${resources.data > 50 ? 0.5 : 0.2})`,
-                    animation: resources.data < 50 ? 'pulse 2s infinite' : 'none'
-                  }}
-                >
-                  <Brain className="w-5 h-5 text-purple-300 group-hover:scale-110 transition-transform" />
-                  <span className="text-purple-200 font-mono font-bold text-base text-readable-neon">{resources.data}</span>
-                  {resources.data < 50 && (
-                    <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
-                  )}
-                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div 
+                      className="flex items-center gap-2 bg-gray-800/85 backdrop-blur-sm px-3 py-2 rounded-lg border border-orange-400/50 hover:border-orange-400/80 transition-all group cursor-help"
+                      style={{ 
+                        boxShadow: `0 0 15px rgba(255, 165, 0, ${resources.ore > 50 ? 0.5 : 0.2})`,
+                        animation: resources.ore < 50 ? 'pulse 2s infinite' : 'none'
+                      }}
+                    >
+                      <Box className="w-5 h-5 text-orange-400 group-hover:scale-110 transition-transform" />
+                      <span className="text-orange-300 font-mono font-bold text-base text-readable-neon">{resources.ore}</span>
+                      {resources.ore < 50 && (
+                        <div className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />
+                      )}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="font-semibold">Matter (Ore)</p>
+                    <p className="text-xs text-gray-300">Raw materials for construction and units</p>
+                    {resources.ore < 50 && (
+                      <p className="text-xs text-orange-400 mt-1">⚠️ Low - gather more resources</p>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div 
+                      className="flex items-center gap-2 bg-gray-800/85 backdrop-blur-sm px-3 py-2 rounded-lg border border-yellow-400/50 hover:border-yellow-400/80 transition-all group cursor-help"
+                      style={{ 
+                        boxShadow: `0 0 15px rgba(255, 255, 0, ${resources.energy > 50 ? 0.5 : 0.2})`,
+                        animation: resources.energy < 50 ? 'pulse 2s infinite' : 'none'
+                      }}
+                    >
+                      <Zap className="w-5 h-5 text-yellow-300 group-hover:scale-110 transition-transform" />
+                      <span className="text-yellow-200 font-mono font-bold text-base text-readable-neon">{resources.energy}</span>
+                      {resources.energy < 50 && (
+                        <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
+                      )}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="font-semibold">Energy</p>
+                    <p className="text-xs text-gray-300">Power for advanced units and buildings</p>
+                    {resources.energy < 50 && (
+                      <p className="text-xs text-yellow-400 mt-1">⚠️ Low - build energy generators</p>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div 
+                      className="flex items-center gap-2 bg-gray-800/85 backdrop-blur-sm px-3 py-2 rounded-lg border border-green-400/50 hover:border-green-400/80 transition-all group cursor-help"
+                      style={{ 
+                        boxShadow: `0 0 15px rgba(0, 255, 0, ${resources.biomass > 50 ? 0.5 : 0.2})`,
+                        animation: resources.biomass < 50 ? 'pulse 2s infinite' : 'none'
+                      }}
+                    >
+                      <Leaf className="w-5 h-5 text-green-300 group-hover:scale-110 transition-transform" />
+                      <span className="text-green-200 font-mono font-bold text-base text-readable-neon">{resources.biomass}</span>
+                      {resources.biomass < 50 && (
+                        <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                      )}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="font-semibold">Life (Biomass)</p>
+                    <p className="text-xs text-gray-300">Biological resources for healing and growth</p>
+                    {resources.biomass < 50 && (
+                      <p className="text-xs text-green-400 mt-1">⚠️ Low - harvest from nature</p>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div 
+                      className="flex items-center gap-2 bg-gray-800/85 backdrop-blur-sm px-3 py-2 rounded-lg border border-purple-400/50 hover:border-purple-400/80 transition-all group cursor-help"
+                      style={{ 
+                        boxShadow: `0 0 15px rgba(255, 0, 255, ${resources.data > 50 ? 0.5 : 0.2})`,
+                        animation: resources.data < 50 ? 'pulse 2s infinite' : 'none'
+                      }}
+                    >
+                      <Brain className="w-5 h-5 text-purple-300 group-hover:scale-110 transition-transform" />
+                      <span className="text-purple-200 font-mono font-bold text-base text-readable-neon">{resources.data}</span>
+                      {resources.data < 50 && (
+                        <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+                      )}
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="font-semibold">Knowledge (Data)</p>
+                    <p className="text-xs text-gray-300">Research points for technology advancement</p>
+                    {resources.data < 50 && (
+                      <p className="text-xs text-purple-400 mt-1">⚠️ Low - research more technologies</p>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
               </div>
 
               <div className="flex items-center gap-4">
