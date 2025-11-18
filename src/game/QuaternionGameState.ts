@@ -463,16 +463,6 @@ export class QuaternionGameState {
       }
     });
     
-    // Update buildings (construction and resource generation)
-    this.mapManager.updateBuildings(deltaTime);
-    
-    // Get building resource generation and add to controlled nodes
-    const buildingGeneration = this.mapManager.getBuildingResourceGeneration();
-    buildingGeneration.forEach((amount, resourceType) => {
-      // Add building generation to resource manager
-      this.resourceManager.addResource(resourceType, amount * deltaTime);
-    });
-    
     // Update buildings first (so they can generate resources)
     this.mapManager.updateBuildings(deltaTime);
     
