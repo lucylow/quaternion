@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Download, Copy, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { safeStringify } from '@/utils/safeJSON';
 
 interface ReplayMetadata {
   replayId: string;
@@ -66,7 +67,7 @@ export const EnhancedJudgeHUD = ({
   const handleDownloadReplay = () => {
     if (!replayData) return;
 
-    const json = JSON.stringify(replayData, null, 2);
+    const json = safeStringify(replayData, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

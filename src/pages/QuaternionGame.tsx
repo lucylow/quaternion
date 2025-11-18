@@ -30,6 +30,7 @@ import { ResourceAdvisorPanel } from '@/components/game/ResourceAdvisorPanel';
 import { ResourceType } from '@/game/ResourceManager';
 import { initializeAudio } from '@/audio/audioInit';
 import { getAudioManager, updateGameAudio, playSFX, playUISound, playResourceSound, playCombatSound, playCommanderDialogue } from '@/audio/AudioSystemIntegration';
+import { safeStringify, safeParse } from '@/utils/safeJSON';
 import BackgroundMusic from '@/audio/BackgroundMusic';
 import ChromaPulseSynth from '@/audio/ChromaPulseSynth';
 import MapMusicManager from '@/audio/MapMusicManager';
@@ -163,7 +164,7 @@ const QuaternionGame = () => {
     try {
       const storedRoomData = localStorage.getItem('quaternion_roomData');
       if (storedRoomData) {
-        return JSON.parse(storedRoomData);
+        return safeParse(storedRoomData);
       }
     } catch (error) {
       console.warn('Failed to load room data from storage:', error);
@@ -198,6 +199,35 @@ const QuaternionGame = () => {
   const playerId = effectiveConfig?.playerId;
   
   const navigate = useNavigate();
+
+  // Add safeguards to prevent accidental serialization of Phaser objects
+  useEffect(() => {
+    // Prevent accidental serialization of Phaser objects
+    const originalStringify = JSON.stringify;
+    
+    (JSON as any).stringify = function(value: any, replacer?: any, space?: any) {
+      try {
+        // Check if value contains Phaser objects
+        if (value && typeof value === 'object') {
+          if (value.constructor && value.constructor.name.startsWith('Phaser')) {
+            console.warn('Attempting to stringify Phaser object, using safe serialization');
+            return safeStringify(value, space);
+          }
+        }
+        return originalStringify.call(this, value, replacer, space);
+      } catch (error) {
+        if (error instanceof TypeError && error.message.includes('circular')) {
+          console.warn('Circular reference detected, using safe serialization');
+          return safeStringify(value, space);
+        }
+        throw error;
+      }
+    };
+    
+    return () => {
+      JSON.stringify = originalStringify;
+    };
+  }, []);
 
   useEffect(() => {
     console.log('=== QuaternionGame Component Mounted ===');

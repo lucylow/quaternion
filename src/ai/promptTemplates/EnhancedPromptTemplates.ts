@@ -3,6 +3,8 @@
  * Based on research: strong prompt scaffolding, structured output, memory integration
  */
 
+import { safeStringify } from '@/utils/safeJSON';
+
 export interface PromptContext {
   memoryContext?: string;
   conversationHistory?: string;
@@ -141,7 +143,7 @@ export class EnhancedNarrativeEventTemplate {
       : '';
 
     const gameStateSection = context.gameState
-      ? `## Current Game State\n${JSON.stringify(context.gameState, null, 2)}\n`
+      ? `## Current Game State\n${safeStringify(context.gameState, 2)}\n`
       : '';
 
     const outputFormat = this.buildOutputFormat(schema);

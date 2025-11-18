@@ -3,6 +3,8 @@
  * Implements deterministic replay with compression
  */
 
+import { safeStringify } from '@/utils/safeJSON';
+
 export interface ReplayMetadata {
   replayId: string;
   seed: number;
@@ -211,7 +213,8 @@ export class ReplaySystem {
    */
   public exportJSON(): string {
     const artifact = this.finalize({ winner: null, winConditions: new Map(), players: new Map() });
-    return JSON.stringify(artifact, null, 2);
+    // Use safeStringify to handle any potential circular references
+    return safeStringify(artifact, 2);
   }
 
   /**

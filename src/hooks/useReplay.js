@@ -3,6 +3,7 @@
 // Usage: const { state, generateReplay, getReplay, downloadReplay, shareReplay } = useReplay();
 
 import { useState, useCallback } from 'react';
+import { safeStringify } from '@/utils/safeJSON';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -16,7 +17,7 @@ function saveToCache(metadata) {
     const arr = raw ? JSON.parse(raw) : [];
     // Prepend and dedupe by replayId
     const filtered = [metadata, ...arr.filter(a => a.replayId !== metadata.replayId)];
-    localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(filtered.slice(0, CACHE_MAX)));
+    localStorage.setItem(LOCAL_CACHE_KEY, safeStringify(filtered.slice(0, CACHE_MAX)));
   } catch (e) {
     // no-op
   }

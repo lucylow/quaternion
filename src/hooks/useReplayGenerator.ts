@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { safeStringify } from '@/utils/safeJSON';
 
 // Analytics helper
 function trackEvent(event: string, data?: Record<string, unknown>) {
@@ -84,9 +85,9 @@ export function useReplayGenerator() {
           return bCached - aCached;
         });
         const limited = Object.fromEntries(entries.slice(0, MAX_CACHE_SIZE));
-        localStorage.setItem(CACHE_KEY, JSON.stringify(limited));
+        localStorage.setItem(CACHE_KEY, safeStringify(limited));
       } else {
-        localStorage.setItem(CACHE_KEY, JSON.stringify(parsed));
+        localStorage.setItem(CACHE_KEY, safeStringify(parsed));
       }
     } catch (err) {
       console.warn('Failed to cache replay:', err);

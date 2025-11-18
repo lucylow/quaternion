@@ -131,7 +131,7 @@ export class CampaignSeedManager {
    * Export seeds as JSON
    */
   exportSeeds(): string {
-    return JSON.stringify(Array.from(this.seeds.values()), null, 2);
+    return safeStringify(Array.from(this.seeds.values()), 2);
   }
 
   /**

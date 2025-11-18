@@ -14,6 +14,7 @@
 // const meta = await replayApi.generateReplay({ seed, mapConfig, commanderId, mode: 'fast' });
 
 import type { ReplayMetadata, ReplayData } from '@/lib/replayClient';
+import { safeStringify } from '@/utils/safeJSON';
 
 const MOCK_ENABLED = (import.meta.env.VITE_USE_REPLAY_MOCK || '').toLowerCase() === 'true';
 const STORAGE_KEY = 'mock_replay_store_v1';
@@ -55,7 +56,7 @@ function loadStore(): MockStore {
 
 function saveStore(store: MockStore): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+    localStorage.setItem(STORAGE_KEY, safeStringify(store));
   } catch (e) {
     // ignore
   }
