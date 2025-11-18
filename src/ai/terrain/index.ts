@@ -5,7 +5,7 @@
  */
 
 export { AIPersonality, TerrainAIPersonalityManager, TerrainAIAgent } from './TerrainAIPersonality';
-export type { TerrainAIPersonalityConfig } from './TerrainAIPersonality';
+export type { type TerrainAIPersonalityConfig } from './TerrainAIPersonality';
 export { AITileEvaluator } from './AITileEvaluator';
 export type { TileEvaluation, Tile, GameState } from './AITileEvaluator';
 export { AIPathfinding } from './AIPathfinding';
