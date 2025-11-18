@@ -65,7 +65,7 @@ export class ReplaySerializer {
   isPivotalAction(type) {
     const pivotalTypes = [
       'attack', 'defend', 'capture', 'build', 'research',
-      'retreat', 'flank', 'sacrifice', 'expand'
+      'retreat', 'flank', 'sacrifice', 'expand', 'monster_action'
     ];
     return pivotalTypes.some(t => type.toLowerCase().includes(t));
   }

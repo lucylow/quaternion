@@ -106,3 +106,26 @@
 .info-panel strong {
   color: #0099FF;
 }
+
+/* Enhanced Map Generator Styles */
+.game-container-generator {
+  position: relative;
+  background: #000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 0.5rem;
+}
+
+.game-container-generator canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Line clamp utility for text truncation */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

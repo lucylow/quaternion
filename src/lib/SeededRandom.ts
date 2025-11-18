@@ -39,6 +39,9 @@ export class SeededRandom {
    * Choose random element from array
    */
   public choice<T>(array: T[]): T {
+    if (array.length === 0) {
+      throw new Error("Cannot choose from empty array");
+    }
     return array[this.nextInt(0, array.length - 1)];
   }
 

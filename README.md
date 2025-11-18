@@ -15,15 +15,21 @@ A cutting-edge real-time strategy game built for the **Chroma Awards AI Games Co
 
 ## 📋 Table of Contents
 
-- [Overview](#-overview)
-- [Architecture](#-system-architecture)
-- [Core Gameplay Systems](#-core-gameplay-systems)
-- [AI Integration](#-ai-integration-systems)
-- [Technical Stack](#-technical-stack)
-- [Installation & Setup](#-installation--setup)
-- [Development Guide](#-development-guide)
-- [Performance](#-performance-optimizations)
-- [Deployment](#-deployment)
+- [Overview](#overview)
+- [System Architecture](#system-architecture)
+  - [High-Level Architecture](#high-level-architecture)
+  - [Backend System Architecture](#backend-system-architecture)
+  - [API Sequence Diagrams](#api-sequence-diagrams)
+  - [Data Model & Entity Relationships](#data-model--entity-relationships)
+  - [AI Decision Flow Diagrams](#ai-decision-flow-diagram)
+- [Technical Diagram Generation](#-technical-diagram-generation)
+- [Core Gameplay Systems](#core-gameplay-systems)
+- [AI Integration Systems](#ai-integration-systems)
+- [Technical Stack](#technical-stack)
+- [Installation & Setup](#installation--setup)
+- [Development Guide](#development-guide)
+- [Performance Optimizations](#performance-optimizations)
+- [Deployment](#deployment)
 
 ---
 
@@ -195,6 +201,572 @@ graph TD
     GameLoop --> End[Game End]
     End --> Lore[Generate Lore]
     Lore --> Core[Quaternion Core Judgment]
+```
+
+### Backend System Architecture
+
+```mermaid
+graph TB
+    subgraph "Client Applications"
+        Web[Web Client<br/>React + Phaser]
+        Mobile[Mobile Client]
+    end
+    
+    subgraph "API Gateway Layer"
+        Express[Express.js Server<br/>RESTful API]
+        WS[WebSocket Server<br/>Real-time Updates]
+    end
+    
+    subgraph "Game Core Backend"
+        GS[GameState Manager<br/>State Synchronization]
+        GL[Game Loop<br/>60 FPS Fixed Timestep]
+        RM[Resource Manager<br/>Four-Axis System]
+        UM[Unit Manager<br/>Entity Management]
+        BM[Building Manager<br/>Structure Management]
+        MM[Map Manager<br/>Procedural Generation]
+        TM[Tech Tree Manager<br/>Research System]
+    end
+    
+    subgraph "AI Controller System"
+        AIC[AIController<br/>Decision Engine]
+        Archetypes[Commander Archetypes<br/>7 Personality Types]
+        Agents[Specialized Agents<br/>Economic/Military/Research]
+        BT[Behavior Trees<br/>Decision Logic]
+    end
+    
+    subgraph "AI Integration Services"
+        LLM[LLM Integration<br/>Google AI Gemini]
+        TTS[ElevenLabs TTS<br/>Voice Narration]
+        Music[Fuser API<br/>Adaptive Music]
+        PG[Procedural Generator<br/>Map Generation]
+    end
+    
+    subgraph "Data Layer"
+        DB[(Supabase/PostgreSQL<br/>Game State Persistence)]
+        Cache[(Redis Cache<br/>Session Data)]
+        Files[File Storage<br/>Maps/Assets]
+    end
+    
+    Web --> Express
+    Mobile --> Express
+    Web --> WS
+    Mobile --> WS
+    
+    Express --> GS
+    WS --> GS
+    
+    GS --> GL
+    GL --> RM
+    GL --> UM
+    GL --> BM
+    GL --> MM
+    GL --> TM
+    
+    GL --> AIC
+    AIC --> Archetypes
+    AIC --> Agents
+    AIC --> BT
+    
+    AIC --> LLM
+    GS --> TTS
+    GS --> Music
+    MM --> PG
+    
+    GS --> DB
+    Express --> Cache
+    PG --> Files
+    Express --> Files
+```
+
+### API Sequence Diagrams
+
+#### Game Creation and Initialization Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Express API
+    participant GameState
+    participant MapGenerator
+    participant AIController
+    participant Database
+    
+    Client->>Express API: POST /api/game/create
+    Express API->>GameState: Initialize Game State
+    Express API->>MapGenerator: Generate Map (seed, type)
+    MapGenerator->>MapGenerator: Procedural Generation
+    MapGenerator-->>Express API: Map Data
+    Express API->>AIController: Initialize AI Commander
+    AIController->>AIController: Generate Personality
+    AIController-->>Express API: Commander Config
+    Express API->>Database: Save Game State
+    Database-->>Express API: Game ID
+    Express API-->>Client: { gameId, initialState }
+    
+    Client->>Express API: POST /api/game/:id/start
+    Express API->>GameState: Start Game Loop
+    GameState->>GameState: Begin Fixed Timestep Updates
+    Express API-->>Client: { status: "started" }
+    
+    loop Game Loop
+        Client->>Express API: GET /api/game/:id/state
+        Express API->>GameState: Get Current State
+        GameState-->>Express API: State Snapshot
+        Express API-->>Client: Game State JSON
+    end
+```
+
+#### Player Action Processing Flow
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Express API
+    participant GameState
+    participant UnitManager
+    participant ResourceManager
+    participant AIController
+    participant WebSocket
+    
+    Client->>Express API: POST /api/game/:id/move
+    Note over Client,Express API: { unitId, targetX, targetY }
+    Express API->>GameState: Validate Action
+    GameState->>UnitManager: Check Unit Availability
+    UnitManager->>ResourceManager: Check Energy Cost
+    ResourceManager-->>UnitManager: Energy Available
+    UnitManager->>UnitManager: Execute Move
+    UnitManager-->>GameState: Action Result
+    GameState->>AIController: Notify State Change
+    AIController->>AIController: Evaluate Response
+    GameState->>WebSocket: Broadcast Update
+    WebSocket-->>Client: Real-time State Update
+    Express API-->>Client: { success: true, newState }
+    
+    Client->>Express API: POST /api/game/:id/attack
+    Express API->>GameState: Process Attack
+    GameState->>UnitManager: Execute Combat
+    UnitManager-->>GameState: Combat Result
+    GameState->>WebSocket: Broadcast Combat Event
+    Express API-->>Client: Combat Result
+```
+
+#### AI Decision Making Flow
+
+```mermaid
+sequenceDiagram
+    participant GameLoop
+    participant GameState
+    participant AIController
+    participant BehaviorTree
+    participant EconomicAgent
+    participant MilitaryAgent
+    participant ResourceManager
+    
+    GameLoop->>GameState: Fixed Update Tick
+    GameState->>AIController: Request AI Decision
+    AIController->>GameState: Read Current State
+    GameState-->>AIController: State Snapshot
+    
+    AIController->>ResourceManager: Get Resource Status
+    ResourceManager-->>AIController: Resource Levels
+    
+    AIController->>BehaviorTree: Evaluate Decision Tree
+    BehaviorTree->>BehaviorTree: Check Conditions
+    
+    alt Economic Priority
+        BehaviorTree->>EconomicAgent: Evaluate Economy
+        EconomicAgent->>EconomicAgent: Analyze Resource Balance
+        EconomicAgent-->>AIController: Build/Gather Decision
+    else Military Priority
+        BehaviorTree->>MilitaryAgent: Evaluate Threats
+        MilitaryAgent->>MilitaryAgent: Assess Enemy Positions
+        MilitaryAgent-->>AIController: Attack/Defend Decision
+    end
+    
+    AIController->>AIController: Select Best Action
+    AIController-->>GameState: Execute Command
+    GameState->>GameState: Apply Action
+    GameState-->>GameLoop: State Updated
+```
+
+### Data Model & Entity Relationships
+
+```mermaid
+erDiagram
+    GAME ||--o{ PLAYER : has
+    GAME ||--|| MAP : uses
+    GAME ||--o{ UNIT : contains
+    GAME ||--o{ BUILDING : contains
+    GAME ||--o{ RESOURCE_NODE : contains
+    GAME ||--|| GAME_STATE : maintains
+    
+    PLAYER ||--o{ UNIT : owns
+    PLAYER ||--o{ BUILDING : owns
+    PLAYER ||--|| RESOURCES : has
+    PLAYER ||--o{ TECH_RESEARCH : conducts
+    
+    MAP ||--o{ TILE : contains
+    MAP ||--o{ RESOURCE_NODE : contains
+    
+    UNIT ||--|| UNIT_TYPE : is
+    UNIT ||--o{ ACTION : performs
+    UNIT }o--|| POSITION : has
+    
+    BUILDING ||--|| BUILDING_TYPE : is
+    BUILDING ||--o{ PRODUCTION : generates
+    BUILDING }o--|| POSITION : has
+    
+    RESOURCE_NODE ||--|| RESOURCE_TYPE : is
+    RESOURCE_NODE }o--|| POSITION : has
+    
+    TECH_RESEARCH ||--|| TECHNOLOGY : unlocks
+    
+    GAME {
+        string id PK
+        string seed
+        datetime createdAt
+        datetime updatedAt
+        string status
+        json config
+    }
+    
+    PLAYER {
+        string id PK
+        string gameId FK
+        string userId
+        string faction
+        json personality
+        int score
+    }
+    
+    MAP {
+        string id PK
+        string gameId FK
+        int width
+        int height
+        string theme
+        json terrain
+        json features
+    }
+    
+    UNIT {
+        string id PK
+        string gameId FK
+        string playerId FK
+        string type
+        int x
+        int y
+        int health
+        int energy
+        json stats
+    }
+    
+    BUILDING {
+        string id PK
+        string gameId FK
+        string playerId FK
+        string type
+        int x
+        int y
+        int health
+        json production
+    }
+    
+    RESOURCE_NODE {
+        string id PK
+        string mapId FK
+        string type
+        int x
+        int y
+        int amount
+        int remaining
+    }
+    
+    RESOURCES {
+        string playerId PK
+        int ore
+        int energy
+        int biomass
+        int data
+        int instability
+    }
+    
+    TECH_RESEARCH {
+        string id PK
+        string playerId FK
+        string technologyId FK
+        datetime startedAt
+        datetime completedAt
+        int progress
+    }
+```
+
+### AI Decision Flow Diagram
+
+```mermaid
+flowchart TD
+    Start[Game Tick] --> Observe[Observe Game State]
+    Observe --> ReadState[Read: Resources, Units, Buildings, Map]
+    ReadState --> Assess[Assess Current Situation]
+    
+    Assess --> CheckResources{Resource<br/>Status?}
+    CheckResources -->|Low| Economic[Economic Priority]
+    CheckResources -->|Balanced| Strategic[Strategic Decision]
+    
+    Assess --> CheckThreats{Enemy<br/>Threats?}
+    CheckThreats -->|High| Military[Military Priority]
+    CheckThreats -->|Low| Expansion[Expansion Priority]
+    
+    Economic --> EvalEcon[Evaluate Economy]
+    EvalEcon --> Gather[Gather Resources]
+    EvalEcon --> BuildEcon[Build Economic Structures]
+    
+    Military --> EvalMil[Evaluate Military]
+    EvalMil --> Attack[Attack Enemy]
+    EvalMil --> Defend[Defend Position]
+    EvalMil --> Scout[Scout Enemy]
+    
+    Strategic --> EvalTech[Evaluate Technology]
+    EvalTech --> Research[Research Technology]
+    EvalTech --> Upgrade[Upgrade Units/Buildings]
+    
+    Expansion --> EvalMap[Evaluate Map]
+    EvalMap --> Expand[Expand Territory]
+    EvalMap --> Capture[Capture Resource Nodes]
+    
+    Gather --> Execute[Execute Command]
+    BuildEcon --> Execute
+    Attack --> Execute
+    Defend --> Execute
+    Scout --> Execute
+    Research --> Execute
+    Upgrade --> Execute
+    Expand --> Execute
+    Capture --> Execute
+    
+    Execute --> Queue[Add to Command Queue]
+    Queue --> Apply[Apply to Game State]
+    Apply --> Update[Update AI Memory]
+    Update --> End[End Tick]
+    
+    style Economic fill:#ffcccc
+    style Military fill:#ccffcc
+    style Strategic fill:#ccccff
+    style Expansion fill:#ffffcc
+```
+
+### AI Commander Personality Decision Matrix
+
+```mermaid
+graph TB
+    subgraph "Personality Traits"
+        Aggression[Aggression: 0.0-1.0]
+        Caution[Caution: 0.0-1.0]
+        Adaptability[Adaptability: 0.0-1.0]
+        Innovation[Innovation: 0.0-1.0]
+    end
+    
+    subgraph "Commander Archetypes"
+        Innovator[The Innovator<br/>High Innovation<br/>Low Aggression]
+        Butcher[The Butcher<br/>High Aggression<br/>Low Caution]
+        Spider[The Spider<br/>High Caution<br/>Methodical]
+        Mirror[The Mirror<br/>High Adaptability<br/>Copies Player]
+        Tactician[The Tactician<br/>Balanced Traits<br/>Tactical Focus]
+        Economist[The Economist<br/>Economic Focus<br/>Resource Superiority]
+        Wildcard[The Wildcard<br/>Unpredictable<br/>Random Strategies]
+    end
+    
+    subgraph "Decision Weights"
+        TechWeight[Tech Research Weight]
+        AttackWeight[Attack Weight]
+        DefendWeight[Defend Weight]
+        ExpandWeight[Expand Weight]
+        GatherWeight[Gather Weight]
+    end
+    
+    Aggression --> AttackWeight
+    Caution --> DefendWeight
+    Innovation --> TechWeight
+    Adaptability --> ExpandWeight
+    
+    Innovator --> TechWeight
+    Butcher --> AttackWeight
+    Spider --> DefendWeight
+    Mirror --> Adaptability
+    Tactician --> AttackWeight
+    Tactician --> DefendWeight
+    Economist --> GatherWeight
+    Wildcard --> AttackWeight
+    Wildcard --> DefendWeight
+    Wildcard --> TechWeight
+    
+    TechWeight --> Decision[Final Decision]
+    AttackWeight --> Decision
+    DefendWeight --> Decision
+    ExpandWeight --> Decision
+    GatherWeight --> Decision
+```
+
+---
+
+## 📊 Technical Diagram Generation
+
+The diagrams above are rendered using **Mermaid** (natively supported by GitHub). For more detailed, professional diagrams, you can use AI-powered diagramming tools with the prompts below.
+
+### AI Diagramming Tools
+
+Generate enhanced technical diagrams using these tools:
+- **[DiagramGPT](https://diagramgpt.com)** - AI-powered diagram generation
+- **[Eraser.io DiagramGPT](https://www.eraser.io/diagramgpt)** - Code-to-diagram conversion
+- **[Lucidchart LucidGPT](https://www.lucidchart.com/pages)** - Enterprise diagramming with AI
+- **[Miro AI](https://miro.com/ai/diagram-ai/)** - Collaborative AI diagrams
+- **[EdrawMax AI](https://www.edrawmax.com/app/ai-diagram/)** - AI diagram generator
+- **[Whimsical AI](https://whimsical.com/ai)** - Flowchart and wireframe generation
+
+### System Architecture Prompt
+
+**Prompt for AI Diagramming Tools:**
+
+```
+Draw a technical architecture diagram for 'Quaternion: The Fourfold Simulation' backend system:
+
+Backend Node.js server with Express.js RESTful API
+WebSocket server for real-time game state updates
+Game Core modules: GameState Manager, Game Loop (60 FPS fixed timestep), Resource Manager (Four-Axis System), Unit Manager, Building Manager, Map Manager, Tech Tree Manager
+AI Controller System: AIController decision engine, 7 Commander Archetypes (Innovator, Butcher, Spider, Mirror, Tactician, Economist, Wildcard), Specialized Agents (Economic/Military/Research), Behavior Trees
+AI Integration Services: LLM Integration (Google AI Gemini), ElevenLabs TTS, Fuser Music API, Procedural Map Generator
+Data Layer: Supabase/PostgreSQL for game state persistence, Redis cache for sessions, File storage for maps/assets
+Client connections: Web client (React + Phaser), Mobile client
+Show data flows between components and API endpoints
+```
+
+### API Sequence Flow Prompt
+
+**Prompt for AI Diagramming Tools:**
+
+```
+Create a sequence flow diagram showing the complete game lifecycle:
+
+1. User → API POST /api/game/create → Backend initializes GameState → MapGenerator creates procedural map → AIController initializes commander → Database saves state → Returns gameId
+
+2. User → API POST /api/game/:id/start → GameState starts game loop → Fixed timestep updates begin → Returns started status
+
+3. Game Loop: User → API GET /api/game/:id/state → GameState returns current snapshot → User polls state continuously
+
+4. User Action: User → API POST /api/game/:id/move → GameState validates → UnitManager checks availability → ResourceManager checks costs → Execute action → WebSocket broadcasts update → AIController evaluates response
+
+5. AI Decision: GameLoop tick → AIController reads state → BehaviorTree evaluates → Specialized Agents analyze → Execute AI command → Update game state
+```
+
+### Data Model ER Diagram Prompt
+
+**Prompt for AI Diagramming Tools:**
+
+```
+Create an entity-relationship diagram for Quaternion game database:
+
+Core Entities:
+- GAME (id, seed, status, config, timestamps)
+- PLAYER (id, gameId FK, userId, faction, personality JSON, score)
+- MAP (id, gameId FK, width, height, theme, terrain JSON, features JSON)
+- UNIT (id, gameId FK, playerId FK, type, position x/y, health, energy, stats JSON)
+- BUILDING (id, gameId FK, playerId FK, type, position x/y, health, production JSON)
+- RESOURCE_NODE (id, mapId FK, type, position x/y, amount, remaining)
+- RESOURCES (playerId PK, ore, energy, biomass, data, instability)
+- TECH_RESEARCH (id, playerId FK, technologyId FK, timestamps, progress)
+
+Relationships:
+- GAME has many PLAYERs
+- GAME has one MAP
+- GAME contains many UNITS and BUILDINGS
+- MAP contains many RESOURCE_NODEs
+- PLAYER owns many UNITS and BUILDINGS
+- PLAYER has one RESOURCES record
+- PLAYER conducts many TECH_RESEARCH projects
+- UNITS and BUILDINGS have positions
+- RESOURCE_NODEs are positioned on MAP
+```
+
+### AI Decision Flow Prompt
+
+**Prompt for AI Diagramming Tools:**
+
+```
+Make a detailed flowchart for Quaternion AI decision-making system:
+
+Start: Game Tick (60 FPS fixed timestep)
+→ Observe Game State (read resources, units, buildings, map, enemy positions)
+→ Assess Current Situation (evaluate resource balance, threat levels, strategic opportunities)
+
+Decision Branches:
+1. Resource Status Check:
+   - Low Resources → Economic Priority → Evaluate Economy → Gather Resources OR Build Economic Structures
+   - Balanced Resources → Strategic Decision → Evaluate Technology → Research OR Upgrade
+
+2. Enemy Threat Check:
+   - High Threats → Military Priority → Evaluate Military → Attack Enemy OR Defend Position OR Scout
+   - Low Threats → Expansion Priority → Evaluate Map → Expand Territory OR Capture Resource Nodes
+
+Personality Modifiers:
+- The Innovator: High tech research weight
+- The Butcher: High attack weight, low caution
+- The Spider: High defend weight, methodical
+- The Mirror: Adapts to player strategies
+- The Tactician: Balanced attack/defend weights
+- The Economist: High gather weight
+- The Wildcard: Random weight distribution
+
+Final: Execute Command → Add to Command Queue → Apply to Game State → Update AI Memory → End Tick
+```
+
+### Network & Data Flow Prompt
+
+**Prompt for AI Diagramming Tools:**
+
+```
+Create a network diagram showing client-server data flow for Quaternion:
+
+Client Side:
+- React UI Components → Phaser Game Engine → Audio System
+- WebSocket Client (real-time updates)
+- HTTP Client (REST API calls)
+
+Network Layer:
+- HTTPS/WSS connections
+- API Gateway (Express.js)
+- WebSocket Server
+
+Server Side:
+- Express API routes: /api/game/create, /api/game/:id/start, /api/game/:id/state, /api/game/:id/move, /api/game/:id/attack, /api/game/:id/build
+- GameState Manager (central state coordination)
+- Game Loop (60 FPS fixed timestep processing)
+- AIController (decision making every tick)
+
+Data Flow:
+- Client requests → Express API → GameState → Managers → Database
+- GameState updates → WebSocket → All connected clients
+- AI decisions → GameState → Command Queue → Execution
+- Map generation → File storage → Client download
+```
+
+### Export & Integration
+
+After generating diagrams with AI tools:
+
+1. **Export Formats**: Save as SVG (for web), PNG (for documentation), or PDF (for presentations)
+2. **Update README**: Replace or supplement Mermaid diagrams with exported images
+3. **Version Control**: Commit diagram files to `/docs/diagrams/` directory
+4. **Documentation**: Reference diagrams in technical documentation
+
+**Example file structure:**
+```
+docs/
+  diagrams/
+    architecture-backend.svg
+    api-sequence-flow.png
+    data-model-er.png
+    ai-decision-flow.png
+    network-topology.svg
 ```
 
 ---

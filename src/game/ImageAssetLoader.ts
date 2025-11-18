@@ -192,6 +192,20 @@ export class ImageAssetLoader {
   static getMapAssetByPath(imagePath: string): ImageAsset | undefined {
     return this.mapAssets.find(asset => asset.path === imagePath);
   }
+
+  /**
+   * Get map asset by key
+   */
+  static getMapAssetByKey(key: string): ImageAsset | undefined {
+    return this.mapAssets.find(asset => asset.key === key);
+  }
+
+  /**
+   * Get all map assets
+   */
+  static getAllMapAssets(): ImageAsset[] {
+    return [...this.mapAssets];
+  }
 }
 
 // Initialize on module load

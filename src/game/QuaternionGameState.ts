@@ -19,6 +19,10 @@ import { MoralVerdictSystem } from './MoralVerdictSystem';
 import { KaijuEventSystem } from './KaijuEventSystem';
 import { UnitQuirkSystem } from './UnitQuirkSystem';
 import { CinematicCameraSystem } from './CinematicCameraSystem';
+import { MonsterSpawner, SpawnConfig } from '../engine/spawning/MonsterSpawner';
+import { MonsterAI, AIAction } from '../engine/ai/MonsterAI';
+import { Monster } from '../engine/entities/Monster';
+import { Vector2 } from '../engine/math/Vector2';
 
 export interface Resources {
   ore: number;
@@ -70,6 +74,7 @@ export class QuaternionGameState {
   public units: any[] = [];
   public buildings: any[] = [];
   public resourceNodes: any[] = [];
+  public monsters: any[] = []; // Monster entities
   
   // Resource stability tracking
   public instability: number = 0;
@@ -112,6 +117,10 @@ export class QuaternionGameState {
   public puzzleConfig: any | null = null;
   public puzzleConstraints: PuzzleConstraint[] = [];
   public puzzleStartTime: number = 0;
+  
+  // Monster system
+  public monsterSpawner: MonsterSpawner | null = null;
+  private monsterAIs: Map<string, MonsterAI> = new Map();
   
   constructor(config: GameConfig) {
     this.id = this.generateId();
@@ -172,6 +181,37 @@ export class QuaternionGameState {
     
     // Set up resource change callbacks
     this.setupResourceCallbacks();
+    
+    // Initialize monster system
+    this.initializeMonsterSystem();
+  }
+  
+  /**
+   * Initialize monster spawner and system
+   */
+  private initializeMonsterSystem(): void {
+    const spawnConfig: SpawnConfig = {
+      minDistance: 100,
+      maxDistance: 800,
+      maxConcurrentMonsters: 50,
+      spawnChance: 0.3,
+      respawnDelay: 1000
+    };
+    
+    this.monsterSpawner = new MonsterSpawner(this, spawnConfig, this.seed);
+    
+    // Set spawn points at map edges
+    const mapWidth = (this.config.mapWidth || 9) * 100; // Approximate pixel width
+    const mapHeight = (this.config.mapHeight || 9) * 100; // Approximate pixel height
+    
+    const spawnPoints = [
+      new Vector2(50, 50),
+      new Vector2(mapWidth - 50, 50),
+      new Vector2(50, mapHeight - 50),
+      new Vector2(mapWidth - 50, mapHeight - 50)
+    ];
+    
+    this.monsterSpawner.setSpawnPoints(spawnPoints);
   }
   
   /**
@@ -316,11 +356,81 @@ export class QuaternionGameState {
     // Update fun experience systems
     this.updateFunSystems(deltaTime);
     
+    // Update monster system
+    this.updateMonsterSystem(deltaTime);
+    
     // Update win conditions
     this.checkWinConditions();
     
     // Check lose conditions
     this.checkLoseConditions();
+  }
+  
+  /**
+   * Update monster system (spawning, AI, cleanup)
+   */
+  private updateMonsterSystem(deltaTime: number): void {
+    if (!this.monsterSpawner) return;
+    
+    const currentTime = Date.now();
+    
+    // Update spawner
+    this.monsterSpawner.update(deltaTime, currentTime);
+    
+    // Get all active monsters
+    const activeMonsters = this.monsters.filter(m => m instanceof Monster && m.isAlive());
+    
+    // Collect all entities for AI to consider
+    const allEntities = [
+      ...activeMonsters,
+      ...this.units,
+      ...this.buildings
+    ];
+    
+    // Update AI for each monster
+    activeMonsters.forEach((monster: Monster) => {
+      // Get or create AI
+      let ai = this.monsterAIs.get(monster.id);
+      if (!ai) {
+        ai = new MonsterAI(monster, (action: AIAction) => {
+          this.logMonsterAction(monster, action);
+        });
+        this.monsterAIs.set(monster.id, ai);
+      }
+      
+      // Update AI
+      ai.update(deltaTime, allEntities);
+    });
+    
+    // Remove dead monsters and their AI
+    const deadMonsterIds: string[] = [];
+    this.monsters = this.monsters.filter((m: any) => {
+      if (m instanceof Monster && !m.isAlive()) {
+        deadMonsterIds.push(m.id);
+        return false;
+      }
+      return true;
+    });
+    
+    // Clean up AI for dead monsters
+    deadMonsterIds.forEach(id => {
+      this.monsterAIs.delete(id);
+    });
+  }
+  
+  /**
+   * Log monster action for replay
+   */
+  private logMonsterAction(monster: Monster, action: AIAction): void {
+    this.logAction('monster_action', {
+      monsterId: monster.id,
+      monsterType: monster.monsterType,
+      actionType: action.type,
+      targetId: action.target?.id || null,
+      reason: action.reason,
+      healthPercent: monster.getHealthPercent(),
+      position: { x: monster.position.x, y: monster.position.y }
+    });
   }
   
   /**

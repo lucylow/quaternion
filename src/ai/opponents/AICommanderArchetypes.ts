@@ -1,6 +1,14 @@
 /**
  * AI Commander Archetypes - Unique commander types with distinct behaviors
- * Implements archetypes: The Innovator, The Butcher, The Spider, The Mirror
+ * 
+ * Each archetype represents a distinct AI personality with unique:
+ * - Personality traits that drive decision-making
+ * - Behavioral patterns and strategic preferences
+ * - Voice profiles with memorable catchphrases
+ * - Preferred strategies and exploitable weaknesses
+ * 
+ * Archetypes are designed to create diverse gameplay experiences where
+ * players must adapt their strategies to counter different AI approaches.
  */
 
 import { PersonalityTraits } from "./AIPersonalityMatrix";
@@ -27,6 +35,8 @@ export interface CommanderProfile {
   };
   preferredStrategies: string[];
   counterStrategies: string[];
+  description?: string; // Human-readable description
+  difficulty?: "easy" | "medium" | "hard" | "extreme"; // Relative difficulty
 }
 
 export class AICommanderArchetypes {
@@ -317,6 +327,9 @@ export class AICommanderArchetypes {
   public static getRandomArchetype(seed: number): CommanderArchetype {
     const rng = new SeededRandom(seed);
     const archetypes = Object.keys(this.ARCHETYPES) as CommanderArchetype[];
+    if (archetypes.length === 0) {
+      throw new Error("No archetypes available");
+    }
     return rng.choice(archetypes);
   }
 
