@@ -5,9 +5,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Suspense, Component, ReactNode, ErrorInfo } from "react";
 import Index from "./pages/Index";
+// Import QuaternionGame directly instead of lazy loading to fix Phaser initialization
+import QuaternionGame from "./pages/QuaternionGame";
 import {
   LazyGame,
-  LazyQuaternionGame,
   LazyLobby,
   LazyAbout,
   LazyCommanders,
@@ -118,10 +119,10 @@ const App = () => (
             <Suspense fallback={<RouteLoader />}>
               <Routes>
                 <Route path="/" element={<Index />} />
-                <Route path="/game" element={<LazyGame />} />
-                <Route path="/game/neural-frontier" element={<LazyGame />} />
+                <Route path="/game" element={<QuaternionGame />} />
+                <Route path="/game/neural-frontier" element={<QuaternionGame />} />
                 <Route path="/lobby" element={<LazyLobby />} />
-                <Route path="/quaternion" element={<LazyQuaternionGame />} />
+                {/* /quaternion route removed - consolidated to /game */}
                 <Route path="/about" element={<LazyAbout />} />
                 <Route path="/commanders" element={<LazyCommanders />} />
                 <Route path="/how-to-play" element={<LazyHowToPlay />} />

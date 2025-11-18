@@ -149,6 +149,42 @@ All colors MUST be HSL.
       transition-duration: 0.01ms !important;
     }
   }
+
+  /* Ensure Phaser canvas is interactive - CRITICAL FIX */
+  canvas {
+    position: relative !important;
+    z-index: 1 !important;
+    pointer-events: auto !important;
+    touch-action: none !important;
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+  }
+
+  /* Game container styles */
+  .game-container canvas,
+  [ref="gameRef"] canvas,
+  div[ref="gameRef"] canvas {
+    position: relative !important;
+    z-index: 1 !important;
+    pointer-events: auto !important;
+    touch-action: none !important;
+  }
+
+  /* Ensure UI overlays don't block canvas */
+  .game-ui-overlay {
+    position: absolute;
+    z-index: 10;
+    pointer-events: none; /* Let clicks pass through to canvas */
+  }
+
+  /* Make specific UI elements clickable */
+  .game-ui-overlay button,
+  .game-ui-overlay .interactive,
+  .pointer-events-auto {
+    pointer-events: auto !important; /* Re-enable clicks for buttons */
+  }
 }
 
 @keyframes shimmer {

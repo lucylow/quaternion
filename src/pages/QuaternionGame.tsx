@@ -176,7 +176,21 @@ const QuaternionGame = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!gameRef.current || phaserGameRef.current) return;
+    console.log('=== QuaternionGame Component Mounted ===');
+    
+    // Ensure container exists before creating game
+    if (!gameRef.current) {
+      console.error('Game container ref not found');
+      return;
+    }
+
+    if (phaserGameRef.current) {
+      console.log('Phaser game already exists, skipping initialization');
+      return;
+    }
+
+    console.log('Container found:', !!gameRef.current);
+    console.log('Creating Phaser game...');
 
     // Initialize audio system (non-blocking, will work after user interaction)
     initializeAudio().catch(err => console.warn('Audio init deferred:', err));
@@ -370,6 +384,21 @@ const QuaternionGame = () => {
         target: 60,
         forceSetTimeOut: false, // Use requestAnimationFrame for better performance
         smoothStep: true, // Smooth frame interpolation
+      },
+      // Input configuration - CRITICAL for canvas interaction
+      input: {
+        mouse: {
+          target: undefined, // Let Phaser handle mouse
+          capture: true,     // Capture mouse events
+        },
+        touch: {
+          target: undefined,
+          capture: true,     // Capture touch events
+        },
+        keyboard: true,
+      },
+      dom: {
+        createContainer: true,
       },
       // Disable unnecessary features for better performance
       disableContextMenu: true,
@@ -1080,8 +1109,14 @@ const QuaternionGame = () => {
         camera.setZoom(newZoom);
       });
 
-      // Mouse controls
+      // Enable input debugging
+      console.log('[Scene] Setting up input handlers...');
+      console.log('[Scene] Input enabled:', this.input.enabled);
+      console.log('[Scene] Input active:', this.input.isActive());
+      
+      // Mouse controls with debug logging
       this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+        console.log('[Scene] Phaser pointerdown detected:', pointer.x, pointer.y, 'button:', pointer.buttons);
         if (pointer.rightButtonDown()) {
           // Right click - move/attack command
           if (selectedUnits.length > 0) {
@@ -2061,9 +2096,30 @@ const QuaternionGame = () => {
       }
     }
 
-    phaserGameRef.current = new Phaser.Game(config);
+    // Create Phaser game
+    console.log('Initializing Phaser game with config:', config);
+    const game = new Phaser.Game(config);
+    phaserGameRef.current = game;
+
+    // Log game initialization
+    game.events.once('ready', () => {
+      console.log('✅ Phaser game ready!');
+      console.log('Phaser game instance:', game);
+      console.log('Input enabled:', game.input.enabled);
+      console.log('Input active:', game.input.isActive());
+      
+      // Log input system status
+      const scene = game.scene.getScenes(true)[0];
+      if (scene) {
+        console.log('Scene input enabled:', scene.input.enabled);
+        console.log('Scene input active:', scene.input.isActive());
+      }
+    });
+
+    console.log('Phaser game created, waiting for ready event...');
 
     return () => {
+      console.log('Destroying Phaser game...');
       // Cleanup: stop game loop first, then cleanup game state, then Phaser
       if (gameLoopRef.current) {
         gameLoopRef.current.cleanup().then(() => {
