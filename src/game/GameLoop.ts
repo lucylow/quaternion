@@ -10,6 +10,19 @@
  * - Comprehensive error handling with graceful degradation
  */
 
+// Polyfill for environments where requestAnimationFrame might be unavailable or throttled
+if (typeof window !== 'undefined' && !window.requestAnimationFrame) {
+  window.requestAnimationFrame = (callback: FrameRequestCallback): number => {
+    return window.setTimeout(() => callback(Date.now()), 1000 / 60);
+  };
+}
+
+if (typeof window !== 'undefined' && !window.cancelAnimationFrame) {
+  window.cancelAnimationFrame = (id: number): void => {
+    window.clearTimeout(id);
+  };
+}
+
 export enum GameLoopState {
   Uninitialized = 'uninitialized',
   Initializing = 'initializing',
@@ -339,13 +352,20 @@ export class GameLoop {
    * Main game loop tick (called by requestAnimationFrame)
    */
   private tick = (): void => {
+    // Add browser environment check
+    if (typeof window === 'undefined' || typeof requestAnimationFrame === 'undefined') {
+      console.error('GameLoop: Browser environment not available');
+      this.handleError(new Error('requestAnimationFrame not available'));
+      return;
+    }
+
     if (!this.isRunning) {
       return;
     }
     
     try {
       const currentTime = this.getCurrentTime();
-      const deltaTime = (currentTime - this.lastTime) / 1000; // Convert to seconds
+      const deltaTime = currentTime - this.lastTime;
       this.lastTime = currentTime;
       
       // Clamp delta time to prevent spiral of death
@@ -432,8 +452,13 @@ export class GameLoop {
         }
       }
       
-      // Schedule next frame
-      this.animationFrameId = requestAnimationFrame(this.tick);
+      // Schedule next frame with error handling
+      try {
+        this.animationFrameId = requestAnimationFrame(this.tick);
+      } catch (rafError) {
+        console.error('requestAnimationFrame failed:', rafError);
+        this.handleError(rafError as Error);
+      }
       
     } catch (error) {
       this.handleError(error as Error);
@@ -619,10 +644,17 @@ export class GameLoop {
   }
   
   /**
-   * Get current time in milliseconds
+   * Get current time in seconds
    */
   private getCurrentTime(): number {
-    return performance.now();
+    if (typeof performance !== 'undefined' && performance.now) {
+      return performance.now() / 1000;
+    } else if (typeof Date !== 'undefined') {
+      return Date.now() / 1000;
+    } else {
+      console.error('No timing API available');
+      return 0;
+    }
   }
   
   /**

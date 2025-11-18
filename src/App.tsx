@@ -53,6 +53,16 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     console.error("Route loading error:", error, errorInfo);
     // You could also send this to an error reporting service here
+    
+    // Try to recover from non-critical errors
+    if (error.message.includes('ChunkLoadError') || error.message.includes('Loading chunk')) {
+      // This is a network error loading code - try reloading
+      setTimeout(() => {
+        if (typeof window !== "undefined") {
+          window.location.reload();
+        }
+      }, 2000);
+    }
   }
 
   handleReload = (): void => {

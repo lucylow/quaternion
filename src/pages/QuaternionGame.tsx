@@ -88,6 +88,7 @@ const QuaternionGame = () => {
   const [winConditionProgress, setWinConditionProgress] = useState<Record<string, { progress: number; max: number; label: string }>>({});
   const [showTutorial, setShowTutorial] = useState(true);
   const gameLoopRef = useRef<GameLoop | null>(null);
+  const gameStartedRef = useRef(false); // Flag to prevent multiple starts
   
   // Resource Puzzle Systems
   const puzzleManagerRef = useRef<ResourcePuzzleManager | null>(null);
@@ -228,38 +229,43 @@ const QuaternionGame = () => {
           targetFPS: 60,
           enablePerformanceMonitoring: true,
           enableAdaptiveQuality: true,
-          enableFrameRateLimiting: false,
-          pauseOnFocusLoss: false,
+          enableFrameRateLimiting: true,
+          pauseOnFocusLoss: true,
           autoResume: true
         },
         {
+          initialize: async () => {
+            console.log('[GameLoop] Initializing...');
+          },
           fixedUpdate: (deltaTime: number) => {
-            // CRITICAL: Update game state every fixed timestep
-            if (gameStateRef.current && !gameStateRef.current.gameOver) {
+            if (gameStateRef.current) {
               gameStateRef.current.update(deltaTime);
             }
           },
-          variableUpdate: (deltaTime: number) => {
-            // Variable timestep for non-critical updates
-            if (gameStateRef.current && !gameStateRef.current.gameOver) {
-              gameStateRef.current.variableUpdate(deltaTime);
-            }
-          },
-          processInput: () => {
-            // Input processing (handled by Phaser scene)
-          },
           render: (interpolation: number) => {
-            // Rendering (handled by Phaser scene)
+            // Phaser handles rendering
+          },
+          cleanup: async () => {
+            console.log('[GameLoop] Cleaning up...');
+          },
+          onError: (error: Error) => {
+            console.error('[GameLoop] Error:', error);
+            toast.error(`Game loop error: ${error.message}`);
           }
         }
       );
       
-      // Initialize and start the game loop
+      // Initialize and start the game loop ONLY ONCE
       gameLoopRef.current.initialize().then(() => {
-        gameStateRef.current?.start();
-        gameLoopRef.current?.start();
+        if (!gameStartedRef.current) {
+          gameStartedRef.current = true;
+          gameStateRef.current?.start();
+          gameLoopRef.current?.start();
+          console.log('[GameLoop] Started successfully');
+        }
       }).catch((error) => {
         console.error('Failed to initialize game loop:', error);
+        toast.error('Failed to start game loop');
       });
     }
 
