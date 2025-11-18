@@ -46,7 +46,7 @@ export const ResourceAdvisorPanel = ({
 
   return (
     <Card
-      className={`p-3 bg-gray-800/95 border-2 ${getUrgencyColor(advice.urgency)} absolute bottom-24 left-4 z-30 max-w-sm`}
+      className={`p-3 bg-gray-800/95 border-2 ${getUrgencyColor(advice.urgency)} absolute bottom-24 left-4 z-20 max-w-sm pointer-events-auto`}
     >
       <div className="flex items-start gap-2">
         <Brain className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />

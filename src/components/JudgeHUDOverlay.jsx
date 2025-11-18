@@ -144,7 +144,7 @@ export default function JudgeHUDOverlay({ seed, mapConfig, commanderId }) {
               <strong>Recent Actions</strong>
               <ul style={{ maxHeight: 120, overflowY: 'auto', marginTop: 6 }}>
                 {meta?.actions?.slice(-8).reverse().map((a, i) => (
-                  <li key={i} style={{ fontSize: 12 }}>
+                  <li key={`action-${a.type}-${a.timestamp || Date.now()}-${i}`} style={{ fontSize: 12 }}>
                     <span style={{ color:'#9bd' }}>{a.t}s</span> — {a.actor} — {a.type} — <span title={a.reason}>{short(a.reason, 80)}</span>
                   </li>
                 )) || <li style={{ opacity: 0.6 }}>No actions</li>}

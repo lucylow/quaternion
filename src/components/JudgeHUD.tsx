@@ -74,7 +74,7 @@ export function JudgeHUD({ metadata, loading = false }: JudgeHUDProps) {
             <p className="text-sm text-muted-foreground mb-2">AI Highlights</p>
             <div className="space-y-2">
               {metadata.aiHighlights.map((highlight, idx) => (
-                <div key={idx} className="text-sm p-3 bg-muted/50 rounded-md">
+                <div key={`highlight-${highlight.action || highlight.actor || ''}-${idx}`} className="text-sm p-3 bg-muted/50 rounded-md">
                   <p className="font-medium text-foreground">
                     t={highlight.t} - {highlight.actor}: {highlight.action}
                   </p>

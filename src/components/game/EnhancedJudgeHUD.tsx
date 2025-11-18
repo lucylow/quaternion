@@ -104,7 +104,7 @@ export const EnhancedJudgeHUD = ({
   };
 
   return (
-    <div className="fixed top-20 left-4 z-30">
+    <div className="fixed top-20 left-4 z-20 pointer-events-auto">
       <Card className="bg-gray-900/95 border-cyan-400/50 backdrop-blur-sm w-80">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">

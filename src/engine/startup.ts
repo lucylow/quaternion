@@ -10,10 +10,41 @@ import Phaser from 'phaser';
 import { lovablySignedAsset, lovablyHealth } from '../utils/lovableClient';
 
 export async function initEngine(canvasEl: HTMLCanvasElement | HTMLElement | null): Promise<void> {
-  console.log('[QUAT DEBUG] initEngine called', { canvasEl, hasCanvas: !!canvasEl });
+  console.log('[QUAT DEBUG] initEngine (lovable-aware) start', { canvasEl, hasCanvas: !!canvasEl });
   
   if (!canvasEl) {
     throw new Error('initEngine: canvas element missing');
+  }
+
+  // PATCHED BY CURSOR - lovable integration: check Lovable health and prefetch assets
+  try {
+    const h = await lovablyHealth();
+    console.log('[QUAT DEBUG] lovablyHealth', h && (h.ok ?? true));
+  } catch(e) { 
+    console.warn('[QUAT DEBUG] lovablyHealth failed', e); 
+  }
+
+  // Attempt to prefetch critical assets from Lovable; if fails, fallback to local public
+  const assets = [
+    'sprites/units.png',
+    'tiles/terrain.png',
+    'fonts/ui.fnt'
+  ];
+  for (const a of assets) {
+    try {
+      const url = await lovablySignedAsset(a);
+      if (url) {
+        // let engine's loader use this url (implementation-specific)
+        console.log('[QUAT DEBUG] resolved asset via lovable', a, url);
+        // optional: populate a global map for the engine loader to use
+        (window as any).__QUAT_ASSET_OVERRIDES__ = (window as any).__QUAT_ASSET_OVERRIDES__ || {};
+        (window as any).__QUAT_ASSET_OVERRIDES__[a] = url;
+      } else {
+        console.warn('[QUAT DEBUG] no signed url for', a);
+      }
+    } catch (err) {
+      console.warn('[QUAT DEBUG] asset prefetch failed', a, err);
+    }
   }
 
   // Ensure canvas has proper attributes
@@ -68,7 +99,7 @@ export async function initEngine(canvasEl: HTMLCanvasElement | HTMLElement | nul
     // dynamic import in case module exists
     const mod = await import('../game/QuaternionGameState').catch(() => null);
     if (mod && typeof (mod as any).createEngine === 'function') {
-      const engine = (mod as any).createEngine();
+      const engine = (mod as any).createEngine({ assetOverrides: (window as any).__QUAT_ASSET_OVERRIDES__ });
       if (typeof engine.attachCanvas === 'function') {
         engine.attachCanvas(canvasEl);
         (window as any).quaternionEngine = engine;

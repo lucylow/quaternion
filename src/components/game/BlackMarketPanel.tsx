@@ -65,7 +65,7 @@ export const BlackMarketPanel = ({
   };
 
   return (
-    <div className="absolute bottom-24 right-4 z-30 space-y-2 max-w-sm">
+    <div className="absolute bottom-24 right-4 z-20 space-y-2 max-w-sm pointer-events-auto">
       <div className="text-xs text-gray-400 mb-2 flex items-center gap-2">
         <AlertTriangle className="w-4 h-4 text-yellow-400" />
         <span>Black Market Offers</span>

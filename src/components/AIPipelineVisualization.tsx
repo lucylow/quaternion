@@ -299,7 +299,7 @@ const AIPipelineVisualization = () => {
                         <div className="flex flex-wrap gap-2">
                           {node.tools.map((tool, idx) => (
                             <span
-                              key={idx}
+                              key={`${node.id}-tool-${tool}-${idx}`}
                               className="text-xs px-2 py-1 bg-primary/20 text-primary rounded border border-primary/30"
                             >
                               {tool}

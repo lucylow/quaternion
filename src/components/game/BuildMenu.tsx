@@ -33,8 +33,18 @@ export const BuildMenu = ({ resources, onBuild, onClose }: BuildMenuProps) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-gray-800 border-2 border-cyan-400 rounded-lg p-6 max-w-2xl w-full mx-4" onClick={e => e.stopPropagation()}>
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm" 
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div 
+        className="bg-gray-800 border-2 border-cyan-400 rounded-lg p-6 max-w-2xl w-full mx-4" 
+        onClick={(e) => e.stopPropagation()}
+      >
         <h2 className="text-3xl font-bold text-cyan-300 mb-4 text-readable-neon">CONSTRUCTION MENU</h2>
         
         <div className="grid grid-cols-2 gap-3 mb-4">

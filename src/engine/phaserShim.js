@@ -1,10 +1,44 @@
 // PATCHED BY CURSOR - 2024-12-19 - safe bootstrap & debug
-// src/engine/phaserShim.js
+// PATCHED BY CURSOR - lovable integration - src/engine/phaserShim.js
 //
 // Phaser compatibility shim to prevent "input.hitAreaCallback is not a function" errors.
 // This shim runs early at app bootstrap to monkey-patch Phaser's input system.
+// Enhanced with applyPhaserInputShims() export for explicit initialization.
 
 console.log('[QUAT DEBUG] phaserShim: installing Phaser input compatibility shims');
+
+// PATCHED BY CURSOR - lovable integration: export applyPhaserInputShims for explicit use
+export function applyPhaserInputShims() {
+  try {
+    if (!window.Phaser || !window.Phaser.Input) {
+      console.log('[QUAT DEBUG] Phaser not present; skipping phaserInput shims');
+      return;
+    }
+    const InputPlugin = window.Phaser.Input.InputPlugin;
+    if (!InputPlugin || InputPlugin.__QUAT_SHIM__) return;
+    InputPlugin.__QUAT_SHIM__ = true;
+    const proto = InputPlugin.prototype;
+    const origSetHitArea = proto.setHitArea;
+    proto.setHitArea = function(gameObject, hitArea, cb, dropZone) {
+      let callback = cb;
+      try {
+        if (typeof callback !== 'function') {
+          if (window.Phaser && window.Phaser.Geom && window.Phaser.Geom.Rectangle && window.Phaser.Geom.Rectangle.Contains) {
+            callback = window.Phaser.Geom.Rectangle.Contains;
+          } else {
+            callback = function() { return true; };
+          }
+        }
+      } catch (e) { callback = function(){ return true; }; }
+      if (origSetHitArea) return origSetHitArea.call(this, gameObject, hitArea, callback, dropZone);
+      try { gameObject.setInteractive(hitArea, callback); } catch(e){}
+      return gameObject;
+    };
+    console.log('[QUAT DEBUG] installed Phaser InputPlugin.setHitArea shim');
+  } catch (err) {
+    console.warn('[QUAT DEBUG] applyPhaserInputShims err', err);
+  }
+}
 
 // Wait for Phaser to be available
 function installPhaserShim() {
@@ -132,15 +166,20 @@ function installPhaserShim() {
 
 // Install immediately if Phaser is already loaded, otherwise wait
 if (typeof window !== 'undefined') {
+  // PATCHED BY CURSOR - lovable integration: also call exported function
   if (typeof window.Phaser !== 'undefined') {
     installPhaserShim();
+    applyPhaserInputShims();
   } else {
     // Try to install when Phaser loads
     const originalAddEventListener = window.addEventListener;
-    window.addEventListener('load', installPhaserShim, { once: true });
+    window.addEventListener('load', () => {
+      installPhaserShim();
+      applyPhaserInputShims();
+    }, { once: true });
     // Also try periodically (in case Phaser loads after 'load' event)
-    setTimeout(installPhaserShim, 500);
-    setTimeout(installPhaserShim, 1000);
-    setTimeout(installPhaserShim, 2000);
+    setTimeout(() => { installPhaserShim(); applyPhaserInputShims(); }, 500);
+    setTimeout(() => { installPhaserShim(); applyPhaserInputShims(); }, 1000);
+    setTimeout(() => { installPhaserShim(); applyPhaserInputShims(); }, 2000);
   }
 }

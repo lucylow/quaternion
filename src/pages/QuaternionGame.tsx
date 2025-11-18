@@ -480,7 +480,7 @@ const QuaternionGame = () => {
         update: update
       },
       scale: {
-        mode: Phaser.Scale.FIT,
+        mode: Phaser.Scale.RESIZE,
         autoCenter: Phaser.Scale.CENTER_BOTH,
         // Optimize for desktop rendering
         autoRound: true,
@@ -510,11 +510,11 @@ const QuaternionGame = () => {
       // Input configuration - CRITICAL for canvas interaction
       input: {
         mouse: {
-          target: undefined, // Let Phaser handle mouse
+          target: containerElement, // Explicitly target container
           capture: true,     // Capture mouse events
         },
         touch: {
-          target: undefined,
+          target: containerElement, // Explicitly target container
           capture: true,     // Capture touch events
         },
         keyboard: true,
@@ -3299,7 +3299,7 @@ const QuaternionGame = () => {
           <div 
             ref={gameRef} 
             id="phaser-game-container"
-            className="absolute inset-0 w-full h-full z-[1] pointer-events-auto"
+            className="absolute inset-0 w-full h-full z-0 pointer-events-auto"
             style={{ 
               position: 'absolute',
               top: 0,
@@ -3310,7 +3310,7 @@ const QuaternionGame = () => {
               height: '100%',
               pointerEvents: 'auto',
               touchAction: 'none',
-              zIndex: 1,
+              zIndex: 0,
               backgroundColor: '#000011', // Dark blue background to show canvas area
               minHeight: '100vh',
               minWidth: '100vw'

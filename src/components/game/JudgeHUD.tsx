@@ -39,7 +39,7 @@ export function JudgeHUD({ seed, commanderId, mapConfig, outcome }: JudgeHUDProp
   return (
     <TooltipProvider>
       <aside 
-        className="fixed top-20 right-4 z-40 w-96 bg-game-panel/95 backdrop-blur-md border border-game-panel-border/50 rounded-lg shadow-game-panel"
+        className="fixed top-20 right-4 z-25 w-96 bg-game-panel/95 backdrop-blur-md border border-game-panel-border/50 rounded-lg shadow-game-panel pointer-events-auto"
         role="complementary"
         aria-label="Judge replay controls"
       >
@@ -120,7 +120,7 @@ export function JudgeHUD({ seed, commanderId, mapConfig, outcome }: JudgeHUDProp
                 <ScrollArea className="h-32">
                   <div className="space-y-2">
                     {metadata.aiHighlights.slice(0, 3).map((highlight, idx) => (
-                      <Tooltip key={idx}>
+                      <Tooltip key={`highlight-${highlight.action || highlight.actor || ''}-${idx}`}>
                         <TooltipTrigger asChild>
                           <div className="p-2 bg-game-panel/50 rounded border border-game-panel-border/30 text-xs">
                             <div className="flex items-center justify-between mb-1">
@@ -148,7 +148,7 @@ export function JudgeHUD({ seed, commanderId, mapConfig, outcome }: JudgeHUDProp
                 <ScrollArea className="h-24">
                   <div className="space-y-1">
                     {metadata.actions.slice(0, 8).map((action, idx) => (
-                      <div key={idx} className="flex items-center justify-between text-xs text-muted-foreground">
+                      <div key={`action-${action.type}-${action.timestamp || idx}-${idx}`} className="flex items-center justify-between text-xs text-muted-foreground">
                         <span>{action.timestamp}s</span>
                         <span className="text-foreground">{action.type}</span>
                       </div>

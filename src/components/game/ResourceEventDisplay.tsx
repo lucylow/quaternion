@@ -41,7 +41,7 @@ export const ResourceEventDisplay = ({ events, onDismiss }: ResourceEventDisplay
   };
 
   return (
-    <div className="absolute top-24 right-4 z-30 space-y-2 max-w-sm">
+    <div className="absolute top-24 right-4 z-20 space-y-2 max-w-sm pointer-events-auto">
       {events.map(event => {
         const timeRemaining = formatTimeRemaining(event.endTime);
         const isExpiring = (event.endTime - Date.now()) < 30000; // Less than 30 seconds

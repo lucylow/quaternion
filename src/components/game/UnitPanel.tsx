@@ -211,7 +211,7 @@ export const UnitPanel = ({ selectedUnits, onCommand }: UnitPanelProps) => {
           <div className="flex flex-wrap gap-1">
             {unitAbilities.map((ability: string, idx: number) => (
               <Badge 
-                key={idx} 
+                key={`${ability}-${idx}`} 
                 variant="outline" 
                 className="text-sm font-semibold transition-all hover:scale-105"
                 style={{

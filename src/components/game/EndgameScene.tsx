@@ -198,20 +198,26 @@ export const EndgameScene = ({ endgameData, gameTime, onRestart }: EndgameSceneP
       {/* Particle Effects for Ultimate Balance */}
       {endgameData.scenario === 'ultimate_balance' && (
         <div className="absolute inset-0 pointer-events-none">
-          {[...Array(20)].map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-2 h-2 rounded-full"
-              style={{
-                backgroundColor: endgameData.visualTheme.primaryColor,
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animation: `float ${3 + Math.random() * 2}s ease-in-out infinite`,
-                animationDelay: `${Math.random() * 2}s`,
-                opacity: 0.6
-              }}
-            />
-          ))}
+          {[...Array(20)].map((_, i) => {
+            // Generate stable random positions for particles
+            const seed = i * 137.508; // Use golden angle for distribution
+            const left = (Math.sin(seed) * 0.5 + 0.5) * 100;
+            const top = (Math.cos(seed) * 0.5 + 0.5) * 100;
+            return (
+              <div
+                key={`particle-${i}-${endgameData.scenario}`}
+                className="absolute w-2 h-2 rounded-full"
+                style={{
+                  backgroundColor: endgameData.visualTheme.primaryColor,
+                  left: `${left}%`,
+                  top: `${top}%`,
+                  animation: `float ${3 + (i % 3) * 0.5}s ease-in-out infinite`,
+                  animationDelay: `${(i % 5) * 0.4}s`,
+                  opacity: 0.6
+                }}
+              />
+            );
+          })}
         </div>
       )}
 

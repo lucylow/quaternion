@@ -287,3 +287,46 @@ All colors MUST be HSL.
     text-shadow: 0 0 8px currentColor, 0 0 16px currentColor, 0 2px 4px rgba(0, 0, 0, 0.9);
   }
 }
+
+/* Game-specific pointer events and z-index hierarchy - FIX #9 & #10 */
+@layer base {
+  /* Ensure game canvas receives pointer events */
+  #phaser-game-container,
+  #phaser-game-container canvas {
+    pointer-events: auto !important;
+    position: relative;
+    z-index: 0;
+  }
+
+  /* UI overlays should not block canvas unless they're interactive */
+  .game-ui-overlay {
+    pointer-events: none;
+  }
+
+  .game-ui-overlay > * {
+    pointer-events: auto;
+  }
+
+  /* Interactive panels */
+  .game-panel {
+    pointer-events: auto;
+    z-index: 20;
+  }
+
+  /* Modals should capture all events when open */
+  .game-modal {
+    pointer-events: auto;
+    z-index: 50;
+  }
+
+  /* Buttons must always be clickable */
+  button {
+    pointer-events: auto !important;
+    cursor: pointer;
+  }
+
+  button:disabled {
+    pointer-events: none;
+    cursor: not-allowed;
+  }
+}
