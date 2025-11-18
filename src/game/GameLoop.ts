@@ -173,6 +173,11 @@ export class GameLoop {
    * Setup system event handlers for window focus, visibility, resize, etc.
    */
   private setupSystemEventHandlers(): void {
+    // Only setup handlers in browser environment
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return;
+    }
+    
     // Window focus events
     const handleFocus = () => {
       this.windowFocused = true;
@@ -196,31 +201,35 @@ export class GameLoop {
     
     // Page visibility API
     const handleVisibilityChange = () => {
-      this.pageVisible = !document.hidden;
-      if (!this.pageVisible && this.config.pauseOnFocusLoss && this.state === GameLoopState.Running) {
-        this.pause();
-      } else if (this.pageVisible && this.config.autoResume && this.state === GameLoopState.Paused) {
-        this.resume();
+      if (typeof document !== 'undefined') {
+        this.pageVisible = !document.hidden;
+        if (!this.pageVisible && this.config.pauseOnFocusLoss && this.state === GameLoopState.Running) {
+          this.pause();
+        } else if (this.pageVisible && this.config.autoResume && this.state === GameLoopState.Paused) {
+          this.resume();
+        }
+        this.emitSystemEvent({
+          type: SystemEventType.VisibilityChange,
+          data: { visible: this.pageVisible }
+        });
       }
-      this.emitSystemEvent({
-        type: SystemEventType.VisibilityChange,
-        data: { visible: this.pageVisible }
-      });
     };
     
     // Window resize
     const handleResize = () => {
-      this.emitSystemEvent({
-        type: SystemEventType.Resize,
-        data: {
-          width: window.innerWidth,
-          height: window.innerHeight
-        }
-      });
+      if (typeof window !== 'undefined') {
+        this.emitSystemEvent({
+          type: SystemEventType.Resize,
+          data: {
+            width: window.innerWidth,
+            height: window.innerHeight
+          }
+        });
+      }
     };
     
     // Register event listeners
-    if (typeof window !== 'undefined') {
+    try {
       window.addEventListener('focus', handleFocus);
       window.addEventListener('blur', handleBlur);
       document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -231,6 +240,9 @@ export class GameLoop {
       this.systemEventHandlers.set('blur', handleBlur);
       this.systemEventHandlers.set('visibilitychange', handleVisibilityChange);
       this.systemEventHandlers.set('resize', handleResize);
+    } catch (error) {
+      // Silently fail if event listeners can't be added (e.g., in test environment)
+      console.warn('Could not setup system event handlers:', error);
     }
   }
   
@@ -620,17 +632,21 @@ export class GameLoop {
     this.stop();
     
     // Remove system event handlers
-    if (typeof window !== 'undefined') {
-      this.systemEventHandlers.forEach((handler, event) => {
-        if (event === 'focus' || event === 'blur') {
-          window.removeEventListener(event, handler);
-        } else if (event === 'visibilitychange') {
-          document.removeEventListener(event, handler);
-        } else if (event === 'resize') {
-          window.removeEventListener(event, handler);
-        }
-      });
-      this.systemEventHandlers.clear();
+    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+      try {
+        this.systemEventHandlers.forEach((handler, event) => {
+          if (event === 'focus' || event === 'blur') {
+            window.removeEventListener(event, handler);
+          } else if (event === 'visibilitychange') {
+            document.removeEventListener(event, handler);
+          } else if (event === 'resize') {
+            window.removeEventListener(event, handler);
+          }
+        });
+        this.systemEventHandlers.clear();
+      } catch (error) {
+        console.warn('Error removing event handlers:', error);
+      }
     }
     
     if (this.callbacks.cleanup) {
