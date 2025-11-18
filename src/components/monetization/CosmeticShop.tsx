@@ -215,7 +215,7 @@ export function CosmeticShop() {
           return b.price - a.price;
         case 'name':
           return a.name.localeCompare(b.name);
-        case 'rarity':
+        case 'rarity': {
           const rarityOrder: Record<string, number> = {
             legendary: 4,
             epic: 3,
@@ -224,6 +224,7 @@ export function CosmeticShop() {
             common: 0
           };
           return (rarityOrder[b.rarity] || 0) - (rarityOrder[a.rarity] || 0);
+        }
         default:
           return 0;
       }

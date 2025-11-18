@@ -325,7 +325,7 @@ export class UnitQuirkSystem {
       return baseStats;
     }
 
-    let modifiedStats = { ...baseStats };
+    const modifiedStats = { ...baseStats };
 
     unit.quirks.forEach(quirk => {
       if (quirk.statModifier.attackSpeed) {

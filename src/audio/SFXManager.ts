@@ -199,7 +199,7 @@ export default class SFXManager {
     let processingChain: AudioNode = gain;
 
     // Apply effects based on category and options
-    let effects = options.effects || {};
+    const effects = options.effects || {};
     const nodesToCleanup: AudioNode[] = [source, gain];
 
     // Apply adaptive effects based on game state (chroma/instability)

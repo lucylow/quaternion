@@ -72,7 +72,7 @@ async function fetchProductInfo(type: string, id: string): Promise<ProductInfo |
     let endpoint = '';
     
     switch (type) {
-      case 'cosmetic':
+      case 'cosmetic': {
         endpoint = `/api/monetization/shop/cosmetics`;
         const cosmeticsResponse = await fetch(endpoint);
         const cosmeticsData = await cosmeticsResponse.json();
@@ -83,8 +83,9 @@ async function fetchProductInfo(type: string, id: string): Promise<ProductInfo |
           type: 'cosmetic',
           price: cosmetic.price
         } : null;
+      }
       
-      case 'battle_pass':
+      case 'battle_pass': {
         endpoint = `/api/monetization/battle-pass/passes`;
         const bpResponse = await fetch(endpoint);
         const bpData = await bpResponse.json();
@@ -95,6 +96,7 @@ async function fetchProductInfo(type: string, id: string): Promise<ProductInfo |
           type: 'battle_pass',
           price: pass.price
         } : null;
+      }
       
       default:
         return null;

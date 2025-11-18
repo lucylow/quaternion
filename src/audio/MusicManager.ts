@@ -130,11 +130,21 @@ export default class MusicManager {
 
   stopAll() {
     Object.values(this.stems).forEach(s => {
-      try { s.source?.stop(); } catch(e) {}
-      try { s.gain?.disconnect(); } catch(e) {}
-      try { s.compressor?.disconnect(); } catch(e) {}
-      try { s.eq?.lowShelf.disconnect(); } catch(e) {}
-      try { s.eq?.highShelf.disconnect(); } catch(e) {}
+      try { s.source?.stop(); } catch(e) {
+        // Ignore stop errors
+      }
+      try { s.gain?.disconnect(); } catch(e) {
+        // Ignore disconnect errors
+      }
+      try { s.compressor?.disconnect(); } catch(e) {
+        // Ignore disconnect errors
+      }
+      try { s.eq?.lowShelf.disconnect(); } catch(e) {
+        // Ignore disconnect errors
+      }
+      try { s.eq?.highShelf.disconnect(); } catch(e) {
+        // Ignore disconnect errors
+      }
       s.source = undefined; 
       s.gain = undefined;
       s.compressor = undefined;

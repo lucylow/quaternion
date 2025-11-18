@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { RotateCcw, ArrowLeft, Sparkles, AlertTriangle, Heart, Zap, Brain, Infinity } from 'lucide-react';
+import { RotateCcw, ArrowLeft, Sparkles, AlertTriangle, Heart, Zap, Brain, Infinity as InfinityIcon } from 'lucide-react';
 import { EndgameData, EndgameScenario } from '@/game/EndgameManager';
 import { useNavigate } from 'react-router-dom';
 
@@ -55,7 +55,7 @@ export const EndgameScene = ({ endgameData, gameTime, onRestart }: EndgameSceneP
       case 'overclock':
         return <Zap className="w-20 h-20 text-yellow-400" />;
       case 'ultimate_balance':
-        return <Infinity className="w-20 h-20 text-blue-400" />;
+        return <InfinityIcon className="w-20 h-20 text-blue-400" />;
     }
   };
 

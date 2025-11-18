@@ -141,7 +141,7 @@ export class StructuredOutputParser {
       .trim();
 
     // Remove JSON/XML artifacts
-    cleaned = cleaned.replace(/^[{\[]|[\}\]]$/g, '').trim();
+    cleaned = cleaned.replace(/^[{[\]}]|[}\]]$/g, '').trim();
 
     if (cleaned.length > 10) {
       return cleaned;
@@ -204,9 +204,9 @@ export class StructuredOutputParser {
    */
   extractChoices(text: string): string[] {
     // Try numbered list
-    const numberedMatches = text.match(/^\d+[\.\)]\s*(.+)$/gm);
+    const numberedMatches = text.match(/^\d+[.)]\s*(.+)$/gm);
     if (numberedMatches) {
-      return numberedMatches.map(m => m.replace(/^\d+[\.\)]\s*/, '').trim());
+      return numberedMatches.map(m => m.replace(/^\d+[.)]\s*/, '').trim());
     }
 
     // Try bullet points

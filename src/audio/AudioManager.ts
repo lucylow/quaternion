@@ -212,7 +212,9 @@ export default class AudioManager {
     src.start();
     const id = `buf-${this.nextId++}`;
     const stop = () => {
-      try { src.stop(); } catch(e) {}
+      try { src.stop(); } catch(e) {
+        // Ignore stop errors
+      }
       src.disconnect(); gain.disconnect();
     };
     src.onended = () => { gain.disconnect(); src.disconnect(); };
@@ -294,7 +296,9 @@ export default class AudioManager {
       setTimeout(() => {
         if (this.playingMusicHandle) {
           this.playingMusicHandle.nodes.forEach(n => {
-            try { (n as any).disconnect?.(); } catch(e) {}
+            try { (n as any).disconnect?.(); } catch(e) {
+              // Ignore disconnect errors
+            }
           });
           this.playingMusicHandle = null;
         }

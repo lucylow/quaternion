@@ -399,32 +399,27 @@ serve(async (req) => {
  * Store replay metadata in database for querying and analytics
  */
 async function storeReplayMetadata(supabase: any, replay: any): Promise<void> {
-  try {
-    const { error } = await executeQuery(() =>
-      supabase.from('replay_metadata').insert({
-        replay_id: replay.replayId,
-        seed: replay.seed,
-        commander_id: replay.commanderId,
-        map_config: replay.mapConfig,
-        start_time: replay.startTime,
-        end_time: replay.endTime,
-        duration_sec: replay.durationSec,
-        final_outcome: replay.finalOutcome,
-        summary: replay.summary,
-        ai_highlights: replay.aiHighlights,
-        partial: replay.partial,
-        created_at: new Date().toISOString(),
-      })
-    );
+  const { error } = await executeQuery(() =>
+    supabase.from('replay_metadata').insert({
+      replay_id: replay.replayId,
+      seed: replay.seed,
+      commander_id: replay.commanderId,
+      map_config: replay.mapConfig,
+      start_time: replay.startTime,
+      end_time: replay.endTime,
+      duration_sec: replay.durationSec,
+      final_outcome: replay.finalOutcome,
+      summary: replay.summary,
+      ai_highlights: replay.aiHighlights,
+      partial: replay.partial,
+      created_at: new Date().toISOString(),
+    })
+  );
 
-    if (error) {
-      // Table might not exist, that's okay
-      if (error.code !== 'PGRST116' && error.code !== '42P01') {
-        throw error;
-      }
+  if (error) {
+    // Table might not exist, that's okay - metadata storage is optional
+    if (error.code !== 'PGRST116' && error.code !== '42P01') {
+      throw error;
     }
-  } catch (error) {
-    // Silently fail - metadata storage is optional
-    throw error;
   }
 }

@@ -30,6 +30,22 @@ const RouteLoader = () => (
   </div>
 );
 
+// Helper function to safely serialize error objects (avoids circular reference issues)
+function safeSerializeError(error: Error): Record<string, unknown> {
+  return {
+    name: error.name,
+    message: error.message,
+    stack: error.stack,
+  };
+}
+
+// Helper function to safely serialize ErrorInfo (avoids circular reference issues)
+function safeSerializeErrorInfo(errorInfo: ErrorInfo): Record<string, unknown> {
+  return {
+    componentStack: errorInfo.componentStack,
+  };
+}
+
 // Error boundary to catch lazy loading errors
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -52,7 +68,10 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    console.error("Route loading error:", error, errorInfo);
+    // Safely serialize error objects to avoid circular reference issues
+    const safeError = safeSerializeError(error);
+    const safeErrorInfo = safeSerializeErrorInfo(errorInfo);
+    console.error("Route loading error:", safeError, safeErrorInfo);
     // You could also send this to an error reporting service here
   }
 

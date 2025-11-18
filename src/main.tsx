@@ -16,7 +16,9 @@ window.__QUAT_DEBUG__ = true;
     try { 
       window.__QUAT_LOGS__.push({level:'error', args: args.map(a => String(a)), ts:Date.now()}); 
       if (window.__QUAT_LOGS__.length > 100) window.__QUAT_LOGS__.shift();
-    } catch(e){}
+    } catch(e){
+      // Ignore logging errors
+    }
     oldErr.apply(console, args);
   };
   const oldWarn = console.warn;
@@ -24,7 +26,9 @@ window.__QUAT_DEBUG__ = true;
     try { 
       window.__QUAT_LOGS__.push({level:'warn', args: args.map(a => String(a)), ts:Date.now()}); 
       if (window.__QUAT_LOGS__.length > 100) window.__QUAT_LOGS__.shift();
-    } catch(e){}
+    } catch(e){
+      // Ignore logging errors
+    }
     oldWarn.apply(console, args);
   };
 })();

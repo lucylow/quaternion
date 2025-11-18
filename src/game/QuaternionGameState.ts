@@ -88,6 +88,23 @@ export class QuaternionGameState {
   // Events and actions log
   public actionLog: any[] = [];
   public events: any[] = [];
+
+  /**
+   * Ensure events array is initialized (defensive check)
+   */
+  private ensureEventsInitialized(): void {
+    if (!this.events || !Array.isArray(this.events)) {
+      this.events = [];
+    }
+  }
+
+  /**
+   * Get events array (ensures it's always initialized)
+   */
+  public getEvents(): any[] {
+    this.ensureEventsInitialized();
+    return this.events;
+  }
   
   // AI state
   public aiState: any = null;
@@ -169,6 +186,9 @@ export class QuaternionGameState {
       ['territorial', { type: 'territorial', achieved: false, progress: 0 }],
       ['moral', { type: 'moral', achieved: false, progress: 0 }]
     ]);
+    
+    // Ensure events array is initialized
+    this.ensureEventsInitialized();
     
     // Set up resource change callbacks
     this.setupResourceCallbacks();
@@ -450,24 +470,22 @@ export class QuaternionGameState {
             kaiju: kaijuUpdate.kaiju?.name,
             position: kaijuUpdate.position 
           });
-          if (this.events && Array.isArray(this.events)) {
-            this.events.push({
-              type: 'kaiju_spawn',
-              kaiju: kaijuUpdate.kaiju,
-              position: kaijuUpdate.position,
-              time: this.gameTime
-            });
-          }
+          this.ensureEventsInitialized();
+          this.events.push({
+            type: 'kaiju_spawn',
+            kaiju: kaijuUpdate.kaiju,
+            position: kaijuUpdate.position,
+            time: this.gameTime
+          });
         }
         if (kaijuUpdate?.defeated) {
           this.logAction('kaiju_defeated', { kaiju: kaijuUpdate.kaiju?.name });
-          if (this.events && Array.isArray(this.events)) {
-            this.events.push({
-              type: 'kaiju_defeated',
-              kaiju: kaijuUpdate.kaiju,
-              time: this.gameTime
-            });
-          }
+          this.ensureEventsInitialized();
+          this.events.push({
+            type: 'kaiju_defeated',
+            kaiju: kaijuUpdate.kaiju,
+            time: this.gameTime
+          });
         }
       }
 
@@ -700,7 +718,7 @@ export class QuaternionGameState {
     const winCond = this.puzzleConfig.winCondition;
     
     switch (winCond.type) {
-      case 'equilibrium':
+      case 'equilibrium': {
         // Check if resources are balanced
         const { ore, energy, biomass, data } = player.resources;
         const avg = (ore + energy + biomass + data) / 4;
@@ -736,6 +754,7 @@ export class QuaternionGameState {
           this.winConditions.set(winCondKey, { type: 'equilibrium', achieved: false, progress: 0 });
           return { won: false, progress: 0, max: (winCond.duration || 15) * 60 };
         }
+      }
         
       case 'technological':
         if (player.researchedTechs.has(winCond.techId || 'quantum_ascendancy')) {
@@ -743,22 +762,24 @@ export class QuaternionGameState {
         }
         return { won: false, progress: 0, max: 1 };
         
-      case 'resource_target':
+      case 'resource_target': {
         const targetResource = player.resources[(winCond.target as any) || 'ore'] || 0;
         const targetValue = winCond.target || 0;
         if (targetResource >= targetValue) {
           return { won: true, progress: targetValue, max: targetValue };
         }
         return { won: false, progress: targetResource, max: targetValue };
+      }
         
-      case 'survival':
+      case 'survival': {
         const survivalTime = (winCond.duration || 420) * 60; // Convert to ticks
         if (this.gameTime >= survivalTime) {
           return { won: true, progress: survivalTime, max: survivalTime };
         }
         return { won: false, progress: this.gameTime * 60, max: survivalTime };
+      }
         
-      case 'territorial':
+      case 'territorial': {
         const centralNodeControlled = this.mapManager.isCentralNodeControlledByPlayer();
         if (centralNodeControlled) {
           const durationRequired = (winCond.duration || 30) * 60;
@@ -776,6 +797,7 @@ export class QuaternionGameState {
           this.winConditions.set(winCondKey, { type: 'territorial', achieved: false, progress: 0 });
           return { won: false, progress: 0, max: (winCond.duration || 30) * 60 };
         }
+      }
         
       default:
         return { won: false, progress: 0, max: 0 };
@@ -1258,6 +1280,7 @@ export class QuaternionGameState {
    * Serialize for replay
    */
   public serialize() {
+    this.ensureEventsInitialized();
     return {
       id: this.id,
       config: this.config,
