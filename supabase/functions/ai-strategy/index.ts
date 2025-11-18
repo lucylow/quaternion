@@ -1,4 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { getConfig, getSecrets } from '../_shared/config.ts';
+import { getSupabaseClient, executeQuery } from '../_shared/database.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -77,23 +79,25 @@ serve(async (req) => {
       );
     }
 
+    const config = getConfig();
     console.log(`AI Strategy request for ${agentType} at tick ${gameState.tick}`);
 
     // Deterministic fallback decision
     const fallbackDecision = generateFallbackDecision(gameState);
 
     // Only use LLM for commander-level decisions to save resources
-    if (agentType === 'commander' && shouldUseLLM(gameState)) {
+    let decision = fallbackDecision;
+    let usedLLM = false;
+
+    if (agentType === 'commander' && shouldUseLLM(gameState) && config.features.enableLLM) {
       try {
         const llmDecision = await getLLMDecision(gameState);
         
         // Validate LLM decision
         if (validateDecision(llmDecision, gameState)) {
           console.log('LLM decision validated:', llmDecision);
-          return new Response(
-            JSON.stringify(llmDecision),
-            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
+          decision = llmDecision;
+          usedLLM = true;
         } else {
           console.warn('LLM decision failed validation, using fallback');
         }
@@ -102,9 +106,18 @@ serve(async (req) => {
       }
     }
 
-    // Return deterministic fallback
+    // Log decision to database if available
+    if (config.features.enableDatabase) {
+      try {
+        await logDecisionToDatabase(gameState, decision, usedLLM, agentType);
+      } catch (dbError) {
+        console.warn('Failed to log decision to database:', dbError);
+        // Don't fail the request if logging fails
+      }
+    }
+
     return new Response(
-      JSON.stringify(fallbackDecision),
+      JSON.stringify(decision),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
@@ -129,10 +142,10 @@ function shouldUseLLM(gameState: GameState): boolean {
 }
 
 async function getLLMDecision(gameState: GameState): Promise<StrategyDecision> {
-  const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+  const secrets = getSecrets();
   
-  if (!LOVABLE_API_KEY) {
-    throw new Error('LOVABLE_API_KEY not configured');
+  if (!secrets.lovableApiKey) {
+    throw new Error('LOVABLE_API_KEY not configured. Please set it in Lovable Cloud secrets or Supabase Edge Function environment variables.');
   }
 
   const systemPrompt = `You are a tactical RTS AI commander in Quaternion. Analyze the game state and provide ONE strategic order.
@@ -169,10 +182,12 @@ Commander: ${gameState.commanderId}
 
 Provide strategic decision:`;
 
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+  const apiUrl = secrets.lovableApiUrl || 'https://ai.gateway.lovable.dev/v1/chat/completions';
+  
+  const response = await fetch(apiUrl, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+      'Authorization': `Bearer ${secrets.lovableApiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -354,4 +369,59 @@ function generateFallbackDecision(gameState: GameState): StrategyDecision {
     unitQty,
     fallback: true,
   };
+}
+
+/**
+ * Log AI decision to database for analytics and learning
+ */
+async function logDecisionToDatabase(
+  gameState: GameState,
+  decision: StrategyDecision,
+  usedLLM: boolean,
+  agentType: string
+): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return;
+  }
+
+  try {
+    // Try to insert into ai_decisions table if it exists
+    const { error } = await executeQuery(() =>
+      supabase.from('ai_decisions').insert({
+        commander_id: gameState.commanderId,
+        agent_type: agentType,
+        tick: gameState.tick,
+        order: decision.order,
+        target: decision.target || null,
+        unit_qty: decision.unitQty || null,
+        reason: decision.reason,
+        confidence: decision.confidence,
+        used_llm: usedLLM,
+        fallback: decision.fallback || false,
+        game_state: {
+          ore: gameState.ore,
+          energy: gameState.energy,
+          biomass: gameState.biomass,
+          data: gameState.data,
+          units: gameState.units,
+          buildings: gameState.buildings,
+          enemy_visible: gameState.enemyVisible,
+          enemy_buildings: gameState.enemyBuildings,
+          researched_tech: gameState.researchedTech,
+        },
+        created_at: new Date().toISOString(),
+      })
+    );
+
+    if (error) {
+      // Table might not exist, that's okay
+      if (error.code !== 'PGRST116' && error.code !== '42P01') {
+        console.warn('Failed to log decision:', error);
+      }
+    }
+  } catch (error) {
+    // Silently fail - logging is optional
+    console.warn('Decision logging error:', error);
+  }
 }

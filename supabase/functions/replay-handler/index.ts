@@ -1,23 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.80.0';
+import { getConfig } from '../_shared/config.ts';
+import { getSupabaseClient, executeQuery } from '../_shared/database.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-// Initialize Supabase client
-function getSupabaseClient() {
-  const supabaseUrl = Deno.env.get('SUPABASE_URL');
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  
-  if (!supabaseUrl || !supabaseServiceKey) {
-    console.warn('Supabase credentials not configured, using in-memory storage');
-    return null;
-  }
-  
-  return createClient(supabaseUrl, supabaseServiceKey);
-}
 
 interface ReplayRequest {
   seed: number;
@@ -223,6 +211,7 @@ serve(async (req) => {
         }
       }
 
+      const config = getConfig();
       console.log(`Generating replay for seed=${seed}, commander=${commanderId}`);
 
       // Generate deterministic replay
@@ -232,7 +221,7 @@ serve(async (req) => {
 
       // Store replay
       const supabase = getSupabaseClient();
-      if (supabase) {
+      if (supabase && config.features.enableDatabase) {
         try {
           // Store in Supabase Storage
           const replayJson = JSON.stringify(replay, null, 2);
@@ -251,6 +240,14 @@ serve(async (req) => {
             replayStore.set(replay.replayId, replay);
           } else {
             console.log(`Replay stored in Supabase Storage: ${filename}`);
+            
+            // Also store metadata in database if table exists
+            try {
+              await storeReplayMetadata(supabase, replay);
+            } catch (metadataError) {
+              // Metadata storage is optional
+              console.warn('Failed to store replay metadata:', metadataError);
+            }
           }
         } catch (storageError) {
           console.error('Storage error:', storageError);
@@ -260,6 +257,9 @@ serve(async (req) => {
       } else {
         // Fallback to in-memory storage
         replayStore.set(replay.replayId, replay);
+        if (!config.features.enableDatabase) {
+          console.warn('Database not configured, using in-memory storage only');
+        }
       }
 
       console.log(`Replay generated in ${duration}ms, size=${JSON.stringify(replay).length} bytes`);
@@ -394,3 +394,37 @@ serve(async (req) => {
     );
   }
 });
+
+/**
+ * Store replay metadata in database for querying and analytics
+ */
+async function storeReplayMetadata(supabase: any, replay: any): Promise<void> {
+  try {
+    const { error } = await executeQuery(() =>
+      supabase.from('replay_metadata').insert({
+        replay_id: replay.replayId,
+        seed: replay.seed,
+        commander_id: replay.commanderId,
+        map_config: replay.mapConfig,
+        start_time: replay.startTime,
+        end_time: replay.endTime,
+        duration_sec: replay.durationSec,
+        final_outcome: replay.finalOutcome,
+        summary: replay.summary,
+        ai_highlights: replay.aiHighlights,
+        partial: replay.partial,
+        created_at: new Date().toISOString(),
+      })
+    );
+
+    if (error) {
+      // Table might not exist, that's okay
+      if (error.code !== 'PGRST116' && error.code !== '42P01') {
+        throw error;
+      }
+    }
+  } catch (error) {
+    // Silently fail - metadata storage is optional
+    throw error;
+  }
+}
