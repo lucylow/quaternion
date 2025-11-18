@@ -172,7 +172,8 @@ export function CosmeticShop() {
       profile_cosmetic: <Star className="w-4 h-4" />,
       ui_cosmetic: <Sparkles className="w-4 h-4" />,
       victory_effect: <Crown className="w-4 h-4" />,
-      voice_pack: <Gem className="w-4 h-4" />
+      voice_pack: <Gem className="w-4 h-4" />,
+      map_theme: <Grid3x3 className="w-4 h-4" />
     };
     return icons[category] || <Sparkles className="w-4 h-4" />;
   };
@@ -613,6 +614,212 @@ export function CosmeticShop() {
           Showing {filteredAndSortedCosmetics.length} of {cosmetics.length} cosmetics
         </div>
       )}
+
+      {/* Cart Dialog */}
+      <Dialog open={showCart} onOpenChange={setShowCart}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShoppingCart className="w-5 h-5" />
+              Shopping Cart ({cart.length})
+            </DialogTitle>
+            <DialogDescription>
+              Review your items before checkout
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            {cart.length === 0 ? (
+              <div className="text-center py-8">
+                <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">Your cart is empty</p>
+              </div>
+            ) : (
+              <>
+                {cart.map((item) => {
+                  const rarityConfig = getRarityConfig(item.rarity);
+                  return (
+                    <Card key={item.id} className="overflow-hidden">
+                      <div className="flex gap-4 p-4">
+                        <div className={cn("w-24 h-24 rounded-lg flex items-center justify-center relative flex-shrink-0", rarityConfig.color)}>
+                          {item.image ? (
+                            <img 
+                              src={item.image} 
+                              alt={item.name}
+                              className="w-full h-full object-cover rounded-lg"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div className="text-white text-2xl font-bold">
+                              {item.name[0]}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-lg truncate">{item.name}</h3>
+                              <p className="text-sm text-muted-foreground line-clamp-2">{item.description}</p>
+                              <Badge className={cn("mt-2", rarityConfig.color, "text-white border-0")}>
+                                {rarityConfig.icon}
+                                <span className="ml-1 capitalize">{item.rarity}</span>
+                              </Badge>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeFromCart(item.id)}
+                              className="flex-shrink-0"
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                          <div className="mt-2 flex items-center justify-between">
+                            <span className="text-xl font-bold">${item.price.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  );
+                })}
+                <div className="border-t pt-4 space-y-2">
+                  <div className="flex justify-between text-lg">
+                    <span className="font-semibold">Total</span>
+                    <span className="font-bold text-primary text-xl">${getCartTotal().toFixed(2)}</span>
+                  </div>
+                  <Button
+                    onClick={handleCheckout}
+                    className="w-full"
+                    size="lg"
+                    disabled={cart.length === 0}
+                  >
+                    <ShoppingCart className="mr-2 h-4 w-4" />
+                    Proceed to Checkout
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Product Detail Dialog */}
+      <Dialog open={!!selectedCosmetic} onOpenChange={(open) => !open && setSelectedCosmetic(null)}>
+        {selectedCosmetic && (
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {getCategoryIcon(selectedCosmetic.category)}
+                {selectedCosmetic.name}
+              </DialogTitle>
+              <DialogDescription>{selectedCosmetic.description}</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6">
+              <div className={cn("aspect-video rounded-lg flex items-center justify-center relative overflow-hidden", getRarityConfig(selectedCosmetic.rarity).color)}>
+                {selectedCosmetic.image ? (
+                  <img 
+                    src={selectedCosmetic.image} 
+                    alt={selectedCosmetic.name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <>
+                    <div className="absolute inset-0 bg-black/20" />
+                    <div className="relative z-10 text-white text-6xl font-bold">
+                      {selectedCosmetic.name[0]}
+                    </div>
+                  </>
+                )}
+                <Badge className={cn("absolute top-4 right-4", getRarityConfig(selectedCosmetic.rarity).color, "text-white border-0 text-base px-3 py-1")}>
+                  {getRarityConfig(selectedCosmetic.rarity).icon}
+                  <span className="ml-2 capitalize">{selectedCosmetic.rarity}</span>
+                </Badge>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Category</p>
+                  <p className="font-semibold">{selectedCosmetic.category.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Rarity</p>
+                  <Badge className={cn(getRarityConfig(selectedCosmetic.rarity).color, "text-white border-0")}>
+                    {getRarityConfig(selectedCosmetic.rarity).icon}
+                    <span className="ml-1 capitalize">{selectedCosmetic.rarity}</span>
+                  </Badge>
+                </div>
+              </div>
+
+              {selectedCosmetic.tags && selectedCosmetic.tags.length > 0 && (
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">Tags</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedCosmetic.tags.map((tag, idx) => (
+                      <Badge key={idx} variant="outline">{tag}</Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between pt-4 border-t">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-1">Price</p>
+                  <p className="text-3xl font-bold">${selectedCosmetic.price.toFixed(2)}</p>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      addToCart(selectedCosmetic);
+                      setSelectedCosmetic(null);
+                    }}
+                    disabled={cart.some(item => item.id === selectedCosmetic.id)}
+                    size="lg"
+                    className="gap-2"
+                  >
+                    {cart.some(item => item.id === selectedCosmetic.id) ? (
+                      <>
+                        <CheckCircle2 className="h-4 w-4" />
+                        In Cart
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-4 w-4" />
+                        Add to Cart
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      handlePurchase(selectedCosmetic);
+                      setSelectedCosmetic(null);
+                    }}
+                    disabled={loading || purchasing === selectedCosmetic.id}
+                    size="lg"
+                    className="gap-2"
+                  >
+                    {purchasing === selectedCosmetic.id ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingCart className="h-4 w-4" />
+                        Buy Now
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
     </div>
   );
 }

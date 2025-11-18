@@ -1139,7 +1139,8 @@ const QuaternionGame = () => {
           const maxY = Math.max(selectionStart.y, pointer.worldY);
 
           // Clear previous selection
-          selectedUnits.forEach(u => {
+          const currentSelected = [...selectedUnits];
+          currentSelected.forEach(u => {
             u.setData('selected', false);
             const g = u.getData('graphics') as Phaser.GameObjects.Graphics;
             if (g) {
@@ -1150,13 +1151,13 @@ const QuaternionGame = () => {
               g.strokeCircle(u.x, u.y, 20);
             }
           });
-          selectedUnits = [];
+          const newSelected: Phaser.Physics.Arcade.Sprite[] = [];
 
           // Find units in selection box
           playerUnits.forEach(unit => {
             if (!unit.active) return;
             if (unit.x >= minX && unit.x <= maxX && unit.y >= minY && unit.y <= maxY) {
-              selectedUnits.push(unit);
+              newSelected.push(unit);
               unit.setData('selected', true);
               const g = unit.getData('graphics') as Phaser.GameObjects.Graphics;
               if (g) {
@@ -1170,9 +1171,9 @@ const QuaternionGame = () => {
           });
 
           // Update React state
-          setSelectedUnits([...selectedUnits]);
-          if (selectedUnits.length === 1) {
-            setSelectedUnit(selectedUnits[0].getData('type'));
+          setSelectedUnits(newSelected);
+          if (newSelected.length === 1) {
+            setSelectedUnit(newSelected[0].getData('type'));
           } else {
             setSelectedUnit(null);
           }
@@ -1201,16 +1202,17 @@ const QuaternionGame = () => {
             const group = controlGroups.get(i);
             if (group && group.length > 0) {
               // Clear current selection
-              selectedUnits.forEach(u => {
+              const currentSelected = [...selectedUnits];
+              currentSelected.forEach(u => {
                 const ring = u.getData('selectionRing') as Phaser.GameObjects.Ellipse | undefined;
                 if (ring) ring.setVisible(false);
               });
-              selectedUnits.length = 0;
+              const newSelected: Phaser.Physics.Arcade.Sprite[] = [];
 
               // Select group units (filter out inactive)
               group.forEach(unit => {
                 if (unit.active) {
-                  selectedUnits.push(unit);
+                  newSelected.push(unit);
                   let ring = unit.getData('selectionRing') as Phaser.GameObjects.Ellipse | undefined;
                   if (!ring) {
                     ring = this.add.graphics();
@@ -1224,10 +1226,10 @@ const QuaternionGame = () => {
               });
 
               // Update group with active units only
-              controlGroups.set(i, selectedUnits.filter(u => u.active));
+              controlGroups.set(i, newSelected.filter(u => u.active));
 
               // Update React state
-              setSelectedUnits([...selectedUnits]);
+              setSelectedUnits(newSelected);
               if (selectedUnits.length === 1) {
                 setSelectedUnit(selectedUnits[0].getData('type'));
               } else {

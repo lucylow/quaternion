@@ -1,7 +1,7 @@
 // src/components/monetization/CheckoutPage.tsx
 import { useState, useEffect } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
-import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -144,18 +144,21 @@ function CheckoutForm() {
     setError(null);
 
     try {
-      const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
+      // Use confirmPayment with PaymentElement (more modern approach)
+      const { error: stripeError, paymentIntent } = await stripe.confirmPayment({
+        elements,
         clientSecret,
-        {
-          payment_method: {
-            card: elements.getElement(CardElement)!,
+        confirmParams: {
+          return_url: `${window.location.origin}/checkout?success=true&payment_intent=${paymentIntent?.id || ''}`,
+          payment_method_data: {
             billing_details: {
               name: localStorage.getItem('username') || 'Player',
               email: localStorage.getItem('email') || undefined
             }
           }
-        }
-      );
+        },
+        redirect: 'if_required'
+      });
 
       if (stripeError) {
         setError(stripeError.message || 'Payment failed');
@@ -424,31 +427,56 @@ function CheckoutForm() {
                     <div className="space-y-4">
                       <div>
                         <label className="text-sm font-medium mb-2 block">
-                          Card Information
+                          Payment Information
                         </label>
                         <div className="p-4 border border-primary/20 rounded-lg bg-background/50 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                          <CardElement
+                          <PaymentElement
                             options={{
-                              style: {
-                                base: {
-                                  fontSize: '16px',
-                                  color: 'hsl(var(--foreground))',
-                                  fontFamily: 'system-ui, sans-serif',
-                                  '::placeholder': {
-                                    color: 'hsl(var(--muted-foreground))',
-                                  },
-                                },
-                                invalid: {
-                                  color: 'hsl(var(--destructive))',
-                                  iconColor: 'hsl(var(--destructive))',
-                                },
+                              layout: 'tabs',
+                              paymentMethodOrder: ['card', 'link'],
+                              fields: {
+                                billingDetails: {
+                                  name: 'auto',
+                                  email: 'auto',
+                                  phone: 'auto',
+                                  address: {
+                                    country: 'auto',
+                                    line1: 'auto',
+                                    city: 'auto',
+                                    postalCode: 'auto',
+                                    state: 'auto'
+                                  }
+                                }
                               },
-                              hidePostalCode: false,
+                              appearance: {
+                                theme: 'stripe',
+                                variables: {
+                                  colorPrimary: 'hsl(var(--primary))',
+                                  colorBackground: 'hsl(var(--background))',
+                                  colorText: 'hsl(var(--foreground))',
+                                  colorDanger: 'hsl(var(--destructive))',
+                                  fontFamily: 'system-ui, sans-serif',
+                                  spacingUnit: '4px',
+                                  borderRadius: '8px',
+                                },
+                                rules: {
+                                  '.Input': {
+                                    borderColor: 'hsl(var(--border))',
+                                    backgroundColor: 'hsl(var(--background))',
+                                  },
+                                  '.Input:focus': {
+                                    borderColor: 'hsl(var(--primary))',
+                                  },
+                                  '.Label': {
+                                    color: 'hsl(var(--foreground))',
+                                  }
+                                }
+                              }
                             }}
                           />
                         </div>
                         <p className="text-xs text-muted-foreground mt-2">
-                          We accept Visa, Mastercard, American Express, and Discover
+                          We accept Visa, Mastercard, American Express, Discover, and other payment methods
                         </p>
                       </div>
 
@@ -541,8 +569,56 @@ export function CheckoutPage() {
   const navigate = useNavigate();
   const urlParams = new URLSearchParams(window.location.search);
   const clientSecret = urlParams.get('clientSecret');
+  const success = urlParams.get('success');
+  const paymentIntentId = urlParams.get('payment_intent');
 
-  if (!clientSecret) {
+  // Handle successful payment redirect
+  useEffect(() => {
+    if (success === 'true' && paymentIntentId) {
+      // Payment was successful via redirect
+      const type = urlParams.get('type');
+      const id = urlParams.get('id');
+      
+      if (type && id) {
+        // Confirm purchase with backend
+        const playerId = localStorage.getItem('playerId') || 'demo_player';
+        let confirmEndpoint = '';
+        
+        if (type === 'cosmetic') {
+          confirmEndpoint = '/api/monetization/shop/confirm-cosmetic-purchase';
+        } else if (type === 'battle_pass') {
+          confirmEndpoint = '/api/monetization/battle-pass/activate';
+        }
+        
+        if (confirmEndpoint) {
+          fetch(confirmEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              playerId,
+              paymentIntentId
+            })
+          }).then(() => {
+            toast.success('Purchase confirmed!');
+            setTimeout(() => {
+              if (type === 'cosmetic') {
+                navigate('/shop');
+              } else if (type === 'battle_pass') {
+                navigate('/battle-pass');
+              } else {
+                navigate('/');
+              }
+            }, 2000);
+          }).catch(err => {
+            console.error('Failed to confirm purchase:', err);
+            toast.error('Failed to confirm purchase');
+          });
+        }
+      }
+    }
+  }, [success, paymentIntentId, navigate]);
+
+  if (!clientSecret && !success) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
         <header className="fixed top-0 w-full z-50 bg-background/90 backdrop-blur-md border-b border-primary/30">
@@ -588,7 +664,24 @@ export function CheckoutPage() {
   }
 
   return (
-    <Elements stripe={stripePromise}>
+    <Elements 
+      stripe={stripePromise}
+      options={{
+        clientSecret: clientSecret || undefined,
+        appearance: {
+          theme: 'stripe',
+          variables: {
+            colorPrimary: 'hsl(var(--primary))',
+            colorBackground: 'hsl(var(--background))',
+            colorText: 'hsl(var(--foreground))',
+            colorDanger: 'hsl(var(--destructive))',
+            fontFamily: 'system-ui, sans-serif',
+            spacingUnit: '4px',
+            borderRadius: '8px',
+          }
+        }
+      }}
+    >
       <CheckoutForm />
     </Elements>
   );

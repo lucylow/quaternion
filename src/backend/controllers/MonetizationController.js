@@ -38,59 +38,242 @@ router.post('/init-customer', async (req, res) => {
 router.get('/shop/cosmetics', async (req, res) => {
   try {
     const cosmetics = [
+      // Unit Skins
       {
         id: 'cosmic_unit_skin',
         name: 'Cosmic Warrior',
-        description: 'Ethereal blue unit skin with particle effects',
+        description: 'Ethereal blue unit skin with particle effects and cosmic energy trails',
         price: 4.99,
         category: 'unit_skin',
         rarity: 'rare',
-        preview: '/cosmetics/cosmic-warrior.png'
+        preview: '/cosmetics/cosmic-warrior.png',
+        image: '/assets/monsters/cosmic-warrior.webp',
+        tags: ['cosmic', 'energy', 'particles']
       },
+      {
+        id: 'neon_striker_skin',
+        name: 'Neon Striker',
+        description: 'High-tech neon unit with glowing cyberpunk aesthetics',
+        price: 6.99,
+        category: 'unit_skin',
+        rarity: 'epic',
+        preview: '/cosmetics/neon-striker.png',
+        image: '/assets/monsters/neon-striker.webp',
+        tags: ['neon', 'cyberpunk', 'glow']
+      },
+      {
+        id: 'quantum_phantom_skin',
+        name: 'Quantum Phantom',
+        description: 'Legendary unit skin with phase-shifting abilities and quantum effects',
+        price: 12.99,
+        category: 'unit_skin',
+        rarity: 'legendary',
+        preview: '/cosmetics/quantum-phantom.png',
+        image: '/assets/monsters/quantum-phantom.webp',
+        tags: ['quantum', 'phase', 'legendary']
+      },
+      {
+        id: 'plasma_drone_skin',
+        name: 'Plasma Drone',
+        description: 'Uncommon plasma-powered unit with electric discharge effects',
+        price: 3.99,
+        category: 'unit_skin',
+        rarity: 'uncommon',
+        preview: '/cosmetics/plasma-drone.png',
+        image: '/assets/monsters/plasma-drone.webp',
+        tags: ['plasma', 'electric', 'drone']
+      },
+      // Building Skins
       {
         id: 'inferno_base_skin',
         name: 'Inferno Base',
-        description: 'Fiery red base with lava effects',
+        description: 'Fiery red base with lava effects and molten core animations',
         price: 7.99,
         category: 'building_skin',
         rarity: 'epic',
-        preview: '/cosmetics/inferno-base.png'
+        preview: '/cosmetics/inferno-base.png',
+        image: '/assets/maps/inferno-base.webp',
+        tags: ['fire', 'lava', 'molten']
       },
+      {
+        id: 'crystal_fortress_skin',
+        name: 'Crystal Fortress',
+        description: 'Legendary crystalline base with prismatic light effects',
+        price: 14.99,
+        category: 'building_skin',
+        rarity: 'legendary',
+        preview: '/cosmetics/crystal-fortress.png',
+        image: '/assets/maps/crystal-fortress.webp',
+        tags: ['crystal', 'prismatic', 'legendary']
+      },
+      {
+        id: 'cyber_citadel_skin',
+        name: 'Cyber Citadel',
+        description: 'Rare high-tech base with holographic defenses and neon accents',
+        price: 8.99,
+        category: 'building_skin',
+        rarity: 'rare',
+        preview: '/cosmetics/cyber-citadel.png',
+        image: '/assets/maps/cyber-citadel.webp',
+        tags: ['cyber', 'holographic', 'tech']
+      },
+      {
+        id: 'nature_sanctuary_skin',
+        name: 'Nature Sanctuary',
+        description: 'Uncommon organic base with living plant walls and natural aesthetics',
+        price: 5.99,
+        category: 'building_skin',
+        rarity: 'uncommon',
+        preview: '/cosmetics/nature-sanctuary.png',
+        image: '/assets/maps/nature-sanctuary.webp',
+        tags: ['nature', 'organic', 'living']
+      },
+      // Profile Cosmetics
       {
         id: 'golden_rank_border',
         name: 'Golden Rank Border',
-        description: 'Exclusive golden border for ranked profile',
+        description: 'Exclusive golden border for ranked profile with prestige glow',
         price: 2.99,
         category: 'profile_cosmetic',
         rarity: 'rare',
-        preview: '/cosmetics/golden-border.png'
+        preview: '/cosmetics/golden-border.png',
+        tags: ['gold', 'prestige', 'rank']
       },
+      {
+        id: 'platinum_elite_badge',
+        name: 'Platinum Elite Badge',
+        description: 'Legendary platinum badge for elite players with animated effects',
+        price: 9.99,
+        category: 'profile_cosmetic',
+        rarity: 'legendary',
+        preview: '/cosmetics/platinum-badge.png',
+        tags: ['platinum', 'elite', 'animated']
+      },
+      {
+        id: 'neon_avatar_frame',
+        name: 'Neon Avatar Frame',
+        description: 'Epic neon frame with pulsing glow effects for your profile',
+        price: 4.99,
+        category: 'profile_cosmetic',
+        rarity: 'epic',
+        preview: '/cosmetics/neon-frame.png',
+        tags: ['neon', 'glow', 'frame']
+      },
+      // UI Cosmetics
       {
         id: 'neon_cursor',
         name: 'Neon Cursor',
-        description: 'Glowing neon mouse cursor in-game',
+        description: 'Glowing neon mouse cursor in-game with trail effects',
         price: 1.99,
         category: 'ui_cosmetic',
         rarity: 'uncommon',
-        preview: '/cosmetics/neon-cursor.png'
+        preview: '/cosmetics/neon-cursor.png',
+        tags: ['neon', 'cursor', 'trail']
       },
+      {
+        id: 'holographic_hud',
+        name: 'Holographic HUD',
+        description: 'Epic holographic interface overlay with futuristic design',
+        price: 6.99,
+        category: 'ui_cosmetic',
+        rarity: 'epic',
+        preview: '/cosmetics/holographic-hud.png',
+        tags: ['holographic', 'hud', 'futuristic']
+      },
+      {
+        id: 'cyber_minimap',
+        name: 'Cyber Minimap',
+        description: 'Rare cyberpunk-styled minimap with enhanced visual clarity',
+        price: 3.99,
+        category: 'ui_cosmetic',
+        rarity: 'rare',
+        preview: '/cosmetics/cyber-minimap.png',
+        tags: ['cyber', 'minimap', 'enhanced']
+      },
+      // Victory Effects
       {
         id: 'hologram_victory_effect',
         name: 'Hologram Victory Effect',
-        description: 'Holographic victory animation',
+        description: 'Legendary holographic victory animation with particle explosion',
         price: 9.99,
         category: 'victory_effect',
         rarity: 'legendary',
-        preview: '/cosmetics/hologram-victory.png'
+        preview: '/cosmetics/hologram-victory.png',
+        tags: ['holographic', 'victory', 'explosion']
       },
+      {
+        id: 'cosmic_celebration_effect',
+        name: 'Cosmic Celebration',
+        description: 'Epic cosmic victory effect with starfield and nebula animations',
+        price: 7.99,
+        category: 'victory_effect',
+        rarity: 'epic',
+        preview: '/cosmetics/cosmic-celebration.png',
+        tags: ['cosmic', 'stars', 'nebula']
+      },
+      {
+        id: 'lightning_strike_effect',
+        name: 'Lightning Strike',
+        description: 'Rare electric victory effect with thunder and lightning',
+        price: 5.99,
+        category: 'victory_effect',
+        rarity: 'rare',
+        preview: '/cosmetics/lightning-strike.png',
+        tags: ['lightning', 'electric', 'thunder']
+      },
+      // Voice Packs
       {
         id: 'ai_commander_voice',
         name: 'AI Commander Voice Pack',
-        description: 'Custom AI commander voice with personality',
+        description: 'Custom AI commander voice with personality and dynamic responses',
         price: 5.99,
         category: 'voice_pack',
         rarity: 'epic',
-        preview: '/cosmetics/voice-pack.png'
+        preview: '/cosmetics/voice-pack.png',
+        tags: ['ai', 'commander', 'dynamic']
+      },
+      {
+        id: 'cyber_announcer_voice',
+        name: 'Cyber Announcer Voice',
+        description: 'Legendary cyberpunk announcer with futuristic sound effects',
+        price: 8.99,
+        category: 'voice_pack',
+        rarity: 'legendary',
+        preview: '/cosmetics/cyber-announcer.png',
+        tags: ['cyber', 'announcer', 'futuristic']
+      },
+      {
+        id: 'tactical_advisor_voice',
+        name: 'Tactical Advisor Voice',
+        description: 'Rare tactical advisor voice with strategic commentary',
+        price: 4.99,
+        category: 'voice_pack',
+        rarity: 'rare',
+        preview: '/cosmetics/tactical-advisor.png',
+        tags: ['tactical', 'advisor', 'strategic']
+      },
+      // Map Themes
+      {
+        id: 'void_realm_theme',
+        name: 'Void Realm Theme',
+        description: 'Epic void-themed map with dark matter and cosmic anomalies',
+        price: 11.99,
+        category: 'map_theme',
+        rarity: 'epic',
+        preview: '/cosmetics/void-realm.png',
+        image: '/assets/maps/void-realm.webp',
+        tags: ['void', 'dark', 'cosmic']
+      },
+      {
+        id: 'neon_city_theme',
+        name: 'Neon City Theme',
+        description: 'Rare cyberpunk city map with neon lights and urban aesthetics',
+        price: 9.99,
+        category: 'map_theme',
+        rarity: 'rare',
+        preview: '/cosmetics/neon-city.png',
+        image: '/assets/maps/neon-city.webp',
+        tags: ['neon', 'city', 'urban']
       }
     ];
 
@@ -107,14 +290,37 @@ router.post('/shop/purchase-cosmetic', async (req, res) => {
   try {
     const { playerId, cosmeticId } = req.body;
 
-    // Get cosmetic details
+    // Get cosmetic details - expanded catalog
     const cosmeticMap = {
+      // Unit Skins
       'cosmic_unit_skin': { name: 'Cosmic Warrior', price: 4.99 },
+      'neon_striker_skin': { name: 'Neon Striker', price: 6.99 },
+      'quantum_phantom_skin': { name: 'Quantum Phantom', price: 12.99 },
+      'plasma_drone_skin': { name: 'Plasma Drone', price: 3.99 },
+      // Building Skins
       'inferno_base_skin': { name: 'Inferno Base', price: 7.99 },
+      'crystal_fortress_skin': { name: 'Crystal Fortress', price: 14.99 },
+      'cyber_citadel_skin': { name: 'Cyber Citadel', price: 8.99 },
+      'nature_sanctuary_skin': { name: 'Nature Sanctuary', price: 5.99 },
+      // Profile Cosmetics
       'golden_rank_border': { name: 'Golden Rank Border', price: 2.99 },
+      'platinum_elite_badge': { name: 'Platinum Elite Badge', price: 9.99 },
+      'neon_avatar_frame': { name: 'Neon Avatar Frame', price: 4.99 },
+      // UI Cosmetics
       'neon_cursor': { name: 'Neon Cursor', price: 1.99 },
+      'holographic_hud': { name: 'Holographic HUD', price: 6.99 },
+      'cyber_minimap': { name: 'Cyber Minimap', price: 3.99 },
+      // Victory Effects
       'hologram_victory_effect': { name: 'Hologram Victory Effect', price: 9.99 },
-      'ai_commander_voice': { name: 'AI Commander Voice Pack', price: 5.99 }
+      'cosmic_celebration_effect': { name: 'Cosmic Celebration', price: 7.99 },
+      'lightning_strike_effect': { name: 'Lightning Strike', price: 5.99 },
+      // Voice Packs
+      'ai_commander_voice': { name: 'AI Commander Voice Pack', price: 5.99 },
+      'cyber_announcer_voice': { name: 'Cyber Announcer Voice', price: 8.99 },
+      'tactical_advisor_voice': { name: 'Tactical Advisor Voice', price: 4.99 },
+      // Map Themes
+      'void_realm_theme': { name: 'Void Realm Theme', price: 11.99 },
+      'neon_city_theme': { name: 'Neon City Theme', price: 9.99 }
     };
 
     const cosmetic = cosmeticMap[cosmeticId];
