@@ -34,3 +34,7 @@ export * from './subtitleGenerator';
 
 // ElevenLabs comprehensive client
 export * from './elevenClient';
+
+// Landing page audio
+export { getLandingPageAudio } from './LandingPageAudio';
+export { default as LandingPageAudio } from './LandingPageAudio';

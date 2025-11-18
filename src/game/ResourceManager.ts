@@ -135,45 +135,6 @@ export class ResourceManager {
     this.setResource(ResourceType.DATA, data);
   }
 
-  /**
-   * Process resource tick (called every game tick)
-   * @param controlledNodes Map of resource type to number of controlled nodes
-   * @param buildingProduction Map of resource type to production from buildings
-   */
-  public processResourceTick(
-    controlledNodes: Map<ResourceType, number> = new Map(),
-    buildingProduction: Map<ResourceType, number> = new Map()
-  ): void {
-    // Calculate generation from controlled nodes (with event modifiers)
-    controlledNodes.forEach((nodeCount, type) => {
-      const baseRate = this.baseGenerationPerNode.get(type) || 0;
-      let generation = nodeCount * baseRate;
-      
-      // Apply event modifiers
-      const modifier = this.eventModifiers.get(type) || 1.0;
-      generation *= modifier;
-      
-      this.addResource(type, generation);
-    });
-
-    // Add building production (with event modifiers)
-    buildingProduction.forEach((amount, type) => {
-      const modifier = this.eventModifiers.get(type) || 1.0;
-      this.addResource(type, amount * modifier);
-    });
-
-    // Apply decay
-    this.resources.forEach((resource, type) => {
-      if (resource.currentAmount > 0) {
-        const decayAmount = resource.currentAmount * resource.decayRate;
-        resource.currentAmount = Math.max(0, resource.currentAmount - decayAmount);
-        this.notifyResourceChanged(type, resource.currentAmount);
-      }
-    });
-
-    // Check for critical levels
-    this.checkCriticalResources();
-  }
 
   /**
    * Check if player can afford a cost

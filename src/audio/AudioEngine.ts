@@ -127,12 +127,65 @@ export default class AudioEngine {
   }
 
   /**
+   * Generate fallback ambient music
+   */
+  private generateFallbackMusic(stemId: string): AudioBuffer {
+    const sampleRate = this.ctx.sampleRate;
+    const duration = 8; // 8 second loop
+    const frameCount = sampleRate * duration;
+    const buffer = this.ctx.createBuffer(2, frameCount, sampleRate);
+    const leftChannel = buffer.getChannelData(0);
+    const rightChannel = buffer.getChannelData(1);
+
+    // Generate ambient pad based on stem type
+    let baseFreq = 65.41; // C2
+    if (stemId.includes('tension') || stemId.includes('combat')) {
+      baseFreq = 82.41; // E2 - slightly higher for tension
+    }
+
+    for (let i = 0; i < frameCount; i++) {
+      const t = i / sampleRate;
+      
+      // Multiple harmonics for rich sound
+      const wave1 = Math.sin(2 * Math.PI * baseFreq * t) * 0.3;
+      const wave2 = Math.sin(2 * Math.PI * baseFreq * 2 * t) * 0.2;
+      const wave3 = Math.sin(2 * Math.PI * baseFreq * 3 * t) * 0.1;
+      
+      // Slow LFO for movement
+      const lfo = Math.sin(2 * Math.PI * 0.1 * t) * 0.05;
+      
+      const sample = (wave1 + wave2 + wave3) * (1 + lfo);
+      
+      // Fade in/out at loop points
+      const fade = Math.min(1, Math.min(t * 2, (duration - t) * 2));
+      
+      leftChannel[i] = sample * fade * 0.12;
+      rightChannel[i] = sample * fade * 0.12;
+    }
+
+    return buffer;
+  }
+
+  /**
    * Load music stem
    */
   async loadMusicStem(stem: MusicStem): Promise<void> {
-    const buffer = await this.loadBuffer(stem.id, stem.url, 'music');
-    stem.buffer = buffer;
-    this.musicStems.set(stem.id, stem);
+    try {
+      const buffer = await this.loadBuffer(stem.id, stem.url, 'music');
+      stem.buffer = buffer;
+      this.musicStems.set(stem.id, stem);
+    } catch (error) {
+      // Generate fallback music if file not found
+      console.warn(`Music stem ${stem.id} not found, using generated fallback`);
+      try {
+        const buffer = this.generateFallbackMusic(stem.id);
+        stem.buffer = buffer;
+        this.musicStems.set(stem.id, stem);
+      } catch (genError) {
+        console.error(`Failed to generate fallback music for ${stem.id}:`, genError);
+        throw genError;
+      }
+    }
   }
 
   /**
@@ -245,6 +298,71 @@ export default class AudioEngine {
   }
 
   /**
+   * Generate fallback sound for missing SFX
+   */
+  private generateFallbackSFX(key: string): AudioBuffer {
+    const sampleRate = this.ctx.sampleRate;
+    let duration = 0.1;
+    let frequency = 440;
+
+    // Different sounds for different categories
+    if (key.includes('ui_click') || key.includes('click')) {
+      duration = 0.05;
+      // White noise click
+      const frameCount = Math.floor(sampleRate * duration);
+      const buffer = this.ctx.createBuffer(1, frameCount, sampleRate);
+      const channelData = buffer.getChannelData(0);
+      for (let i = 0; i < frameCount; i++) {
+        const t = i / frameCount;
+        const envelope = Math.pow(1 - t, 2);
+        channelData[i] = (Math.random() * 2 - 1) * envelope * 0.2;
+      }
+      return buffer;
+    } else if (key.includes('ui_hover') || key.includes('hover')) {
+      duration = 0.15;
+      const frameCount = Math.floor(sampleRate * duration);
+      const buffer = this.ctx.createBuffer(1, frameCount, sampleRate);
+      const channelData = buffer.getChannelData(0);
+      for (let i = 0; i < frameCount; i++) {
+        const t = i / frameCount;
+        const freq = 400 + t * 200;
+        const envelope = Math.sin(t * Math.PI);
+        channelData[i] = Math.sin(2 * Math.PI * freq * i / sampleRate) * envelope * 0.15;
+      }
+      return buffer;
+    } else if (key.includes('combat') || key.includes('attack')) {
+      frequency = 200;
+      duration = 0.2;
+    } else if (key.includes('resource')) {
+      frequency = 600;
+      duration = 0.15;
+    } else if (key.includes('success')) {
+      // Two-tone success
+      const frameCount = Math.floor(sampleRate * 0.3);
+      const buffer = this.ctx.createBuffer(1, frameCount, sampleRate);
+      const channelData = buffer.getChannelData(0);
+      for (let i = 0; i < frameCount; i++) {
+        const t = i / sampleRate;
+        let freq = t < 0.1 ? 523.25 : 659.25;
+        const envelope = Math.min(1, Math.min(t * 10, (0.3 - t) * 10));
+        channelData[i] = Math.sin(2 * Math.PI * freq * t) * envelope * 0.3;
+      }
+      return buffer;
+    }
+
+    // Default beep
+    const frameCount = Math.floor(sampleRate * duration);
+    const buffer = this.ctx.createBuffer(1, frameCount, sampleRate);
+    const channelData = buffer.getChannelData(0);
+    for (let i = 0; i < frameCount; i++) {
+      const t = i / sampleRate;
+      const envelope = Math.min(1, Math.min(t * 100, (duration - t) * 100));
+      channelData[i] = Math.sin(2 * Math.PI * frequency * t) * envelope * 0.3;
+    }
+    return buffer;
+  }
+
+  /**
    * Play SFX
    */
   playSFX(key: string, options: {
@@ -253,10 +371,18 @@ export default class AudioEngine {
     delay?: number;
     pan?: number;
   } = {}): AudioBufferSourceNode | null {
-    const buffer = this.sfxBuffers[key];
+    let buffer = this.sfxBuffers[key];
+    
+    // Generate fallback if buffer not found
     if (!buffer) {
-      console.warn(`SFX buffer not found: ${key}`);
-      return null;
+      console.warn(`SFX buffer not found: ${key}, using generated fallback`);
+      try {
+        buffer = this.generateFallbackSFX(key);
+        this.sfxBuffers[key] = buffer; // Cache it
+      } catch (error) {
+        console.error(`Failed to generate fallback SFX for ${key}:`, error);
+        return null;
+      }
     }
 
     const source = this.ctx.createBufferSource();

@@ -74,6 +74,15 @@ export interface UnitInstance {
   targetPosition?: { x: number; y: number };
   abilityCooldowns: Map<string, number>;
   activeAbilities: Map<string, number>; // abilityId -> remaining duration
+  selected: boolean; // Selection state
+  orders: MoveCommand[]; // Command queue
+}
+
+export interface MoveCommand {
+  targetX: number;
+  targetY: number;
+  action: 'move' | 'attack' | 'harvest' | 'capture';
+  targetId?: string; // For attack/capture commands
 }
 
 export class UnitManager {
@@ -83,6 +92,9 @@ export class UnitManager {
   private unitCounts: Map<number, Map<UnitType, number>>; // playerId -> type -> count
   
   private resourceManager: ResourceManager | null = null;
+  
+  // Selection system
+  private selectedUnits: Set<string> = new Set();
   
   // Limits
   private maxUnits: number = 50;
@@ -282,7 +294,9 @@ export class UnitManager {
       health: definition.health,
       behavior: UnitBehavior.IDLE,
       abilityCooldowns: new Map(),
-      activeAbilities: new Map()
+      activeAbilities: new Map(),
+      selected: false,
+      orders: []
     };
 
     this.activeUnits.set(unitId, unit);
@@ -298,9 +312,9 @@ export class UnitManager {
   }
 
   /**
-   * Process unit ticks (abilities, cooldowns, etc.)
+   * Process unit ticks (abilities, cooldowns, movement, etc.)
    */
-  public processUnitTicks(): void {
+  public processUnitTicks(deltaTime: number = 1/60): void {
     this.activeUnits.forEach(unit => {
       // Process ability cooldowns
       unit.abilityCooldowns.forEach((cooldown, abilityId) => {
@@ -319,7 +333,70 @@ export class UnitManager {
           unit.activeAbilities.delete(abilityId);
         }
       });
+
+      // Process movement
+      this.updateUnitMovement(unit, deltaTime);
     });
+  }
+
+  /**
+   * Update unit movement towards target
+   */
+  private updateUnitMovement(unit: UnitInstance, deltaTime: number): void {
+    if (unit.orders.length === 0) {
+      if (unit.behavior === UnitBehavior.MOVING) {
+        unit.behavior = UnitBehavior.IDLE;
+      }
+      return;
+    }
+
+    const currentOrder = unit.orders[0];
+    const dx = currentOrder.targetX - unit.x;
+    const dy = currentOrder.targetY - unit.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    // Check if reached destination (within 5 pixels)
+    if (distance < 5) {
+      unit.orders.shift(); // Remove completed order
+      if (unit.orders.length === 0) {
+        unit.behavior = UnitBehavior.IDLE;
+        unit.targetPosition = undefined;
+      } else {
+        // Move to next order
+        const nextOrder = unit.orders[0];
+        unit.targetPosition = { x: nextOrder.targetX, y: nextOrder.targetY };
+        unit.behavior = this.getBehaviorFromAction(nextOrder.action);
+      }
+      return;
+    }
+
+    // Move towards target
+    const speed = unit.definition.movementSpeed * 60 * deltaTime; // Convert to pixels per second
+    const moveDistance = Math.min(speed, distance);
+    const angle = Math.atan2(dy, dx);
+
+    unit.x += Math.cos(angle) * moveDistance;
+    unit.y += Math.sin(angle) * moveDistance;
+    unit.behavior = UnitBehavior.MOVING;
+    unit.targetPosition = { x: currentOrder.targetX, y: currentOrder.targetY };
+  }
+
+  /**
+   * Get behavior from action type
+   */
+  private getBehaviorFromAction(action: string): UnitBehavior {
+    switch (action) {
+      case 'move':
+        return UnitBehavior.MOVING;
+      case 'attack':
+        return UnitBehavior.ATTACKING;
+      case 'harvest':
+        return UnitBehavior.GATHERING;
+      case 'capture':
+        return UnitBehavior.CAPTURING;
+      default:
+        return UnitBehavior.IDLE;
+    }
   }
 
   /**
@@ -524,6 +601,152 @@ export class UnitManager {
 
     queue.splice(index, 1);
     return true;
+  }
+
+  /**
+   * Select a unit
+   */
+  public selectUnit(unitId: string, multiSelect: boolean = false): boolean {
+    const unit = this.activeUnits.get(unitId);
+    if (!unit) return false;
+
+    if (!multiSelect) {
+      // Deselect all units
+      this.selectedUnits.forEach(id => {
+        const u = this.activeUnits.get(id);
+        if (u) u.selected = false;
+      });
+      this.selectedUnits.clear();
+    }
+
+    // Toggle selection
+    if (unit.selected) {
+      unit.selected = false;
+      this.selectedUnits.delete(unitId);
+    } else {
+      unit.selected = true;
+      this.selectedUnits.add(unitId);
+    }
+
+    return true;
+  }
+
+  /**
+   * Select units in area (for drag selection)
+   */
+  public selectUnitsInArea(x1: number, y1: number, x2: number, y2: number, playerId: number, multiSelect: boolean = false): string[] {
+    const minX = Math.min(x1, x2);
+    const maxX = Math.max(x1, x2);
+    const minY = Math.min(y1, y2);
+    const maxY = Math.max(y1, y2);
+
+    if (!multiSelect) {
+      // Deselect all
+      this.selectedUnits.forEach(id => {
+        const u = this.activeUnits.get(id);
+        if (u) u.selected = false;
+      });
+      this.selectedUnits.clear();
+    }
+
+    const selectedIds: string[] = [];
+
+    this.activeUnits.forEach((unit, id) => {
+      if (unit.playerId === playerId &&
+          unit.x >= minX && unit.x <= maxX &&
+          unit.y >= minY && unit.y <= maxY) {
+        unit.selected = true;
+        this.selectedUnits.add(id);
+        selectedIds.push(id);
+      }
+    });
+
+    return selectedIds;
+  }
+
+  /**
+   * Deselect all units
+   */
+  public deselectAllUnits(): void {
+    this.selectedUnits.forEach(id => {
+      const unit = this.activeUnits.get(id);
+      if (unit) unit.selected = false;
+    });
+    this.selectedUnits.clear();
+  }
+
+  /**
+   * Get selected units
+   */
+  public getSelectedUnits(): UnitInstance[] {
+    return Array.from(this.selectedUnits)
+      .map(id => this.activeUnits.get(id))
+      .filter((unit): unit is UnitInstance => unit !== undefined);
+  }
+
+  /**
+   * Move selected units to target position
+   */
+  public moveSelectedUnits(targetX: number, targetY: number, playerId: number): void {
+    const selected = this.getSelectedUnits().filter(u => u.playerId === playerId);
+    
+    if (selected.length === 0) return;
+
+    // For multiple units, spread them out in formation
+    if (selected.length > 1) {
+      const formationSize = Math.ceil(Math.sqrt(selected.length));
+      const spacing = 30;
+      let index = 0;
+
+      selected.forEach(unit => {
+        const row = Math.floor(index / formationSize);
+        const col = index % formationSize;
+        const offsetX = (col - formationSize / 2) * spacing;
+        const offsetY = (row - formationSize / 2) * spacing;
+
+        unit.orders = [{
+          targetX: targetX + offsetX,
+          targetY: targetY + offsetY,
+          action: 'move'
+        }];
+        unit.behavior = UnitBehavior.MOVING;
+        unit.targetPosition = { x: targetX + offsetX, y: targetY + offsetY };
+        index++;
+      });
+    } else {
+      // Single unit
+      const unit = selected[0];
+      unit.orders = [{
+        targetX,
+        targetY,
+        action: 'move'
+      }];
+      unit.behavior = UnitBehavior.MOVING;
+      unit.targetPosition = { x: targetX, y: targetY };
+    }
+  }
+
+  /**
+   * Get unit at position (for click selection)
+   */
+  public getUnitAtPosition(x: number, y: number, playerId?: number, radius: number = 20): UnitInstance | null {
+    let closestUnit: UnitInstance | null = null;
+    let closestDistance = radius;
+
+    this.activeUnits.forEach(unit => {
+      if (playerId !== undefined && unit.playerId !== playerId) return;
+
+      const dx = unit.x - x;
+      const dy = unit.y - y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestUnit = unit;
+      }
+    });
+
+    return closestUnit;
   }
 }
 

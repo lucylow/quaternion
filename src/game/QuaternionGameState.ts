@@ -344,14 +344,14 @@ export class QuaternionGameState {
     this.tick++;
     this.gameTime += deltaTime;
     
-    // Process enhanced managers
-    this.processManagers();
+    // Process enhanced managers (pass deltaTime for unit movement)
+    this.processManagers(deltaTime);
     
     // Update resources (passive generation and consumption)
     this.updateResources(deltaTime);
     
-    // Calculate instability
-    this.updateInstability();
+    // Calculate instability (now handled by ResourceManager)
+    this.instability = this.resourceManager.getInstability();
     
     // Update fun experience systems
     this.updateFunSystems(deltaTime);
@@ -436,7 +436,7 @@ export class QuaternionGameState {
   /**
    * Process all enhanced managers
    */
-  private processManagers(): void {
+  private processManagers(deltaTime: number = 1/60): void {
     // Get resource generation from map nodes
     const resourceGeneration = this.mapManager.getResourceGeneration();
     const controlledNodes = new Map<ResourceType, number>();
@@ -463,8 +463,30 @@ export class QuaternionGameState {
       }
     });
     
+    // Update buildings (construction and resource generation)
+    this.mapManager.updateBuildings(deltaTime);
+    
+    // Get building resource generation and add to controlled nodes
+    const buildingGeneration = this.mapManager.getBuildingResourceGeneration();
+    buildingGeneration.forEach((amount, resourceType) => {
+      // Add building generation to resource manager
+      this.resourceManager.addResource(resourceType, amount * deltaTime);
+    });
+    
+    // Get building resource generation
+    const buildingProduction = this.mapManager.getBuildingResourceGeneration();
+    
+    // Convert building production to ResourceType map
+    const buildingProductionMap = new Map<ResourceType, number>();
+    buildingProduction.forEach((amount, type) => {
+      buildingProductionMap.set(type, amount);
+    });
+    
     // Process resource tick
-    this.resourceManager.processResourceTick(controlledNodes, new Map());
+    this.resourceManager.processResourceTick(controlledNodes, buildingProductionMap);
+    
+    // Update buildings
+    this.mapManager.updateBuildings(deltaTime);
     
     // Process unit production
     const completedUnits = this.unitManager.processProductionTicks();
@@ -472,8 +494,8 @@ export class QuaternionGameState {
       this.units.push(unit);
     });
     
-    // Process unit ticks
-    this.unitManager.processUnitTicks();
+    // Process unit ticks (with deltaTime for movement)
+    this.unitManager.processUnitTicks(deltaTime);
     
     // Process research
     this.techTreeManager.processResearchTick();

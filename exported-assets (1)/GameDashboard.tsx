@@ -1,13 +1,15 @@
 // pages/GameDashboard.tsx
 import React, { useState, useEffect } from 'react';
-import { useAIGame, useAIStrategy } from '@/hooks/useAIGame';
-import { AIGameUIPanel } from '@/components/AIGameUI';
-import { GameMapCanvas, UnitPanel, ResourceDisplay, BuildingInfo } from '@/components/GameComponents';
+import { useAIGame, useAIStrategy } from './useAIGame';
+import { AIGameUIPanel } from './AIGameUI';
+import { GameMapCanvas, UnitPanel, ResourceDisplay, BuildingInfo } from './GameComponents';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertTriangle, Play, Square, RotateCcw } from 'lucide-react';
+import type { CommanderArchetype } from '@/ai/opponents/AICommanderArchetypes';
 
 export const GameDashboard: React.FC = () => {
   const {
@@ -36,13 +38,14 @@ export const GameDashboard: React.FC = () => {
 
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [selectedBuildingId, setSelectedBuildingId] = useState<string | null>(null);
+  const [selectedCommander, setSelectedCommander] = useState<CommanderArchetype>('THE_TACTICIAN');
 
   const selectedUnit = gameState?.units.find(u => u.id === selectedUnitId) || null;
   const selectedBuilding = gameState?.buildings.find(b => b.id === selectedBuildingId) || null;
 
   const handleGameStart = async () => {
     try {
-      await initializeGame(64, 64, aiConfig.difficulty);
+      await initializeGame(64, 64, aiConfig.difficulty, selectedCommander);
       await startGame();
     } catch (err) {
       console.error('Failed to start game:', err);
@@ -82,7 +85,24 @@ export const GameDashboard: React.FC = () => {
             <h1 className="text-4xl font-bold tracking-tight">Game Control Center</h1>
             <p className="text-muted-foreground mt-2">Chroma Strategy Game - AI Opponent Management</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium">Commander:</label>
+              <Select value={selectedCommander} onValueChange={(value) => setSelectedCommander(value as CommanderArchetype)}>
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="THE_INNOVATOR">The Innovator</SelectItem>
+                  <SelectItem value="THE_BUTCHER">The Butcher</SelectItem>
+                  <SelectItem value="THE_SPIDER">The Spider</SelectItem>
+                  <SelectItem value="THE_MIRROR">The Mirror</SelectItem>
+                  <SelectItem value="THE_TACTICIAN">The Tactician</SelectItem>
+                  <SelectItem value="THE_ECONOMIST">The Economist</SelectItem>
+                  <SelectItem value="THE_WILDCARD">The Wildcard</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <Button
               onClick={handleGameStart}
               disabled={isGameActive || isLoading}

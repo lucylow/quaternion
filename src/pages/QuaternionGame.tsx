@@ -218,6 +218,51 @@ const QuaternionGame = () => {
       });
     }
 
+    // Initialize GameLoop with callbacks to update game state
+    if (gameStateRef.current) {
+      gameLoopRef.current = new GameLoop(
+        {
+          fixedTimestep: 1 / 60, // 60 FPS fixed timestep
+          maxFrameSkip: 5,
+          maxDeltaTime: 0.1,
+          targetFPS: 60,
+          enablePerformanceMonitoring: true,
+          enableAdaptiveQuality: true,
+          enableFrameRateLimiting: false,
+          pauseOnFocusLoss: false,
+          autoResume: true
+        },
+        {
+          fixedUpdate: (deltaTime: number) => {
+            // CRITICAL: Update game state every fixed timestep
+            if (gameStateRef.current && !gameStateRef.current.gameOver) {
+              gameStateRef.current.update(deltaTime);
+            }
+          },
+          variableUpdate: (deltaTime: number) => {
+            // Variable timestep for non-critical updates
+            if (gameStateRef.current && !gameStateRef.current.gameOver) {
+              gameStateRef.current.variableUpdate(deltaTime);
+            }
+          },
+          processInput: () => {
+            // Input processing (handled by Phaser scene)
+          },
+          render: (interpolation: number) => {
+            // Rendering (handled by Phaser scene)
+          }
+        }
+      );
+      
+      // Initialize and start the game loop
+      gameLoopRef.current.initialize().then(() => {
+        gameStateRef.current?.start();
+        gameLoopRef.current?.start();
+      }).catch((error) => {
+        console.error('Failed to initialize game loop:', error);
+      });
+    }
+
     // Initialize Resource Puzzle Manager
     if (gameStateRef.current && gameStateRef.current.resourceManager) {
       puzzleManagerRef.current = new ResourcePuzzleManager(
