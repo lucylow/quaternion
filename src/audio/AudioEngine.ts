@@ -573,6 +573,22 @@ export default class AudioEngine {
   getDialogVolume(): number { return this.dialogVolume; }
 
   /**
+   * Get AudioContext (for advanced usage)
+   */
+  getAudioContext(): AudioContext {
+    if (!this.ctx) throw new Error('Audio context not initialized');
+    return this.ctx;
+  }
+
+  /**
+   * Get SFX gain node (for connecting external audio sources)
+   */
+  getSfxGainNode(): GainNode {
+    if (!this.sfxGain) throw new Error('SFX gain node not initialized');
+    return this.sfxGain;
+  }
+
+  /**
    * Stop all audio
    */
   stopAll(): void {

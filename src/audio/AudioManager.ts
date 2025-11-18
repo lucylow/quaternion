@@ -285,6 +285,27 @@ export default class AudioManager {
   }
 
   /**
+   * Initialize audio system (ensure context is started)
+   */
+  async init(): Promise<void> {
+    await this.engine.ensureStarted();
+  }
+
+  /**
+   * Get AudioContext (for advanced usage)
+   */
+  getAudioContext(): AudioContext {
+    return this.engine.getAudioContext();
+  }
+
+  /**
+   * Get SFX gain node (for connecting external audio sources)
+   */
+  getSfxGainNode(): GainNode {
+    return this.engine.getSfxGainNode();
+  }
+
+  /**
    * Play TTS audio from ArrayBuffer
    */
   async playTtsArrayBuffer(
