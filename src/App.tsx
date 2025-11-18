@@ -20,6 +20,7 @@ import {
   LazyCosmeticShop,
   LazyCheckout,
   LazyBattlePass,
+  LazySimpleGame,
   LazyNotFound,
 } from "./routes";
 
@@ -134,6 +135,7 @@ const App = () => (
                 <Route path="/shop" element={<LazyCosmeticShop />} />
                 <Route path="/checkout" element={<LazyCheckout />} />
                 <Route path="/battle-pass" element={<LazyBattlePass />} />
+                <Route path="/simple-game" element={<LazySimpleGame />} />
                 <Route path="*" element={<LazyNotFound />} />
               </Routes>
             </Suspense>

@@ -2435,6 +2435,10 @@ const QuaternionGame = () => {
           } else {
             console.error('❌ Canvas not attached to DOM!');
           }
+          
+          // CRITICAL: Hide loading screen when game is ready
+          setLoading(false);
+          console.log('✅ Loading screen hidden');
         });
 
         console.log('Phaser game created, waiting for ready event...');

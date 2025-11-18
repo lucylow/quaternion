@@ -23,13 +23,21 @@ export class UnifiedGameScene extends Phaser.Scene {
       { fontSize: '32px', fill: '#FFF' }
     );
     loadingText.setOrigin(0.5);
+
+    // Initialize asset manager and queue all assets for loading
+    this.assetManager = new AssetManager(this);
+    this.assetManager.loadAllAssets();
+
+    // Update loading text as files load
+    this.load.on('progress', (progress: number) => {
+      loadingText.setText(`Loading Assets... ${Math.round(progress * 100)}%`);
+    });
   }
 
   async create(): Promise<void> {
     try {
-      // Initialize asset manager
-      this.assetManager = new AssetManager(this);
-      await this.assetManager.loadAllAssets();
+      // Wait for all assets to finish loading
+      await this.assetManager.waitForAssetsToLoad();
 
       // Select random country
       const countries = [
@@ -77,35 +85,46 @@ export class UnifiedGameScene extends Phaser.Scene {
       'monster-celestial-1',
       'monster-celestial-2',
       'monster-elemental',
+      'monster-horror',
+      'monster-quaternion-poster-1',
+      'monster-quaternion-poster-2',
     ];
+
+    console.log('Creating demo monsters...');
 
     for (let i = 0; i < 5; i++) {
       const monsterType = monsterTypes[i % monsterTypes.length];
       const x = Math.random() * (64 * 32);
       const y = Math.random() * (64 * 32);
 
-      const monster = this.assetManager.createMonster(
-        this,
-        monsterType,
-        x,
-        y,
-        {
-          scale: 1.5,
-          physics: true,
-          depth: 100,
-        }
-      );
+      try {
+        const monster = this.assetManager.createMonster(
+          this,
+          monsterType,
+          x,
+          y,
+          {
+            scale: 0.3, // Scale down large images
+            physics: true,
+            depth: 100,
+          }
+        );
 
-      // Add name label
-      const label = this.add.text(
-        x,
-        y - 40,
-        monsterType.toUpperCase().replace('MONSTER-', ''),
-        { fontSize: '16px', fill: '#FFF' }
-      );
+        console.log(`✅ Created monster: ${monsterType} at (${x}, ${y})`);
 
-      label.setOrigin(0.5);
-      label.setDepth(101);
+        // Add name label
+        const label = this.add.text(
+          x,
+          y - 40,
+          monsterType.toUpperCase().replace('MONSTER-', ''),
+          { fontSize: '16px', fill: '#FFF', stroke: '#000', strokeThickness: 2 }
+        );
+
+        label.setOrigin(0.5);
+        label.setDepth(101);
+      } catch (error) {
+        console.error(`❌ Failed to create monster ${monsterType}:`, error);
+      }
     }
   }
 

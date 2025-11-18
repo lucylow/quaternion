@@ -18,6 +18,7 @@ export { default as MapGenerator } from "../pages/MapGenerator";
 export { default as CosmeticShop } from "../pages/CosmeticShop";
 export { default as Checkout } from "../pages/Checkout";
 export { default as BattlePass } from "../pages/BattlePass";
+export { default as SimpleGame } from "../pages/SimpleGame";
 export { default as NotFound } from "../pages/NotFound";
 
 // Lazy loaded versions for App.tsx
@@ -35,6 +36,7 @@ export const LazyMapGenerator = lazy(() => import("../pages/MapGenerator"));
 export const LazyCosmeticShop = lazy(() => import("../pages/CosmeticShop"));
 export const LazyCheckout = lazy(() => import("../pages/Checkout"));
 export const LazyBattlePass = lazy(() => import("../pages/BattlePass"));
+export const LazySimpleGame = lazy(() => import("../pages/SimpleGame"));
 export const LazyNotFound = lazy(() => import("../pages/NotFound"));
 
 // Route configuration for Lovable
@@ -54,6 +56,7 @@ export const routes = [
   { path: "/shop", name: "Cosmetic Shop", component: "CosmeticShop" },
   { path: "/checkout", name: "Checkout", component: "Checkout" },
   { path: "/battle-pass", name: "Battle Pass", component: "BattlePass" },
+  { path: "/simple-game", name: "Simple Game", component: "SimpleGame" },
 ];
 
 /**
@@ -74,6 +77,7 @@ export const lazyComponents = {
   LazyCosmeticShop,
   LazyCheckout,
   LazyBattlePass,
+  LazySimpleGame,
   LazyNotFound,
 };
 
@@ -97,6 +101,7 @@ export async function preloadAllLazyModules(): Promise<void> {
     import("../pages/CosmeticShop"),
     import("../pages/Checkout"),
     import("../pages/BattlePass"),
+    import("../pages/SimpleGame"),
     import("../pages/NotFound"),
   ];
 
@@ -121,6 +126,7 @@ export const dynamicImportPaths = [
   "../pages/CosmeticShop",
   "../pages/Checkout",
   "../pages/BattlePass",
+  "../pages/SimpleGame",
   "../pages/NotFound",
 ] as const;
 

@@ -65,82 +65,107 @@ export class AssetManager {
 
   /**
    * Load all game assets
+   * This should be called during the preload() phase
    */
-  async loadAllAssets(): Promise<boolean> {
-    try {
-      console.log('🎮 Starting asset loading...');
+  loadAllAssets(): void {
+    console.log('🎮 Starting asset loading...');
 
-      await Promise.all([
-        this.loadMonsterAssets(),
-        this.loadCountryAssets(),
-        this.loadUIAssets(),
-        this.loadMobileAssets(),
-      ]);
+    // Load all asset types (these queue up in Phaser's loader)
+    this.loadMonsterAssets();
+    this.loadCountryAssets();
+    this.loadUIAssets();
+    this.loadMobileAssets();
 
-      console.log('✅ All assets loaded successfully');
-      return true;
-    } catch (error) {
-      console.error('❌ Asset loading failed:', error);
-      throw error;
-    }
+    console.log('✅ Asset loading queued');
+  }
+
+  /**
+   * Wait for all assets to finish loading
+   * Call this after loadAllAssets() and start the loader
+   */
+  async waitForAssetsToLoad(): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      // Check if loader is already complete
+      if (!this.scene.load.isLoading() && this.scene.load.list.size === 0) {
+        console.log('✅ All assets already loaded');
+        resolve(true);
+        return;
+      }
+
+      // Set up event listeners
+      this.scene.load.once('complete', () => {
+        console.log('✅ All assets loaded successfully');
+        resolve(true);
+      });
+
+      this.scene.load.once('filecomplete-error', (file: any) => {
+        console.error(`❌ Failed to load asset: ${file.key} from ${file.src}`);
+        // Continue loading other assets even if one fails
+      });
+
+      this.scene.load.once('loaderror', (file: any) => {
+        console.error(`❌ Load error for: ${file.key}`);
+      });
+
+      // Start the loader if it hasn't started
+      if (!this.scene.load.isLoading()) {
+        this.scene.load.start();
+      }
+    });
   }
 
   /**
    * Load monster sprites and animations
+   * Maps actual file names to simplified keys
    */
-  async loadMonsterAssets(): Promise<void> {
-    const monsters = [
-      'warrior',
-      'dragon',
-      'golem',
-      'ghost',
-      'demon',
-      'spider',
-      'scorpion',
-      'drake',
-      'wraith',
-      'cyclops',
-    ];
+  loadMonsterAssets(): void {
+    // Map of simplified keys to actual file names
+    const monsterFileMap: Record<string, string> = {
+      'monster-celestial-1': 'DALL·E 2024-11-20 16.27.14 - Create an AI-generated image of a Celestial Monster character from a celestial-themed game. The monster is chaotic and otherworldly, with glowing cosm.webp',
+      'monster-celestial-2': 'DALL·E 2024-11-20 16.27.15 - Create an AI-generated image of a Celestial Monster character from a celestial-themed game. The monster is chaotic and otherworldly, with glowing cosm.webp',
+      'monster-horror': 'DALL·E 2024-11-20 16.27.04 - Create a dramatic, horror-themed scene from the celestial-themed game WOOHOO, where the Celestial Monster is attacking all the characters. The monster.webp',
+      'monster-quaternion-poster-1': 'DALL·E 2024-11-22 18.35.00 - Design a cinematic, ultra-high-quality sci-fi movie poster for \'Quaternion.\' The composition features a massive, glowing monster emanating the four po.webp',
+      'monster-quaternion-poster-2': 'DALL·E 2024-11-22 18.36.36 - Create a visually striking and highly detailed sci-fi movie poster for \'Quaternion.\' At the center, a colossal, glowing monster radiates four distinct.webp',
+      'monster-quaternion-poster-3': 'DALL·E 2024-11-22 18.40.56 - Design a highly cinematic sci-fi movie poster for \'Quaternion,\' featuring a towering monster radiating four distinct powers_ Time (blue), Space (green.webp',
+      'monster-quaternion-poster-4': 'DALL·E 2024-11-22 18.42.21 - Create a visually striking sci-fi movie poster for \'Quaternion.\' The central focus is a towering, glowing monster radiating four powers_ Time (blue, s.webp',
+      'monster-quaternion-poster-5': 'DALL·E 2024-11-22 18.44.15 - Design an enhanced sci-fi movie poster for \'Quaternion,\' focusing on the battle between a colossal monster and three futuristic starships. The monster.webp',
+      'monster-elemental': 'DALL·E 2024-11-22 18.49.09 - Create an original and highly detailed sci-fi illustration of a colossal elemental monster formed from four floating islands, each representing a dist.webp',
+      'monster-elemental-2': 'DALL·E 2024-11-22 18.54.19 - Design a breathtaking sci-fi illustration for \'Quaternion_ Defend the Dimensions.\' Depict a massive elemental monster formed from four floating island.webp',
+      'monster-quaternion-final': 'DALL·E 2024-11-22 19.02.15 - Create a visually striking and highly original sci-fi illustration for \'Quaternion_ Defend the Dimensions.\' Center the image on a colossal monster for.webp',
+    };
 
-    // Use actual monster assets from the directory
-    const actualMonsters = [
-      'monster-celestial-1',
-      'monster-celestial-2',
-      'monster-quaternion-poster-1',
-      'monster-quaternion-poster-2',
-      'monster-elemental',
-      'monster-horror',
-    ];
-
-    for (const monster of actualMonsters) {
-      const basePath = `${this.assetPaths.monsters}${monster}.webp`;
+    for (const [key, fileName] of Object.entries(monsterFileMap)) {
+      const basePath = `${this.assetPaths.monsters}${fileName}`;
+      const assetKey = `monster_${key}`;
 
       // Load image (since we have webp files, not spritesheets)
-      this.scene.load.image(`monster_${monster}`, basePath);
+      this.scene.load.image(assetKey, basePath);
 
-      // Cache metadata
-      this.assets.set(`monster_${monster}`, {
+      // Cache metadata (stats will be loaded asynchronously if needed)
+      this.assets.set(assetKey, {
         type: 'monster',
-        name: monster,
+        name: key,
         path: basePath,
-        stats: await this.loadMonsterStats(monster),
+        stats: this.getDefaultMonsterStats(), // Use default stats for now
       });
     }
   }
 
   /**
    * Load country/map theme assets
+   * Maps actual file names to simplified keys
    */
-  async loadCountryAssets(): Promise<void> {
-    const countries = [
-      'country-dubai',
-      'country-china',
-      'country-usa',
-      'country-france',
-    ];
+  loadCountryAssets(): void {
+    // Map of simplified keys to actual file names
+    const countryFileMap: Record<string, string> = {
+      'country-dubai': 'DALL·E 2024-11-20 16.24.01 - Create an AI-generated image of a massive Zerg-inspired monster, the Zyrithon, in a VR perspective, destroying the Burj Khalifa in Dubai, UAE. The sce.webp',
+      'country-china': 'DALL·E 2024-11-20 16.24.05 - Create an AI-generated image of a massive Zerg-inspired monster, the Zyrithon, in a VR perspective, destroying the Great Wall of China. The scene shou.webp',
+      'country-usa': 'DALL·E 2024-11-20 16.24.07 - Create an AI-generated image of a massive Zerg-inspired monster, the Zyrithon, in a VR perspective, destroying the Statue of Liberty in New York, USA.webp',
+      'country-france': 'DALL·E 2024-11-20 16.24.09 - Create an AI-generated image of a massive Zerg-inspired monster, the Zyrithon, in a VR perspective, destroying the Eiffel Tower in Paris, France. The .webp',
+    };
 
-    for (const country of countries) {
-      const basePath = `${this.assetPaths.countries}${country}.webp`;
+    for (const [country, fileName] of Object.entries(countryFileMap)) {
+      const basePath = `${this.assetPaths.countries}${fileName}`;
 
       // Load country image
       this.scene.load.image(`country_${country}`, basePath);
@@ -160,7 +185,7 @@ export class AssetManager {
         type: 'country',
         name: country,
         path: basePath,
-        metadata: await this.loadCountryMetadata(country),
+        metadata: this.getDefaultCountryMetadata(), // Use default metadata for now
       });
     }
   }
@@ -168,7 +193,7 @@ export class AssetManager {
   /**
    * Load UI assets
    */
-  async loadUIAssets(): Promise<void> {
+  loadUIAssets(): void {
     const uiElements = [
       'buttons',
       'panels',
@@ -190,7 +215,7 @@ export class AssetManager {
   /**
    * Load mobile-specific assets and layouts
    */
-  async loadMobileAssets(): Promise<void> {
+  loadMobileAssets(): void {
     // Mobile assets can be loaded on-demand from the mobile-mockups directory
     // The ResponsiveMobileUI will create UI elements programmatically
     console.log('Mobile assets can be loaded on-demand');
