@@ -286,6 +286,49 @@ router.post('/battle-pass/activate', async (req, res) => {
 });
 
 /**
+ * Get battle pass progress
+ */
+router.get('/battle-pass/progress', async (req, res) => {
+  try {
+    const { playerId } = req.query;
+
+    if (!playerId) {
+      return res.status(400).json({ error: 'Player ID required' });
+    }
+
+    // Try to get progress for any active battle pass
+    // Check for standard pass
+    let battlePass = new BattlePass(playerId, 'standard_pass');
+    let progress = null;
+    try {
+      progress = await battlePass.getProgress();
+    } catch (e) {
+      // Try premium pass
+      try {
+        battlePass = new BattlePass(playerId, 'premium_pass');
+        progress = await battlePass.getProgress();
+      } catch (e2) {
+        // Try yearly pass
+        try {
+          battlePass = new BattlePass(playerId, 'yearly_pass');
+          progress = await battlePass.getProgress();
+        } catch (e3) {
+          // No active pass found
+        }
+      }
+    }
+
+    if (!progress) {
+      return res.json({ progress: null });
+    }
+
+    res.json({ progress });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+/**
  * Seasonal ranked pass with NFT badges
  */
 router.post('/seasonal-pass/purchase', async (req, res) => {

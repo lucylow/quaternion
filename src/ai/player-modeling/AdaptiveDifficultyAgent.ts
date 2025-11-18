@@ -112,6 +112,7 @@ export class AdaptiveDifficultyAgent {
       flowReward: 0,
       engagementReward: 0,
       frustrationPenalty: 0,
+      enjoymentReward: 0,
       skillImprovementReward: 0
     };
     

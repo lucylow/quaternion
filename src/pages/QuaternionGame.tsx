@@ -253,92 +253,140 @@ const QuaternionGame = () => {
       return particles;
     }
 
-    // Create enhanced unit graphics with animations
-    function createUnitGraphic(scene: Phaser.Scene, x: number, y: number, color: number, type: string = 'worker'): Phaser.GameObjects.Container {
+    // Create enhanced unit graphics with axis-themed animations
+    function createUnitGraphic(scene: Phaser.Scene, x: number, y: number, color: number, type: string = 'worker', axis?: 'matter' | 'energy' | 'life' | 'knowledge'): Phaser.GameObjects.Container {
       const container = scene.add.container(x, y);
       
-      // Base shape based on type with improved visuals
+      // Determine axis design if not provided (default to matter for workers, energy for soldiers)
+      const unitAxis = axis || (type === 'worker' ? 'matter' : 'energy');
+      const design = AXIS_DESIGNS[unitAxis];
+      const primaryColor = hexToPhaserColor(design.primary);
+      const glowColor = hexToPhaserColor(design.glow);
+      
+      // Base shape based on type and axis with improved visuals
       let shape: Phaser.GameObjects.Graphics;
       if (type === 'worker') {
         shape = scene.add.graphics();
-        // Outer glow
-        shape.fillStyle(color, 0.3);
+        // Outer glow with axis color
+        shape.fillStyle(glowColor, 0.3);
         shape.fillCircle(0, 0, 16);
-        // Main body
-        shape.fillStyle(color, 0.95);
-        shape.fillCircle(0, 0, 12);
-        shape.lineStyle(2, 0xffffff, 1);
-        shape.strokeCircle(0, 0, 12);
+        // Main body with axis-specific shape
+        if (design.shape === 'angular') {
+          // Matter: Angular geometric
+          shape.fillStyle(primaryColor, 0.95);
+          shape.fillRect(-10, -10, 20, 20);
+          shape.lineStyle(2, glowColor, 1);
+          shape.strokeRect(-10, -10, 20, 20);
+        } else {
+          // Default circular
+          shape.fillStyle(primaryColor, 0.95);
+          shape.fillCircle(0, 0, 12);
+          shape.lineStyle(2, glowColor, 1);
+          shape.strokeCircle(0, 0, 12);
+        }
         // Inner highlight
         shape.fillStyle(0xffffff, 0.6);
         shape.fillCircle(-3, -3, 4);
-        // Tool indicator
-        shape.lineStyle(1, 0xffffff, 0.8);
+        // Tool indicator with axis styling
+        shape.lineStyle(1, glowColor, 0.8);
         shape.lineBetween(-6, 6, 6, 6);
       } else if (type === 'soldier') {
         shape = scene.add.graphics();
         // Outer glow
-        shape.fillStyle(color, 0.3);
+        shape.fillStyle(glowColor, 0.3);
         shape.fillCircle(0, 0, 18);
-        // Main triangle body
-        shape.fillStyle(color, 0.95);
+        // Main triangle body with axis color
+        shape.fillStyle(primaryColor, 0.95);
         shape.fillTriangle(-12, 10, 0, -12, 12, 10);
-        shape.lineStyle(2, 0xffffff, 1);
+        shape.lineStyle(2, glowColor, 1);
         shape.strokeTriangle(-12, 10, 0, -12, 12, 10);
-        // Weapon indicator
-        shape.lineStyle(2, 0xffffff, 0.9);
+        // Weapon indicator with energy effect
+        shape.lineStyle(2, glowColor, 0.9);
         shape.lineBetween(0, -12, 0, -18);
+        // Add energy particle effect for energy axis
+        if (unitAxis === 'energy') {
+          shape.fillStyle(glowColor, 0.6);
+          shape.fillCircle(0, -15, 3);
+        }
       } else {
         shape = scene.add.graphics();
         // Outer glow
-        shape.fillStyle(color, 0.3);
-        shape.fillRect(-14, -14, 28, 28);
+        shape.fillStyle(glowColor, 0.3);
+        if (design.shape === 'angular') {
+          shape.fillRect(-16, -16, 32, 32);
+        } else {
+          shape.fillCircle(0, 0, 16);
+        }
         // Main body
-        shape.fillStyle(color, 0.95);
-        shape.fillRect(-12, -12, 24, 24);
-        shape.lineStyle(2, 0xffffff, 1);
-        shape.strokeRect(-12, -12, 24, 24);
-        // Inner cross
-        shape.lineStyle(1, 0xffffff, 0.7);
-        shape.lineBetween(-6, 0, 6, 0);
-        shape.lineBetween(0, -6, 0, 6);
+        shape.fillStyle(primaryColor, 0.95);
+        if (design.shape === 'angular') {
+          shape.fillRect(-12, -12, 24, 24);
+          shape.lineStyle(2, glowColor, 1);
+          shape.strokeRect(-12, -12, 24, 24);
+        } else {
+          shape.fillCircle(0, 0, 12);
+          shape.lineStyle(2, glowColor, 1);
+          shape.strokeCircle(0, 0, 12);
+        }
+        // Inner pattern based on axis
+        if (design.shape === 'fractal') {
+          shape.lineStyle(1, glowColor, 0.7);
+          shape.strokeCircle(0, 0, 8);
+          shape.lineBetween(-6, 0, 6, 0);
+          shape.lineBetween(0, -6, 0, 6);
+        } else {
+          shape.lineStyle(1, glowColor, 0.7);
+          shape.lineBetween(-6, 0, 6, 0);
+          shape.lineBetween(0, -6, 0, 6);
+        }
       }
       
       container.add(shape);
       
-      // Pulsing animation for units
+      // Enhanced pulsing animation with axis-specific timing
+      const pulseDuration = unitAxis === 'energy' ? 800 : 1000;
       scene.tweens.add({
         targets: container,
         scaleX: { from: 1, to: 1.1 },
         scaleY: { from: 1, to: 1.1 },
-        duration: 1000,
+        duration: pulseDuration,
         yoyo: true,
         repeat: -1,
-        ease: 'Sine.easeInOut'
+        ease: unitAxis === 'energy' ? 'Power2' : 'Sine.easeInOut'
       });
       
-      // Health bar background with border
+      // Health bar background with axis-themed border
       const healthBg = scene.add.graphics();
       healthBg.fillStyle(0x000000, 0.7);
       healthBg.fillRect(-16, -22, 32, 6);
-      healthBg.lineStyle(1, 0xffffff, 0.5);
+      healthBg.lineStyle(1, glowColor, 0.5);
       healthBg.strokeRect(-16, -22, 32, 6);
       container.add(healthBg);
       
-      // Health bar
+      // Health bar with axis color gradient
       const healthBar = scene.add.graphics();
-      healthBar.fillStyle(0x00ff00, 1);
+      healthBar.fillStyle(primaryColor, 1);
       healthBar.fillRect(-15, -21, 30, 4);
       container.add(healthBar);
       container.setData('healthBar', healthBar);
       container.setData('maxHealth', 100);
       container.setData('health', 100);
+      container.setData('axis', unitAxis);
       
       return container;
     }
 
     function create(this: Phaser.Scene) {
       const { width, height } = this.cameras.main;
+
+      // Create particle texture if it doesn't exist (for particle effects)
+      if (!this.textures.exists('particle')) {
+        const particleGraphics = this.add.graphics();
+        particleGraphics.fillStyle(0xffffff, 1);
+        particleGraphics.fillCircle(0, 0, 2);
+        particleGraphics.generateTexture('particle', 4, 4);
+        particleGraphics.destroy();
+      }
 
       // Use a map image as background if available, otherwise fall back to gradient
       let backgroundImage: Phaser.GameObjects.Image | Phaser.GameObjects.Graphics | null = null;
@@ -464,7 +512,7 @@ const QuaternionGame = () => {
       }
       gridGraphics.setDepth(-999);
       
-      // Add subtle animated stars/particles in background
+      // Add subtle animated stars/particles in background with AI thought visuals
       for (let i = 0; i < 50; i++) {
         const star = this.add.circle(
           Math.random() * width * 2,
@@ -482,6 +530,79 @@ const QuaternionGame = () => {
           repeat: -1,
           ease: 'Sine.easeInOut'
         });
+      }
+      
+      // Add AI Thought Visuals: Floating data streams and glowing nodes
+      const aiThoughtVisuals: Phaser.GameObjects.GameObject[] = [];
+      
+      // Create glowing nodes (AI cognition indicators)
+      for (let i = 0; i < 8; i++) {
+        const nodeX = Math.random() * width * 2;
+        const nodeY = Math.random() * height * 2;
+        const nodeColor = AI_THOUGHT_VISUALS.glowingNode.color;
+        
+        const node = this.add.circle(nodeX, nodeY, 3, nodeColor, 0.6);
+        node.setDepth(-997);
+        
+        // Pulsing glow effect
+        this.tweens.add({
+          targets: node,
+          scale: { from: 1, to: 2 },
+          alpha: { from: 0.6, to: 0.2 },
+          duration: 2000 + Math.random() * 1000,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut'
+        });
+        
+        // Slow drift movement
+        this.tweens.add({
+          targets: node,
+          x: nodeX + (Math.random() - 0.5) * 200,
+          y: nodeY + (Math.random() - 0.5) * 200,
+          duration: 5000 + Math.random() * 5000,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut'
+        });
+        
+        aiThoughtVisuals.push(node);
+      }
+      
+      // Create data streams (floating information particles)
+      for (let i = 0; i < 5; i++) {
+        const streamX = Math.random() * width * 2;
+        const streamY = Math.random() * height * 2;
+        const streamColor = AI_THOUGHT_VISUALS.dataStream.color;
+        
+        // Create a line that moves like a data stream
+        const stream = this.add.graphics();
+        stream.lineStyle(1, streamColor, 0.4);
+        stream.setDepth(-997);
+        
+        // Animate the stream
+        let streamProgress = 0;
+        const streamLength = 50 + Math.random() * 50;
+        const streamAngle = Math.random() * Math.PI * 2;
+        
+        this.tweens.add({
+          targets: { progress: 0 },
+          progress: 1,
+          duration: 3000 + Math.random() * 2000,
+          repeat: -1,
+          onUpdate: (tween) => {
+            streamProgress = tween.progress;
+            stream.clear();
+            stream.lineStyle(1, streamColor, 0.4);
+            const startX = streamX + Math.cos(streamAngle) * streamProgress * streamLength;
+            const startY = streamY + Math.sin(streamAngle) * streamProgress * streamLength;
+            const endX = startX + Math.cos(streamAngle) * 20;
+            const endY = startY + Math.sin(streamAngle) * 20;
+            stream.lineBetween(startX, startY, endX, endY);
+          }
+        });
+        
+        aiThoughtVisuals.push(stream);
       }
 
       // Create resource nodes with axis-specific enhanced visuals
@@ -1827,23 +1948,59 @@ const QuaternionGame = () => {
                 Exit Game
               </Button>
 
-              <div className="flex items-center gap-6">
-                {/* Resources */}
-                <div className="flex items-center gap-2 bg-gray-800/80 px-3 py-2 rounded-lg">
-                  <Box className="w-4 h-4 text-blue-400" />
-                  <span className="text-white font-mono">{resources.ore}</span>
+              <div className="flex items-center gap-4">
+                {/* Enhanced Resources with Axis-Specific Styling */}
+                <div 
+                  className="flex items-center gap-2 bg-gray-800/85 backdrop-blur-sm px-3 py-2 rounded-lg border border-blue-400/30 hover:border-blue-400/60 transition-all group"
+                  style={{ 
+                    boxShadow: `0 0 10px rgba(74, 144, 226, ${resources.ore > 50 ? 0.3 : 0.1})`,
+                    animation: resources.ore < 50 ? 'pulse 2s infinite' : 'none'
+                  }}
+                >
+                  <Box className="w-4 h-4 text-blue-400 group-hover:scale-110 transition-transform" />
+                  <span className="text-white font-mono font-semibold">{resources.ore}</span>
+                  {resources.ore < 50 && (
+                    <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
+                  )}
                 </div>
-                <div className="flex items-center gap-2 bg-gray-800/80 px-3 py-2 rounded-lg">
-                  <Zap className="w-4 h-4 text-yellow-400" />
-                  <span className="text-white font-mono">{resources.energy}</span>
+                <div 
+                  className="flex items-center gap-2 bg-gray-800/85 backdrop-blur-sm px-3 py-2 rounded-lg border border-yellow-400/30 hover:border-yellow-400/60 transition-all group"
+                  style={{ 
+                    boxShadow: `0 0 10px rgba(255, 107, 53, ${resources.energy > 50 ? 0.3 : 0.1})`,
+                    animation: resources.energy < 50 ? 'pulse 2s infinite' : 'none'
+                  }}
+                >
+                  <Zap className="w-4 h-4 text-yellow-400 group-hover:scale-110 transition-transform" />
+                  <span className="text-white font-mono font-semibold">{resources.energy}</span>
+                  {resources.energy < 50 && (
+                    <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
+                  )}
                 </div>
-                <div className="flex items-center gap-2 bg-gray-800/80 px-3 py-2 rounded-lg">
-                  <Leaf className="w-4 h-4 text-green-400" />
-                  <span className="text-white font-mono">{resources.biomass}</span>
+                <div 
+                  className="flex items-center gap-2 bg-gray-800/85 backdrop-blur-sm px-3 py-2 rounded-lg border border-green-400/30 hover:border-green-400/60 transition-all group"
+                  style={{ 
+                    boxShadow: `0 0 10px rgba(80, 200, 120, ${resources.biomass > 50 ? 0.3 : 0.1})`,
+                    animation: resources.biomass < 50 ? 'pulse 2s infinite' : 'none'
+                  }}
+                >
+                  <Leaf className="w-4 h-4 text-green-400 group-hover:scale-110 transition-transform" />
+                  <span className="text-white font-mono font-semibold">{resources.biomass}</span>
+                  {resources.biomass < 50 && (
+                    <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                  )}
                 </div>
-                <div className="flex items-center gap-2 bg-gray-800/80 px-3 py-2 rounded-lg">
-                  <Brain className="w-4 h-4 text-purple-400" />
-                  <span className="text-white font-mono">{resources.data}</span>
+                <div 
+                  className="flex items-center gap-2 bg-gray-800/85 backdrop-blur-sm px-3 py-2 rounded-lg border border-purple-400/30 hover:border-purple-400/60 transition-all group"
+                  style={{ 
+                    boxShadow: `0 0 10px rgba(157, 78, 221, ${resources.data > 50 ? 0.3 : 0.1})`,
+                    animation: resources.data < 50 ? 'pulse 2s infinite' : 'none'
+                  }}
+                >
+                  <Brain className="w-4 h-4 text-purple-400 group-hover:scale-110 transition-transform" />
+                  <span className="text-white font-mono font-semibold">{resources.data}</span>
+                  {resources.data < 50 && (
+                    <div className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
+                  )}
                 </div>
               </div>
 
@@ -1890,9 +2047,39 @@ const QuaternionGame = () => {
           {/* Game Canvas */}
           <div ref={gameRef} className="w-full h-full" />
 
-          {/* Enhanced RTS Bottom Panel */}
+          {/* Enhanced RTS Bottom Panel with AI Flair */}
           <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-gray-900/95 via-gray-900/90 to-transparent p-4 pointer-events-none">
-            <div className="flex items-end justify-between gap-4 max-w-[1800px] mx-auto">
+            {/* Waveform Overlay for AI Feedback */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-cyan-400/20 to-transparent">
+                <div 
+                  className="h-full bg-cyan-400/40 animate-waveform"
+                  style={{ 
+                    width: '100px',
+                    animation: 'waveform 3s ease-in-out infinite',
+                    animationDelay: '0s'
+                  }}
+                />
+                <div 
+                  className="h-full bg-purple-400/30 animate-waveform"
+                  style={{ 
+                    width: '80px',
+                    animation: 'waveform 2.5s ease-in-out infinite',
+                    animationDelay: '0.5s'
+                  }}
+                />
+                <div 
+                  className="h-full bg-blue-400/30 animate-waveform"
+                  style={{ 
+                    width: '120px',
+                    animation: 'waveform 3.5s ease-in-out infinite',
+                    animationDelay: '1s'
+                  }}
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-end justify-between gap-4 max-w-[1800px] mx-auto relative">
               {/* Left: Unit Panel */}
               <div className="pointer-events-auto">
                 <UnitPanel selectedUnits={selectedUnits} onCommand={handleUnitCommand} />
@@ -1908,7 +2095,7 @@ const QuaternionGame = () => {
                 <div className="flex items-center gap-2">
                   <Button
                     onClick={() => setShowBuildMenu(!showBuildMenu)}
-                    className="bg-cyan-600 hover:bg-cyan-700"
+                    className="bg-cyan-600/90 hover:bg-cyan-700 backdrop-blur-sm border border-cyan-400/30 hover:border-cyan-400/60 transition-all shadow-lg hover:shadow-cyan-400/50"
                     size="sm"
                   >
                     <Building className="w-4 h-4 mr-2" />
@@ -1916,15 +2103,15 @@ const QuaternionGame = () => {
                   </Button>
                   <Button
                     onClick={() => setShowTechTree(!showTechTree)}
-                    className="bg-purple-600 hover:bg-purple-700"
+                    className="bg-purple-600/90 hover:bg-purple-700 backdrop-blur-sm border border-purple-400/30 hover:border-purple-400/60 transition-all shadow-lg hover:shadow-purple-400/50"
                     size="sm"
                   >
                     <Brain className="w-4 h-4 mr-2" />
                     Tech
                   </Button>
                 </div>
-                <div className="text-xs text-gray-400 flex items-center gap-2">
-                  <Trophy className="w-3 h-3" />
+                <div className="text-xs text-gray-400 flex items-center gap-2 bg-gray-800/50 px-2 py-1 rounded backdrop-blur-sm">
+                  <Trophy className="w-3 h-3 text-yellow-400" />
                   <span>Chroma Awards 2025 - Puzzle/Strategy | Tools: ElevenLabs, OpenArt, Gemini, Fuser, Luma AI</span>
                 </div>
               </div>
@@ -2053,22 +2240,41 @@ const QuaternionGame = () => {
             />
           </div>
 
-          {/* AI Messages */}
+          {/* Enhanced AI Messages with Minimalistic Design */}
           <div className="absolute top-20 right-4 z-20 space-y-2 max-w-sm">
-            {aiMessages.map(msg => (
-              <div
-                key={msg.id}
-                className="bg-gray-800/90 border border-cyan-400/30 rounded-lg p-3 animate-in slide-in-from-right"
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-                  <span className="text-cyan-400 text-sm font-bold">
-                    {COMMANDERS[msg.commander].name}
-                  </span>
+            {aiMessages.map(msg => {
+              const commander = COMMANDERS[msg.commander];
+              const commanderColor = commander.color || '#00ffea';
+              
+              return (
+                <div
+                  key={msg.id}
+                  className="bg-gray-800/90 backdrop-blur-sm border rounded-lg p-3 animate-in slide-in-from-right shadow-lg transition-all hover:scale-[1.02]"
+                  style={{
+                    borderColor: `${commanderColor}40`,
+                    boxShadow: `0 4px 12px ${commanderColor}20, 0 0 8px ${commanderColor}10`
+                  }}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <div 
+                      className="w-2 h-2 rounded-full animate-pulse"
+                      style={{ backgroundColor: commanderColor }}
+                    />
+                    <span 
+                      className="text-sm font-bold"
+                      style={{ color: commanderColor }}
+                    >
+                      {commander.name}
+                    </span>
+                    <span className="text-xs text-gray-400 ml-auto">{commander.role}</span>
+                  </div>
+                  <p className="text-white text-sm leading-relaxed">{msg.message}</p>
+                  
+                  {/* Subtle waveform indicator */}
+                  <div className="mt-2 h-0.5 bg-gradient-to-r from-transparent via-current to-transparent opacity-20" style={{ color: commanderColor }} />
                 </div>
-                <p className="text-white text-sm">{msg.message}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Build Menu */}

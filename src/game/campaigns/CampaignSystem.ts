@@ -6,7 +6,7 @@
 
 import type { NarrativeManager } from '../narrative/NarrativeManager';
 import type { EmotionalBeatSystem } from '../narrative/EmotionalBeatSystem';
-import type { Character } from '../narrative/Character';
+import { Character, CharacterRace, CharacterClass } from '../narrative/Character';
 
 export interface CampaignConfig {
   id: string;
@@ -273,9 +273,6 @@ export class CampaignSystem {
    */
   private createCharacterFromCampaign(campaignChar: CampaignCharacter): Character | null {
     if (!this.narrativeManager) return null;
-
-    // Import Character class dynamically to avoid circular dependency
-    const { Character, CharacterRace, CharacterClass } = require('../narrative/Character');
     
     const character = new Character(
       campaignChar.id,

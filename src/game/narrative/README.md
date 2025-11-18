@@ -1,378 +1,270 @@
-# AI-Driven Narrative System
+# 📖 Story & Narrative Systems - Making Worlds Entertaining
 
-Complete implementation of AI-driven narrative design for Quaternion Strategy Game, featuring dynamic story generation, character AI, emotional pacing, adaptive branching, and procedural dialogue.
+This comprehensive narrative system adds depth, entertainment, and player-driven storytelling to Quaternion campaigns.
 
-## 🧠 Core Architecture
+## 🎭 Core Components
 
-### Components
+### NarrativeManager
+The central orchestrator for all narrative systems. Manages:
+- World lore and history
+- Active story arcs
+- Character relationships
+- Player reputation
+- World state tension
 
-1. **AINarrativeDirector** - Main orchestrator for all narrative systems
-2. **StoryWeaver** - Dynamic story and plot twist generation
-3. **CharacterAI** - Personality-driven character behavior and memory
-4. **EmotionalPacingDirector** - Story beat management and emotional pacing
-5. **AdaptiveStorytelling** - Dynamic narrative branching based on player actions
-6. **AIDialogueSystem** - Procedural, character-voiced dialogue generation
-7. **AIQuestGenerator** - Personalized quest generation
-8. **NarrativeAnalytics** - Player choice tracking and narrative insights
+### LoreGenerator
+Dynamically generates:
+- **Creation Myths**: Poetic origin stories for the world
+- **Historical Events**: Major events with causal relationships
+- **Current Conflicts**: Active tensions between factions
+- **Faction Relationships**: Complex political dynamics
+- **World Secrets**: Mysteries waiting to be discovered
 
-## 📖 Features
+### StoryArc System
+Interactive story progression with:
+- **Story Nodes**: Dialogue, combat, exploration, choice, discovery
+- **Player Choices**: Meaningful decisions with immediate and long-term consequences
+- **Arc Progression**: Dynamic story advancement based on player actions
+- **Completion Rewards**: Unlock abilities, reputation, items
 
-### Dynamic Story Generation
+### Character System
+Deep character simulation with:
+- **Personality Matrix**: Big Five personality traits (Openness, Conscientiousness, Extraversion, Agreeableness, Neuroticism)
+- **Relationship Tracking**: Dynamic relationships between characters
+- **Memory System**: Characters remember interactions and events
+- **Mood System**: Characters react emotionally to events
+- **Dialogue Trees**: Context-aware conversations based on relationships
 
-- **Emergent Storylines**: AI generates storylines that connect to player actions
-- **Plot Twists**: Surprising but believable twists that change perspective
-- **World Model**: Tracks factions, events, tensions, and active characters
-- **Player Modeling**: Tracks archetype, playstyle, moral alignment, and emotions
+### MysterySystem
+Discovery and investigation gameplay:
+- **Mystery Generation**: Ancient ruins, missing expeditions, magical anomalies, conspiracies
+- **Clue System**: Documents, objects, testimony, locations
+- **Archaeological Discovery**: Uncover historical events through evidence
+- **Mystery Resolution**: Solve mysteries for unique rewards
 
-### Character AI
+### PlayerDrivenNarrative
+Player legacy and emergent storytelling:
+- **Legacy Events**: Track significant player actions
+- **Emergent Story Arcs**: Generate stories based on player choices
+- **Reputation System**: Faction relationships, hero/enemy status
+- **Consequence System**: Immediate and delayed effects of actions
 
-- **Personality Matrix**: OCEAN traits + custom traits (curiosity, ambition, loyalty)
-- **Memory System**: Characters remember player interactions and world events
-- **Relationship Tracking**: Dynamic relationships that evolve based on actions
-- **Emotional States**: Characters react emotionally to events
-- **Goal-Driven Behavior**: Characters pursue goals based on personality
+### EmotionalBeatSystem
+Story pacing and emotional arcs:
+- **Emotional Beats**: Revelation, conflict, catharsis, climax, tension
+- **Dynamic Pacing**: Beat intervals adjust based on tension
+- **Emotional States**: Curious, tense, excited, relief, sad, hopeful
+- **Story Arc Generation**: Automatically generate beats for campaigns
 
-### Emotional Pacing
-
-- **Story Beats**: Dynamic emotional moments triggered by conditions
-- **Pacing Management**: Automatically adjusts narrative pacing based on world state
-- **Character Reactions**: Characters react to emotional beats
-- **Atmospheric Transitions**: Smooth emotional transitions throughout story
-
-### Adaptive Branching
-
-- **Condition-Based Branches**: Branches unlock based on player choices and world state
-- **Relevance Scoring**: Branches scored by alignment, drama, and coherence
-- **Variety Selection**: Weighted random selection prevents repetitive paths
-- **Dynamic Generation**: New branches generated based on player actions
-
-### Procedural Dialogue
-
-- **Character Voices**: Unique speech patterns, vocabulary, and formality per character
-- **Contextual Dialogue**: Dialogue adapts to situation, relationship, and emotion
-- **Player Options**: AI-generated dialogue options that match player archetype
-- **Voice Application**: LLM rewrites dialogue to match character voice
-
-### Quest Generation
-
-- **Personalized Quests**: Quests match player archetype, playstyle, and recent actions
-- **Quest Variants**: Multiple variants of same quest structure
-- **Difficulty Adjustment**: Quests adjust to player skill level
-- **Moral Choices**: Meaningful choices with consequences
-
-### Analytics & Learning
-
-- **Choice Tracking**: Records all player choices with context and outcomes
-- **Engagement Metrics**: Tracks time spent, choices made, emotional responses
-- **Pattern Detection**: Identifies player preference patterns by archetype
-- **Narrative Insights**: LLM-generated insights for narrative improvement
-- **Choice Prediction**: Predicts likely player choices for narrative preparation
+### WorldStateNarrative
+Living, breathing world:
+- **Faction Relationships**: Dynamic political relationships
+- **War System**: Factions can go to war or form alliances
+- **World Events**: Disasters, discoveries, festivals, conflicts
+- **Player Intervention**: Players can influence wars and events
+- **Global Tension**: World-wide tension tracking
 
 ## 🚀 Usage
 
 ### Basic Setup
 
 ```typescript
-import { AINarrativeDirector } from '@/game/narrative';
-import { LLMIntegration } from '@/ai/integrations/LLMIntegration';
-import { MemoryManager } from '@/ai/memory/MemoryManager';
+import { NarrativeManager } from './narrative/NarrativeManager';
+import { EmotionalBeatSystem } from './narrative/EmotionalBeatSystem';
+import { CampaignSystem } from './campaigns/CampaignSystem';
 
-// Initialize LLM
-const llm = new LLMIntegration({
-  provider: 'google', // or 'openai', 'saga'
-  apiKey: process.env.LLM_API_KEY,
-  temperature: 0.8,
-  maxTokens: 1000
-});
-
-// Initialize memory
-const memory = new MemoryManager();
-
-// Create narrative director
-const narrative = new AINarrativeDirector(llm, memory);
-
-// Initialize with world seed
-await narrative.initializeNarrativeAI(worldSeed);
-```
-
-### Recording Player Actions
-
-```typescript
-// Record player actions
-narrative.recordPlayerAction('Built a factory', 'expanded_industry');
-
-// Get narrative state
-const state = narrative.getNarrativeState();
-console.log(state.activeStorylines);
-console.log(state.currentTension);
-```
-
-### Generating Storylines
-
-```typescript
-// Storylines are generated automatically by the director
-// But you can also generate manually:
-const storyWeaver = new StoryWeaver(llm, memory);
-const storyline = await storyWeaver.generateEmergentStoryline(
-  narrative.worldModel,
-  narrative.playerProfile
-);
-```
-
-### Character Interaction
-
-```typescript
-import { CharacterAI } from '@/game/narrative';
-
-const characterAI = new CharacterAI(llm, memory);
-
-// Create a character
-const character = characterAI.createCharacter('advisor_1', {
-  openness: 0.8,
-  conscientiousness: 0.7,
-  extraversion: 0.6,
-  agreeableness: 0.9,
-  curiosity: 0.8
-});
-
-// Generate dialogue
-const dialogue = await characterAI.generateDialogue(
-  'advisor_1',
-  'resource allocation',
-  worldModel,
-  playerProfile
-);
-
-// Process player interaction
-characterAI.processPlayerInteraction('advisor_1', {
-  description: 'Player helped the character',
-  emotionalImpact: 0.8,
-  type: 'helpful'
-});
-```
-
-### Emotional Pacing
-
-```typescript
-import { EmotionalPacingDirector } from '@/game/narrative';
-
-const pacing = new EmotionalPacingDirector(llm, (beat) => {
-  // Execute beat: play audio, show UI, etc.
-  console.log('Emotional beat:', beat);
-});
-
-// Update pacing (call in game loop)
-await pacing.updateEmotionalPacing(worldModel, playerProfile);
-
-// Get current state
-const state = pacing.getCurrentState();
-console.log(state.pacing, state.dominantEmotion);
-```
-
-### Adaptive Branching
-
-```typescript
-import { AdaptiveStorytelling } from '@/game/narrative';
-
-const storytelling = new AdaptiveStorytelling(llm, (oldBranch, newBranch) => {
-  // Handle branch transition
-  console.log('Transitioning to:', newBranch.title);
-});
-
-// Evaluate next branch (call periodically)
-await storytelling.evaluateNextBranch(playerProfile, worldModel);
-
-// Get current branch
-const currentBranch = storytelling.getCurrentBranch();
-```
-
-### Dialogue System
-
-```typescript
-import { AIDialogueSystem } from '@/game/narrative';
-
-const dialogue = new AIDialogueSystem(llm);
-
-// Register character voice
-dialogue.registerCharacterVoice({
-  characterId: 'advisor_1',
-  personalityTraits: ['curious', 'compassionate'],
-  speechPatterns: ['direct', 'polite'],
-  catchphrases: ['I see.', 'Very interesting.'],
-  emotionalTendencies: {},
-  formalityLevel: 0.7,
-  verbosity: 0.6
-});
-
-// Generate dialogue
-const response = await dialogue.generateContextualDialogue(
-  'advisor_1',
-  'recent events',
-  worldModel,
-  playerProfile,
-  characterEmotion
-);
-
-// Generate dialogue options for player
-const options = await dialogue.generateDialogueOptions(
-  playerProfile,
-  'advisor_1',
-  worldModel,
-  ['resources', 'strategy', 'recent events']
-);
-```
-
-### Quest Generation
-
-```typescript
-import { AIQuestGenerator } from '@/game/narrative';
-
-const questGen = new AIQuestGenerator(llm, memory);
-
-// Generate personalized quest
-const quest = await questGen.generatePersonalizedQuest(
-  playerProfile,
-  worldModel,
-  availableCharacters
-);
-
-// Generate variants
-const variants = await questGen.generateQuestVariants(quest, 3);
-
-// Adjust difficulty
-const adjusted = await questGen.adjustQuestDifficulty(quest, playerProfile);
-```
-
-### Analytics
-
-```typescript
-import { NarrativeAnalytics } from '@/game/narrative';
-
-const analytics = new NarrativeAnalytics(llm);
-
-// Record player choice
-analytics.recordPlayerChoice({
-  choiceId: 'choice_1',
-  context: 'Resource allocation decision',
-  optionSelected: 'expand_industry',
-  optionsAvailable: ['expand_industry', 'preserve_environment', 'balance'],
-  decisionTime: 3500,
-  playerArchetype: 'strategist',
-  playerEmotion: { type: 'neutral', intensity: 0.5, getPacingModifier: () => 0 },
-  outcomes: { resources: 50, tension: -10 },
-  timestamp: Date.now()
-});
-
-// Generate insights
-const insights = await analytics.generateNarrativeInsights();
-
-// Predict player choice
-const prediction = await analytics.predictPlayerChoice(
-  'Resource allocation decision',
-  ['expand', 'preserve', 'balance'],
-  playerProfile
-);
-```
-
-## 🔧 Integration with Existing Systems
-
-### With Game State
-
-```typescript
-import { NarrativeIntegration } from '@/game/narrative/NarrativeIntegration';
-
-const integration = createNarrativeIntegration(gameState, {
+// Initialize narrative systems
+const narrativeManager = new NarrativeManager({
   provider: 'google',
-  apiKey: process.env.LLM_API_KEY
+  apiKey: process.env.GOOGLE_AI_API_KEY
 });
 
-await integration.initialize(worldSeed);
+const emotionalBeats = new EmotionalBeatSystem();
 
-// Record actions
-integration.recordPlayerAction('Built factory', 'expansion');
+// Initialize campaign system with narrative integration
+const campaignSystem = new CampaignSystem(narrativeManager, emotionalBeats);
+
+// Start a campaign
+const state = await campaignSystem.startCampaign('archive', 913027);
 ```
 
-### With Advisor System
-
-The narrative system integrates with the existing `AdvisorTensionSystem`:
+### Using Narrative Features in Campaigns
 
 ```typescript
-// Advisors can be converted to AI characters
-const advisorCharacter = characterAI.createCharacter('LIRA', {
-  openness: 0.7,
-  conscientiousness: 0.9,
-  extraversion: 0.8,
-  agreeableness: 0.5,
-  baseAggression: 0.8,
-  baseCaution: 0.2
+// Get active story arcs
+const activeArcs = narrativeManager.getActiveArcs();
+
+// Get character
+const character = narrativeManager.getCharacter('mara');
+if (character) {
+  // Update relationship
+  character.updateRelationship('player', 10, 'Player helped character');
+  
+  // Get dialogue response
+  const response = character.getDialogueResponse('bio_seed', 50, 0.7);
+}
+
+// Discover a mystery clue
+const clue = {
+  clueId: 'clue_1',
+  description: 'Ancient inscriptions found',
+  type: ClueType.DOCUMENT,
+  worldLocation: { x: 100, y: 200 },
+  relatedMysteryIds: ['mystery_ancient_ruins'],
+  reliability: 85,
+  source: 'Ancient Ruins'
+};
+mysterySystem.onClueDiscovered(clue, 'player');
+
+// Record player action
+narrativeManager.recordPlayerChoice({
+  id: 'choice_1',
+  choiceId: 'harvest_or_preserve',
+  option: 'harvest',
+  timestamp: Date.now(),
+  consequences: ['Bio-seed health decreased']
 });
+
+// Update emotional beats
+emotionalBeats.update(deltaTime);
+const currentState = emotionalBeats.getCurrentState();
 ```
+
+## 🎮 Integration Points
 
 ### With Campaign System
+- Campaigns automatically generate emotional beats
+- Character personalities are created from campaign characters
+- Player choices are tracked in the narrative system
+- Reputation updates based on moral choices
 
-Narrative events can be integrated with the campaign system:
-
+### With Game Loop
 ```typescript
-// Generate narrative events from storylines
-const storyline = narrative.activeStorylines[0];
-const narrativeEvent = {
-  event: storyline.title,
-  trigger: 'active_storyline',
-  flavor: storyline.hook,
-  effect: { tension: 20 },
-  narrativeTag: storyline.emotionalArc
-};
+// In game update loop
+function update(deltaTime: number) {
+  // Update emotional beats
+  emotionalBeats.update(deltaTime);
+  
+  // Update world state narrative
+  await worldStateNarrative.updateWorldState(deltaTime);
+  
+  // Check for story triggers
+  const activeArcs = narrativeManager.getActiveArcs();
+  for (const arc of activeArcs) {
+    // Check if arc should advance
+  }
+}
 ```
 
-## 📊 Performance Considerations
+### With UI
+- Display narrative events
+- Show character relationships
+- Present mystery clues
+- Show emotional state
+- Display world events
 
-- **Caching**: LLM responses are cached where possible (map themes, commander personalities)
-- **Batching**: Narrative updates run in intervals, not every frame
-- **Fallbacks**: All systems have fallback responses when LLM calls fail
-- **Token Limits**: Context compression keeps prompts within token limits
-- **Rate Limiting**: Consider rate limiting LLM calls in production
+## 📊 Features
+
+### Dynamic Story Generation
+- LLM-powered story arcs
+- Emergent narratives based on player actions
+- Procedural mysteries and discoveries
+- Context-aware dialogue
+
+### Character Depth
+- Personality-driven behavior
+- Relationship dynamics
+- Memory system
+- Emotional reactions
+
+### Player Agency
+- Choices have lasting consequences
+- Reputation affects gameplay
+- Legacy system tracks player impact
+- Emergent stories from player actions
+
+### World Simulation
+- Faction relationships evolve
+- Wars and alliances form dynamically
+- Global tension affects events
+- World responds to player actions
+
+## 🔧 Configuration
+
+### LLM Provider
+The system supports multiple LLM providers:
+- Google AI (Gemini)
+- OpenAI
+- Saga AI
+
+Configure in `NarrativeManager` constructor:
+```typescript
+const narrativeManager = new NarrativeManager({
+  provider: 'google',
+  apiKey: 'your-api-key',
+  temperature: 0.7,
+  maxTokens: 500
+});
+```
+
+### Emotional Beat Timing
+Adjust beat intervals in `EmotionalBeatSystem`:
+```typescript
+emotionalBeats.timeBetweenBeats = 300; // 5 minutes
+```
+
+### Mystery Difficulty
+Configure mystery generation in `MysterySystem`:
+```typescript
+mysterySystem.mysterySpawnChance = 0.1; // 10% chance
+```
+
+## 📝 Examples
+
+### Creating a Custom Story Arc
+```typescript
+const arc = await StoryArc.generateArc(
+  llm,
+  'custom_arc_1',
+  seed,
+  worldLore
+);
+narrativeManager.activeArcs.push(arc);
+arc.startArc();
+```
+
+### Generating World Lore
+```typescript
+const lore = await loreGenerator.generateWorldLore(seed, {
+  worldType: 'fantasy',
+  dominantBiomes: ['forest', 'mountains'],
+  magicLevel: 0.8,
+  techLevel: 0.3
+});
+```
+
+### Solving a Mystery
+```typescript
+const solved = await mysterySystem.solveMystery('mystery_ancient_ruins', 'player');
+if (solved) {
+  console.log('Mystery solved!');
+}
+```
 
 ## 🎯 Best Practices
 
-1. **Initialize Early**: Initialize narrative systems during game startup
-2. **Update Regularly**: Call update methods from game loop (not every frame)
-3. **Handle Errors**: Always handle LLM failures gracefully with fallbacks
-4. **Monitor Costs**: Track LLM API usage to control costs
-5. **Test Offline**: Use fallbacks for testing without API keys
-6. **Cache Wisely**: Cache generated content that won't change
-7. **Player Privacy**: Consider what data is sent to LLM APIs
-
-## 🎨 Emotional Impact Features
-
-The system creates emotional impact through:
-
-1. **Player-AI Relationships**: NPCs remember and respond to player actions
-2. **Moral Ambiguity**: Choices have meaningful consequences
-3. **Poetic Narrative**: AI-generated poetic epilogues and ambient text
-4. **Atmospheric Sound & Visuals**: Emotional beats trigger audio/visual effects
-5. **Emergent Storytelling**: Unique stories on every playthrough
-6. **Tension & Collapse**: Dramatic tension from balance/imbalance mechanics
-
-## 📚 API Reference
-
-See individual file documentation:
-- `AINarrativeDirector.ts` - Main director
-- `StoryWeaver.ts` - Story generation
-- `CharacterAI.ts` - Character system
-- `EmotionalPacingDirector.ts` - Emotional pacing
-- `AdaptiveStorytelling.ts` - Narrative branching
-- `AIDialogueSystem.ts` - Dialogue generation
-- `AIQuestGenerator.ts` - Quest generation
-- `NarrativeAnalytics.ts` - Analytics and learning
+1. **Initialize Early**: Set up narrative systems before starting campaigns
+2. **Update Regularly**: Call update methods in game loop
+3. **Track Choices**: Record all significant player choices
+4. **Balance Tension**: Use emotional beats to maintain engagement
+5. **React to Player**: Let world state respond to player actions
+6. **Cache LLM Calls**: Use deterministic seeds for reproducible content
 
 ## 🔮 Future Enhancements
 
-- Vector database integration for semantic memory search
-- Multi-modal LLM support (images, audio)
-- Player personality inference from choices
-- Automated playtesting with AI agents
-- Narrative quality scoring
-- Cross-session memory persistence
-- Procedural epilogue generation
-- Dynamic music/soundtrack integration
-
+- Multi-run campaign persistence
+- Character relationship visualization
+- Advanced dialogue generation
+- Procedural quest generation
+- Narrative analytics and metrics
+- Player story replay system
