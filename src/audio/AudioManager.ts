@@ -240,8 +240,7 @@ export default class AudioManager {
    */
   playEnvironment(sound: 'wind' | 'lava' | 'creak' | 'rumble'): void {
     this.playSFX(`env_${sound}`, {
-      volume: 0.5,
-      loop: false
+      volume: 0.5
     });
   }
 

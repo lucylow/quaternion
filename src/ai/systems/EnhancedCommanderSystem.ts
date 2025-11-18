@@ -156,7 +156,7 @@ export class EnhancedCommanderSystem {
               type: 'condition',
               name: 'check_strategic_opportunity',
               condition: (gameState, personality) => {
-                return personality.traits.strategicFocus > 0.6;
+                return Number(personality.traits.strategicFocus) > 0.6;
               }
             },
             {
@@ -164,7 +164,7 @@ export class EnhancedCommanderSystem {
               name: 'invest_in_tech',
               action: (gameState, personality) => ({
                 type: 'research',
-                priority: 0.8 * personality.traits.strategicFocus,
+                priority: 0.8 * Number(personality.traits.strategicFocus),
                 reason: 'Strategic focus: investing in technology'
               })
             }
@@ -394,16 +394,17 @@ export class EnhancedCommanderSystem {
     const archetypes: Record<string, CommanderPersonality> = {
       'the_architect': {
         name: 'The Architect',
+        archetype: 'architect',
+        aggressiveness: 0.3,
+        economyFocus: 0.6,
+        techFocus: 0.8,
+        adaptability: 0.5,
+        riskTolerance: 0.2,
         traits: {
           strategicFocus: 0.8,
           patience: 0.8,
           riskTolerance: 0.2,
           aggression: 0.3
-        },
-        gameplayExpression: {
-          preferredStrategy: 'Fortified positions and tech advancement',
-          unitComposition: 'Defensive units and infrastructure',
-          techPriority: 'High - prefers tech over aggression'
         },
         difficulty: {
           defensive: 'high',
@@ -412,16 +413,17 @@ export class EnhancedCommanderSystem {
       },
       'the_aggressor': {
         name: 'The Aggressor',
+        archetype: 'aggressor',
+        aggressiveness: 0.9,
+        economyFocus: 0.3,
+        techFocus: 0.2,
+        adaptability: 0.4,
+        riskTolerance: 0.8,
         traits: {
           strategicFocus: 0.3,
           patience: 0.2,
           riskTolerance: 0.8,
           aggression: 0.9
-        },
-        gameplayExpression: {
-          preferredStrategy: 'Early rush and constant pressure',
-          unitComposition: 'Offensive units',
-          techPriority: 'Low - prefers units over tech'
         },
         difficulty: {
           defensive: 'low',
@@ -430,16 +432,17 @@ export class EnhancedCommanderSystem {
       },
       'the_guardian': {
         name: 'The Guardian',
+        archetype: 'architect',
+        aggressiveness: 0.2,
+        economyFocus: 0.7,
+        techFocus: 0.6,
+        adaptability: 0.6,
+        riskTolerance: 0.3,
         traits: {
           strategicFocus: 0.6,
           patience: 0.9,
           riskTolerance: 0.3,
           aggression: 0.2
-        },
-        gameplayExpression: {
-          preferredStrategy: 'Defensive turtling',
-          unitComposition: 'Defensive structures and units',
-          techPriority: 'Medium - balanced approach'
         },
         difficulty: {
           defensive: 'high',
@@ -450,16 +453,17 @@ export class EnhancedCommanderSystem {
 
     return archetypes[archetype.toLowerCase()] || {
       name: `Commander ${archetype}`,
+      archetype: 'balanced',
+      aggressiveness: 0.5,
+      economyFocus: 0.5,
+      techFocus: 0.5,
+      adaptability: 0.5,
+      riskTolerance: 0.5,
       traits: {
         strategicFocus: 0.5,
         patience: 0.5,
         riskTolerance: 0.5,
         aggression: 0.5
-      },
-      gameplayExpression: {
-        preferredStrategy: 'Balanced approach',
-        unitComposition: 'Mixed forces',
-        techPriority: 'Medium'
       },
       difficulty: {
         defensive: 'medium',
