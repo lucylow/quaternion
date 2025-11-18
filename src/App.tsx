@@ -143,10 +143,10 @@ const App = () => (
             <Suspense fallback={<RouteLoader />}>
               <Routes>
                 <Route path="/" element={<Index />} />
-                <Route path="/game" element={<QuaternionGame />} />
-                <Route path="/game/neural-frontier" element={<QuaternionGame />} />
+                <Route path="/game" element={<GameErrorBoundary><QuaternionGame /></GameErrorBoundary>} />
+                <Route path="/game/neural-frontier" element={<GameErrorBoundary><QuaternionGame /></GameErrorBoundary>} />
                 {/* /quaternion route redirects to /game for backward compatibility */}
-                <Route path="/quaternion" element={<QuaternionGame />} />
+                <Route path="/quaternion" element={<GameErrorBoundary><QuaternionGame /></GameErrorBoundary>} />
                 <Route path="/lobby" element={<LazyLobby />} />
                 <Route path="/about" element={<LazyAbout />} />
                 <Route path="/commanders" element={<LazyCommanders />} />
