@@ -17,6 +17,7 @@ model User {
   entitlements Entitlement[]
   purchases   Purchase[]
   subscriptions Subscription[]
+  battlepassProgress BattlepassProgress?
 }
 
 model Creator {
