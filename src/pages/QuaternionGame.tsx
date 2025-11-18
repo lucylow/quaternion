@@ -1545,7 +1545,7 @@ const QuaternionGame = () => {
             if (offers.length > 0) {
               setAiOffers(prev => [...prev, ...offers]);
               offers.forEach(offer => {
-                sendAIMessage('CORE', `AI Offer: ${offer.terms}`);
+                sendAIMessage('CORE', `AI Offer: ${offer.title || offer.terms || offer.id}`);
               });
             }
             setLastSymbioticCheck(currentTime);

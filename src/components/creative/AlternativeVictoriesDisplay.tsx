@@ -1,7 +1,7 @@
 import { Card } from '@/components/ui/card';
 import { Trophy, Target, Sparkles } from 'lucide-react';
 
-interface AlternativeVictory {
+export interface AlternativeVictory {
   id: string;
   type: string;
   title: string;
@@ -9,6 +9,8 @@ interface AlternativeVictory {
   progress: number;
   maxProgress: number;
   unlocked?: boolean;
+  // Legacy support
+  name?: string;
 }
 
 interface AlternativeVictoriesDisplayProps {

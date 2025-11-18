@@ -2,7 +2,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Sparkles, Check, X } from 'lucide-react';
 
-interface AIOffer {
+export interface AIOffer {
   id: string;
   type: string;
   title: string;
@@ -11,6 +11,8 @@ interface AIOffer {
   costs?: string[];
   onAccept?: () => void;
   onDecline?: () => void;
+  // Legacy support
+  terms?: string;
 }
 
 interface AIOffersPanelProps {
