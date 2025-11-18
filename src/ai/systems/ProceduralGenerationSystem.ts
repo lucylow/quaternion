@@ -61,7 +61,7 @@ export class ProceduralGenerationSystem {
       seed: config.seed,
       width: config.width,
       height: config.height,
-      personality: 'balanced',
+      personality: 'aggressive',
       biome: this.mapTypeToBiome(config.mapType)
     });
 
@@ -176,11 +176,12 @@ export class ProceduralGenerationSystem {
       if (feature.toLowerCase().includes('elevation') || feature.toLowerCase().includes('high ground')) {
         // Add elevation points
         map.terrainFeatures.push({
-          type: 'elevation',
           x: map.width * 0.5,
           y: map.height * 0.5,
-          radius: 50,
-          effect: 'defensive_bonus'
+          type: 'mountain',
+          elevation: 80,
+          passability: 0.5,
+          strategicValue: 85
         });
       }
     });

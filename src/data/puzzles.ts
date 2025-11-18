@@ -346,7 +346,7 @@ export const PUZZLES: Record<string, Puzzle> = {
     name: 'Territorial Control',
     description: 'Capture and hold all resource nodes while maintaining equilibrium. Balance expansion with stability.',
     difficulty: 'medium',
-    category: 'territorial',
+    category: 'efficiency',
     startingResources: {
       ore: 150,
       energy: 150,
