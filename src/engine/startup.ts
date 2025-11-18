@@ -1,11 +1,13 @@
 // PATCHED BY CURSOR - 2024-12-19 - safe bootstrap & debug
-// src/engine/startup.ts
+// PATCHED BY CURSOR - lovable integration - src/engine/startup.ts
 //
 // Robust engine initializer. Tries multiple known entry points and falls back to sample replay loader.
 // Adds verbose debug logging with [QUAT DEBUG] prefix.
 // Ensures global window.quaternionEngine exists.
+// Now includes Lovable Cloud asset prefetching and graceful fallbacks.
 
 import Phaser from 'phaser';
+import { lovablySignedAsset, lovablyHealth } from '../utils/lovableClient';
 
 export async function initEngine(canvasEl: HTMLCanvasElement | HTMLElement | null): Promise<void> {
   console.log('[QUAT DEBUG] initEngine called', { canvasEl, hasCanvas: !!canvasEl });
