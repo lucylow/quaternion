@@ -1230,8 +1230,8 @@ const QuaternionGame = () => {
 
               // Update React state
               setSelectedUnits(newSelected);
-              if (selectedUnits.length === 1) {
-                setSelectedUnit(selectedUnits[0].getData('type'));
+              if (newSelected.length === 1) {
+                setSelectedUnit(newSelected[0].getData('type'));
               } else {
                 setSelectedUnit(null);
               }

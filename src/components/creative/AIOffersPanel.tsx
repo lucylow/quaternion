@@ -17,9 +17,10 @@ interface AIOffersPanelProps {
   offers: AIOffer[];
   onAccept?: (offerId: string) => void;
   onDecline?: (offerId: string) => void;
+  onReject?: (offerId: string) => void;
 }
 
-export function AIOffersPanel({ offers, onAccept, onDecline }: AIOffersPanelProps) {
+export function AIOffersPanel({ offers, onAccept, onDecline, onReject }: AIOffersPanelProps) {
   if (offers.length === 0) return null;
 
   return (
@@ -67,7 +68,7 @@ export function AIOffersPanel({ offers, onAccept, onDecline }: AIOffersPanelProp
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => onDecline?.(offer.id)}
+                  onClick={() => onReject?.(offer.id) || onDecline?.(offer.id)}
                 >
                   <X className="w-3 h-3 mr-1" />
                   Decline
