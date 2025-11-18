@@ -15,6 +15,8 @@ import { BuildMenu } from '@/components/game/BuildMenu';
 import { JudgeHUD } from '@/components/game/JudgeHUD';
 import { COMMANDERS, AI_SUGGESTIONS, BUILDINGS, TECH_TREE } from '@/data/gameData';
 import { toast } from 'sonner';
+import { QuaternionGameState } from '@/game/QuaternionGameState';
+import { GameLoop } from '@/game/GameLoop';
 
 interface GameResources {
   ore: number;
@@ -26,6 +28,9 @@ interface GameResources {
 const Game = () => {
   const gameRef = useRef<HTMLDivElement>(null);
   const phaserGameRef = useRef<Phaser.Game | null>(null);
+  const gameStateRef = useRef<QuaternionGameState | null>(null);
+  const gameLoopRef = useRef<GameLoop | null>(null);
+  const gameStartedRef = useRef(false);
   const [loading, setLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [resources, setResources] = useState<GameResources>({
@@ -53,6 +58,76 @@ const Game = () => {
 
   useEffect(() => {
     if (!gameRef.current || phaserGameRef.current) return;
+
+    // Initialize game state
+    gameStateRef.current = new QuaternionGameState({
+      seed: gameSeed,
+      mapWidth: mapConfig.width,
+      mapHeight: mapConfig.height,
+      mapType: 'crystalline_plains',
+      aiDifficulty: 'medium',
+      commanderId: commanderId,
+      mode: 'single'
+    });
+
+    // Initialize game loop
+    gameLoopRef.current = new GameLoop(
+      {
+        fixedTimestep: 1 / 60,
+        maxFrameSkip: 5,
+        maxDeltaTime: 0.1,
+        targetFPS: 60,
+        enablePerformanceMonitoring: true,
+        enableAdaptiveQuality: true,
+        enableFrameRateLimiting: true,
+        pauseOnFocusLoss: false,
+        autoResume: true
+      },
+      {
+        initialize: async () => {
+          console.log('[Game] Initializing game loop...');
+        },
+        fixedUpdate: (deltaTime: number) => {
+          if (gameStateRef.current) {
+            gameStateRef.current.update(deltaTime);
+            
+            // Sync resources from game state
+            const playerState = gameStateRef.current.getPlayerState(0);
+            if (playerState && playerState.resources) {
+              setResources(prev => ({
+                ore: playerState.resources.matter ?? prev.ore,
+                energy: playerState.resources.energy ?? prev.energy,
+                biomass: playerState.resources.life ?? prev.biomass,
+                data: playerState.resources.knowledge ?? prev.data
+              }));
+            }
+          }
+        },
+        render: () => {
+          // Phaser handles rendering
+        },
+        cleanup: async () => {
+          console.log('[Game] Cleaning up game loop...');
+        },
+        onError: (error: Error) => {
+          console.error('[Game] Game loop error:', error);
+          toast.error(`Game error: ${error.message}`);
+        }
+      }
+    );
+
+    // Start game loop
+    gameLoopRef.current.initialize().then(() => {
+      if (!gameStartedRef.current && gameStateRef.current) {
+        gameStartedRef.current = true;
+        gameStateRef.current.start();
+        gameLoopRef.current?.start();
+        console.log('[Game] Game started successfully');
+      }
+    }).catch((error) => {
+      console.error('[Game] Failed to start game:', error);
+      toast.error('Failed to start game');
+    });
 
     const playerUnits: Phaser.Physics.Arcade.Sprite[] = [];
     let selectedUnits: Phaser.Physics.Arcade.Sprite[] = [];
@@ -367,6 +442,18 @@ const Game = () => {
     phaserGameRef.current = new Phaser.Game(config);
 
     return () => {
+      // Cleanup game loop
+      if (gameLoopRef.current) {
+        gameLoopRef.current.cleanup().then(() => {
+          gameLoopRef.current = null;
+        });
+      }
+      
+      // Cleanup game state
+      gameStateRef.current = null;
+      gameStartedRef.current = false;
+      
+      // Cleanup Phaser
       phaserGameRef.current?.destroy(true);
       phaserGameRef.current = null;
     };

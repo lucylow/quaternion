@@ -27,7 +27,24 @@ import { BlackMarketPanel } from '@/components/game/BlackMarketPanel';
 import { ResourceAdvisorPanel } from '@/components/game/ResourceAdvisorPanel';
 import { ResourceType } from '@/game/ResourceManager';
 import { initializeAudio } from '@/audio/audioInit';
+import { getAudioManager, updateGameAudio, playSFX, playUISound, playResourceSound, playCombatSound, playCommanderDialogue } from '@/audio/AudioSystemIntegration';
 import { AXIS_DESIGNS, getAxisDesign, hexToPhaserColor, AI_THOUGHT_VISUALS, BIOME_THEMES } from '@/design/QuaternionDesignSystem';
+import { AIStoryGenerator, NarrativeEvent, NarrativeContext } from '@/game/narrative/AIStoryGenerator';
+import { NarrativeDisplay } from '@/components/narrative/NarrativeDisplay';
+import { ChronicleExporter } from '@/components/narrative/ChronicleExporter';
+import { BookOpen, Handshake, Sparkles } from 'lucide-react';
+import { AIOffersPanel } from '@/components/creative/AIOffersPanel';
+import { AlternativeVictoriesDisplay } from '@/components/creative/AlternativeVictoriesDisplay';
+import {
+  EmergentDiplomacyAI,
+  LivingWorldEvents,
+  ProceduralPuzzleGenerator,
+  AIDungeonMaster,
+  AlternativeVictoryConditions,
+  SymbioticGameplay,
+  AdaptiveLearningAI,
+  DynamicTechTree
+} from '@/ai/creative';
 
 interface GameResources {
   ore: number;
@@ -71,6 +88,7 @@ const QuaternionGame = () => {
   const [winConditionProgress, setWinConditionProgress] = useState<Record<string, { progress: number; max: number; label: string }>>({});
   const [showTutorial, setShowTutorial] = useState(true);
   const gameLoopRef = useRef<GameLoop | null>(null);
+  const gameStartedRef = useRef(false); // Flag to prevent multiple starts
   
   // Resource Puzzle Systems
   const puzzleManagerRef = useRef<ResourcePuzzleManager | null>(null);
@@ -79,6 +97,38 @@ const QuaternionGame = () => {
   const [marketOffers, setMarketOffers] = useState<MarketOffer[]>([]);
   const [advisorAdvice, setAdvisorAdvice] = useState<AdvisorResponse | null>(null);
   const [lastAdvisorCheck, setLastAdvisorCheck] = useState(0);
+  
+  // AI Storytelling System
+  const storyGeneratorRef = useRef<AIStoryGenerator | null>(null);
+  const [narrativeEvents, setNarrativeEvents] = useState<NarrativeEvent[]>([]);
+  const [showChronicle, setShowChronicle] = useState(false);
+  const [chronicleData, setChronicleData] = useState<any>(null);
+  const [lastNarrativeUpdate, setLastNarrativeUpdate] = useState(0);
+  
+  // AI Creative Gameplay Systems
+  const diplomacyAIRef = useRef<EmergentDiplomacyAI | null>(null);
+  const worldEventsRef = useRef<LivingWorldEvents | null>(null);
+  const puzzleGeneratorRef = useRef<ProceduralPuzzleGenerator | null>(null);
+  const dungeonMasterRef = useRef<AIDungeonMaster | null>(null);
+  const victoryConditionsRef = useRef<AlternativeVictoryConditions | null>(null);
+  const symbioticGameplayRef = useRef<SymbioticGameplay | null>(null);
+  const adaptiveLearningRef = useRef<AdaptiveLearningAI | null>(null);
+  const dynamicTechTreeRef = useRef<DynamicTechTree | null>(null);
+  
+  // Creative gameplay state
+  const [activeAlliances, setActiveAlliances] = useState<any[]>([]);
+  const [worldEvents, setWorldEvents] = useState<any[]>([]);
+  const [aiOffers, setAiOffers] = useState<any[]>([]);
+  const [alternativeVictories, setAlternativeVictories] = useState<any[]>([]);
+  const [dynamicTiles, setDynamicTiles] = useState<any[]>([]);
+  const [heroicMoments, setHeroicMoments] = useState<any[]>([]);
+  const [lastDiplomacyCheck, setLastDiplomacyCheck] = useState(0);
+  const [lastWorldEventCheck, setLastWorldEventCheck] = useState(0);
+  const [lastDungeonMasterCheck, setLastDungeonMasterCheck] = useState(0);
+  const [lastVictoryCheck, setLastVictoryCheck] = useState(0);
+  const [lastSymbioticCheck, setLastSymbioticCheck] = useState(0);
+  const [lastLearningCheck, setLastLearningCheck] = useState(0);
+  const [lastTechTreeCheck, setLastTechTreeCheck] = useState(0);
   
   // Get game configuration from route state or use defaults
   const location = useLocation();
@@ -169,6 +219,56 @@ const QuaternionGame = () => {
       });
     }
 
+    // Initialize GameLoop with callbacks to update game state
+    if (gameStateRef.current) {
+      gameLoopRef.current = new GameLoop(
+        {
+          fixedTimestep: 1 / 60, // 60 FPS fixed timestep
+          maxFrameSkip: 5,
+          maxDeltaTime: 0.1,
+          targetFPS: 60,
+          enablePerformanceMonitoring: true,
+          enableAdaptiveQuality: true,
+          enableFrameRateLimiting: true,
+          pauseOnFocusLoss: true,
+          autoResume: true
+        },
+        {
+          initialize: async () => {
+            console.log('[GameLoop] Initializing...');
+          },
+          fixedUpdate: (deltaTime: number) => {
+            if (gameStateRef.current) {
+              gameStateRef.current.update(deltaTime);
+            }
+          },
+          render: (interpolation: number) => {
+            // Phaser handles rendering
+          },
+          cleanup: async () => {
+            console.log('[GameLoop] Cleaning up...');
+          },
+          onError: (error: Error) => {
+            console.error('[GameLoop] Error:', error);
+            toast.error(`Game loop error: ${error.message}`);
+          }
+        }
+      );
+      
+      // Initialize and start the game loop ONLY ONCE
+      gameLoopRef.current.initialize().then(() => {
+        if (!gameStartedRef.current) {
+          gameStartedRef.current = true;
+          gameStateRef.current?.start();
+          gameLoopRef.current?.start();
+          console.log('[GameLoop] Started successfully');
+        }
+      }).catch((error) => {
+        console.error('Failed to initialize game loop:', error);
+        toast.error('Failed to start game loop');
+      });
+    }
+
     // Initialize Resource Puzzle Manager
     if (gameStateRef.current && gameStateRef.current.resourceManager) {
       puzzleManagerRef.current = new ResourcePuzzleManager(
@@ -176,6 +276,48 @@ const QuaternionGame = () => {
       );
       puzzleManagerRef.current.initialize(Date.now());
     }
+
+    // Initialize AI Story Generator
+    storyGeneratorRef.current = new AIStoryGenerator();
+    
+    // Generate initial lore
+    const initialContext: NarrativeContext = {
+      biome: mapConfig.type,
+      resourceBalance: {
+        matter: resources.ore,
+        energy: resources.energy,
+        life: resources.biomass,
+        knowledge: resources.data
+      },
+      instability: 0,
+      playerDecisions: [],
+      gameTime: 0,
+      ethicalAlignment: 0,
+      techTier: 0
+    };
+    
+    storyGeneratorRef.current.updateContext(initialContext);
+    
+    // Generate initial biome lore
+    storyGeneratorRef.current.generateNarrativeEvent('lore', initialContext).then(event => {
+      setNarrativeEvents([event]);
+      sendAIMessage('CORE', event.content);
+    });
+
+    // Initialize AI Creative Gameplay Systems
+    const currentPlayerId = playerId || effectiveConfig?.playerId || 'player_' + Date.now();
+    
+    diplomacyAIRef.current = new EmergentDiplomacyAI(currentPlayerId);
+    worldEventsRef.current = new LivingWorldEvents();
+    puzzleGeneratorRef.current = new ProceduralPuzzleGenerator();
+    dungeonMasterRef.current = new AIDungeonMaster();
+    victoryConditionsRef.current = new AlternativeVictoryConditions();
+    symbioticGameplayRef.current = new SymbioticGameplay();
+    adaptiveLearningRef.current = new AdaptiveLearningAI();
+    dynamicTechTreeRef.current = new DynamicTechTree();
+    
+    // Initialize adaptive learning with player profile
+    adaptiveLearningRef.current.getOrCreateProfile(currentPlayerId);
 
     const playerUnits: Phaser.Physics.Arcade.Sprite[] = [];
     const aiUnits: Phaser.Physics.Arcade.Sprite[] = [];
@@ -188,7 +330,7 @@ const QuaternionGame = () => {
     let playerBase: Phaser.GameObjects.Rectangle;
     let aiBase: Phaser.GameObjects.Rectangle;
     let lastAiSpawn = 0;
-    let lastResourceGather = 0;
+    const lastResourceGather = 0;
 
     const config: Phaser.Types.Core.GameConfig = {
       type: Phaser.AUTO,
@@ -247,21 +389,40 @@ const QuaternionGame = () => {
 
       // Wait for all assets to load
       this.load.once('complete', () => {
-        console.log('Assets loaded successfully');
-        console.log('Available textures:', Object.keys(this.textures.list));
+        const loadedTextures = Object.keys(this.textures.list);
+        console.log('[Preload] Assets loaded successfully');
+        console.log('[Preload] Total textures loaded:', loadedTextures.length);
+        console.log('[Preload] Available textures:', loadedTextures);
+        
+        // Log which map textures were successfully loaded
+        const mapKeys = ImageAssetLoader.getMapKeys();
+        const loadedMaps = mapKeys.filter(key => this.textures.exists(key));
+        console.log(`[Preload] Successfully loaded ${loadedMaps.length}/${mapKeys.length} map textures:`, loadedMaps);
+        
+        if (loadedMaps.length === 0) {
+          console.warn('[Preload] WARNING: No map textures loaded! Check asset paths and file names.');
+        }
+        
         setTimeout(() => {
           setLoading(false);
           gameStateRef.current?.start();
         }, 500);
       });
 
-      // Log loading errors
+      // Log loading progress
       this.load.on('filecomplete', (key: string, type: string, data: any) => {
-        console.log(`Loaded: ${key} (${type})`);
+        console.log(`[Preload] Loaded: ${key} (${type})`);
       });
 
       this.load.on('loaderror', (file: Phaser.Loader.File) => {
-        console.error(`Failed to load: ${file.key} from ${file.src}`);
+        console.error(`[Preload] Failed to load: ${file.key} from ${file.src}`);
+        console.error(`[Preload] Error details:`, file);
+      });
+
+      this.load.on('fileprogress', (file: Phaser.Loader.File, value: number) => {
+        if (value > 0 && value < 1) {
+          console.log(`[Preload] Loading ${file.key}: ${(value * 100).toFixed(1)}%`);
+        }
       });
 
       // Fallback timeout in case assets don't load
@@ -296,6 +457,7 @@ const QuaternionGame = () => {
     // Create enhanced unit graphics with axis-themed animations
     function createUnitGraphic(scene: Phaser.Scene, x: number, y: number, color: number, type: string = 'worker', axis?: 'matter' | 'energy' | 'life' | 'knowledge'): Phaser.GameObjects.Container {
       const container = scene.add.container(x, y);
+      container.setDepth(100); // Ensure units are visible above background
       
       // Determine axis design if not provided (default to matter for workers, energy for soldiers)
       const unitAxis = axis || (type === 'worker' ? 'matter' : 'energy');
@@ -431,13 +593,20 @@ const QuaternionGame = () => {
       // Use a map image as background if available, otherwise fall back to gradient
       let backgroundImage: Phaser.GameObjects.Image | Phaser.GameObjects.Graphics | null = null;
 
+      // Log all available textures for debugging
+      const availableTextures = Object.keys(this.textures.list);
+      console.log('[Background] Available textures:', availableTextures);
+      console.log('[Background] Total textures:', availableTextures.length);
+
       // Try to use selected map first, then fall back to random map or gradient
       const selectedMapId = routeConfig?.mapId;
       let mapKey: string | null = null;
 
       if (selectedMapId) {
+        console.log(`[Background] Selected map ID: ${selectedMapId}`);
         // Try to load the selected map using the mapping helper
         mapKey = ImageAssetLoader.getMapKeyByMapId(selectedMapId);
+        console.log(`[Background] Mapped to key: ${mapKey}`);
         
         // Fallback: try to find by path if direct mapping fails
         if (!mapKey) {
@@ -446,49 +615,65 @@ const QuaternionGame = () => {
             const asset = ImageAssetLoader.getMapAssetByPath(mapConfig.imagePath);
             if (asset) {
               mapKey = asset.key;
+              console.log(`[Background] Found by path, key: ${mapKey}`);
             }
           }
         }
         
         // Verify the map key exists in textures
         if (mapKey && !this.textures.exists(mapKey)) {
-          console.warn(`Map texture not found for key: ${mapKey}, trying fallback`);
+          console.warn(`[Background] Map texture not found for key: ${mapKey}, trying fallback`);
           mapKey = null;
+        } else if (mapKey) {
+          console.log(`[Background] Confirmed texture exists for key: ${mapKey}`);
         }
       }
 
       // If no specific map found, try to find any available map
       if (!mapKey) {
         const mapKeys = ImageAssetLoader.getMapKeys();
-        console.log('No specific map selected, trying available maps:', mapKeys);
+        console.log('[Background] No specific map selected, trying available maps:', mapKeys);
         // Try each map key until we find one that exists
         const shuffledKeys = [...mapKeys].sort(() => Math.random() - 0.5);
         for (const key of shuffledKeys) {
           if (this.textures.exists(key)) {
             mapKey = key;
-            console.log(`Found available map: ${key}`);
+            console.log(`[Background] Found available map: ${key}`);
             break;
           } else {
-            console.warn(`Map texture not found: ${key}`);
+            console.warn(`[Background] Map texture not found: ${key}`);
           }
         }
       }
       
       if (!mapKey) {
-        console.warn('No map textures available. Available textures:', Object.keys(this.textures.list));
+        console.warn('[Background] No map textures available. Available textures:', availableTextures);
+        console.warn('[Background] Expected map keys:', ImageAssetLoader.getMapKeys());
       }
 
       // Helper function to create map background
       const createMapBackground = (key: string): Phaser.GameObjects.Image | null => {
         if (!this.textures.exists(key)) {
-          console.warn(`Texture ${key} does not exist`);
+          console.warn(`[Background] Texture ${key} does not exist`);
           return null;
         }
         try {
           // Get texture dimensions
           const texture = this.textures.get(key);
+          if (!texture || !texture.source || !texture.source[0]) {
+            console.error(`[Background] Invalid texture structure for ${key}`);
+            return null;
+          }
+          
           const textureWidth = texture.source[0].width;
           const textureHeight = texture.source[0].height;
+          
+          if (!textureWidth || !textureHeight || textureWidth === 0 || textureHeight === 0) {
+            console.error(`[Background] Invalid texture dimensions for ${key}: ${textureWidth}x${textureHeight}`);
+            return null;
+          }
+          
+          console.log(`[Background] Creating map image with key: ${key}, dimensions: ${textureWidth}x${textureHeight}`);
           
           // Create map image at origin (0,0) to cover the entire game world
           const img = this.add.image(0, 0, key);
@@ -505,40 +690,47 @@ const QuaternionGame = () => {
           img.setTint(0x001122); // Darken the map slightly
           img.setDepth(-1000); // Behind everything
           
-          console.log(`Map background created: ${key} at scale ${scale.toFixed(2)}`);
+          console.log(`[Background] Map background created successfully: ${key} at scale ${scale.toFixed(2)}`);
           return img;
         } catch (error) {
-          console.error(`Failed to create map image with key ${key}:`, error);
+          console.error(`[Background] Failed to create map image with key ${key}:`, error);
           return null;
         }
       };
 
       // Try to create the map image, with error handling
       if (mapKey) {
+        console.log(`[Background] Attempting to create background with key: ${mapKey}`);
         backgroundImage = createMapBackground(mapKey);
         
         // If map creation failed, try to find another available map
         if (!backgroundImage) {
+          console.log('[Background] Primary map failed, trying fallback maps...');
           const mapKeys = ImageAssetLoader.getMapKeys();
           for (const key of mapKeys) {
             if (key !== mapKey && this.textures.exists(key)) {
+              console.log(`[Background] Trying fallback map: ${key}`);
               backgroundImage = createMapBackground(key);
               if (backgroundImage) {
-                console.log(`Using fallback map: ${key}`);
+                console.log(`[Background] Successfully using fallback map: ${key}`);
                 break;
               }
             }
           }
+        } else {
+          console.log(`[Background] Successfully created background with primary map: ${mapKey}`);
         }
       }
       
       // Fallback to gradient background if map image creation failed
       if (!backgroundImage) {
+        console.warn('[Background] All map attempts failed, using gradient fallback');
         const bgGraphics = this.add.graphics();
         bgGraphics.fillGradientStyle(0x001122, 0x001122, 0x002244, 0x002244, 1);
         bgGraphics.fillRect(0, 0, width * 2, height * 2);
+        bgGraphics.setDepth(-1000);
         backgroundImage = bgGraphics;
-        console.log('Using gradient fallback background');
+        console.log('[Background] Gradient fallback background created');
       }
       
       // Add grid overlay on top of background
@@ -747,6 +939,11 @@ const QuaternionGame = () => {
           node = graphics;
         }
         
+        // Ensure resource nodes are visible
+        if ('setDepth' in node) {
+          node.setDepth(75); // Above background but below units
+        }
+        
         node.setData('type', nodeType.resource);
         node.setData('amount', 1000);
         node.setData('axis', nodeType.axis);
@@ -782,6 +979,7 @@ const QuaternionGame = () => {
       playerBase = this.add.rectangle(150, 350, 80, 80, 0x00ffea, 0.9);
       playerBase.setStrokeStyle(3, 0x00ffea, 1);
       playerBase.setInteractive();
+      playerBase.setDepth(50); // Ensure base is visible
       playerBase.setData('type', 'base');
       playerBase.setData('player', 1);
       playerBase.setData('health', 1000);
@@ -791,6 +989,7 @@ const QuaternionGame = () => {
       
       // Base glow effect
       const baseGlow = this.add.circle(150, 350, 50, 0x00ffea, 0.2);
+      baseGlow.setDepth(49); // Just below the base
       this.tweens.add({
         targets: baseGlow,
         scale: { from: 1, to: 1.3 },
@@ -800,97 +999,40 @@ const QuaternionGame = () => {
         repeat: -1
       });
 
-      // Create enhanced player units
-      for (let i = 0; i < 8; i++) {
-        const angle = (i / 8) * Math.PI * 2;
-        const distance = 100;
-        const x = 150 + Math.cos(angle) * distance;
-        const y = 350 + Math.sin(angle) * distance;
-        
-        const unit = this.physics.add.sprite(x, y, '');
-        unit.setDisplaySize(24, 24);
-        unit.setData('type', i < 4 ? 'worker' : 'soldier');
-        unit.setData('player', 1);
-        unit.setData('health', i < 4 ? 100 : 200);
-        unit.setData('maxHealth', i < 4 ? 100 : 200);
-        unit.setData('damage', i < 4 ? 5 : 25);
-        unit.setData('target', null);
-        unit.setData('state', 'idle');
-        
-        const unitGraphic = createUnitGraphic(this, x, y, 0x00ffea, unit.getData('type'));
-        unit.setData('graphic', unitGraphic);
-        unit.setData('container', unitGraphic);
-        
-        unit.setInteractive();
-        unit.on('pointerdown', () => {
-          if (!selectedUnits.includes(unit)) {
-            selectedUnits.forEach(u => {
-              const g = u.getData('graphic');
-              if (g) {
-                g.setAlpha(1);
-                g.list.forEach((child: any) => {
-                  if (child.lineStyle) {
-                    child.clear();
-                    child.lineStyle(0);
-                  }
-                });
-              }
-            });
-            selectedUnits.length = 0;
-            selectedUnits.push(unit);
-            const g = unit.getData('graphic');
-            if (g) {
-              g.setAlpha(1.2);
-              // Add selection ring
-              const ring = this.add.graphics();
-              ring.lineStyle(3, 0xffffff, 1);
-              ring.strokeCircle(unit.x, unit.y, 18);
-              ring.setData('unit', unit);
-              unit.setData('selectionRing', ring);
-            }
-            setSelectedUnit(unit.getData('type'));
-          }
-        });
-
-        playerUnits.push(unit);
-      }
-      playerUnitsRef.current = playerUnits;
-
-      // Create AI base
-      aiBase = this.add.rectangle(1050, 350, 80, 80, 0xff4444, 0.9);
-      aiBase.setStrokeStyle(3, 0xff4444, 1);
-      aiBase.setData('type', 'base');
-      aiBase.setData('player', 2);
-      aiBase.setData('health', 1000);
-      aiBase.setData('maxHealth', 1000);
-      buildings.push(aiBase as Phaser.GameObjects.Sprite);
-      buildingsRef.current = buildings;
-      
-      const aiBaseGlow = this.add.circle(1050, 350, 50, 0xff4444, 0.2);
-      this.tweens.add({
-        targets: aiBaseGlow,
-        scale: { from: 1, to: 1.3 },
-        alpha: { from: 0.2, to: 0.05 },
-        duration: 1500,
-        yoyo: true,
-        repeat: -1
-      });
 
       // Selection graphics
       selectionGraphics = this.add.graphics();
 
       // Enhanced Camera controls
-      const cursors = this.input.keyboard?.createCursorKeys();
-      const wasd = this.input.keyboard?.addKeys('W,S,A,D') as {
+      cursors = this.input.keyboard?.createCursorKeys() || null;
+      wasd = this.input.keyboard?.addKeys('W,S,A,D') as {
         W: Phaser.Input.Keyboard.Key;
         S: Phaser.Input.Keyboard.Key;
         A: Phaser.Input.Keyboard.Key;
         D: Phaser.Input.Keyboard.Key;
-      };
+      } || null;
       const camera = this.cameras.main;
       cameraRef.current = camera;
       camera.setBounds(0, 0, width * 2, height * 2);
       camera.setZoom(1.0);
+
+      // Keyboard shortcuts for menus
+      this.input.keyboard?.on('keydown-T', () => setShowTechTree(true));
+      this.input.keyboard?.on('keydown-B', () => setShowBuildMenu(true));
+      this.input.keyboard?.on('keydown-S', () => {
+        selectedUnits.forEach(unit => {
+          if (unit.active) {
+            unit.setVelocity(0, 0);
+            unit.setData('target', null);
+            unit.setData('state', 'idle');
+          }
+        });
+      });
+      
+      // Center camera on player base at start
+      const playerBaseX = 150;
+      const playerBaseY = 350;
+      camera.centerOn(playerBaseX, playerBaseY);
       
       // Mouse wheel zoom
       this.input.on('wheel', (pointer: Phaser.Input.Pointer, gameObjects: any[], deltaX: number, deltaY: number, deltaZ: number) => {
@@ -981,36 +1123,39 @@ const QuaternionGame = () => {
           isSelecting = false;
           selectionGraphics.clear();
 
-          // Select units in box
+          // Select units in box (simplified from Neural Frontier)
           const minX = Math.min(selectionStart.x, pointer.worldX);
           const maxX = Math.max(selectionStart.x, pointer.worldX);
           const minY = Math.min(selectionStart.y, pointer.worldY);
           const maxY = Math.max(selectionStart.y, pointer.worldY);
 
-          // Clear previous selection if not shift-clicking
-          if (!pointer.shiftKey) {
-            selectedUnits.forEach(u => {
-              const ring = u.getData('selectionRing') as Phaser.GameObjects.Ellipse | undefined;
-              if (ring) ring.setVisible(false);
-            });
-            selectedUnits.length = 0;
-          }
+          // Clear previous selection
+          selectedUnits.forEach(u => {
+            u.setData('selected', false);
+            const g = u.getData('graphics') as Phaser.GameObjects.Graphics;
+            if (g) {
+              g.clear();
+              g.fillStyle(0x00ffea, 0.8);
+              g.fillCircle(u.x, u.y, 20);
+              g.lineStyle(2, 0xffffff);
+              g.strokeCircle(u.x, u.y, 20);
+            }
+          });
+          selectedUnits = [];
 
           // Find units in selection box
           playerUnits.forEach(unit => {
             if (!unit.active) return;
             if (unit.x >= minX && unit.x <= maxX && unit.y >= minY && unit.y <= maxY) {
-              if (!selectedUnits.includes(unit)) {
-                selectedUnits.push(unit);
-                let ring = unit.getData('selectionRing') as Phaser.GameObjects.Ellipse | undefined;
-                if (!ring) {
-                  ring = this.add.graphics();
-                  ring.lineStyle(3, 0x00ffea, 1);
-                  ring.strokeCircle(unit.x, unit.y, 18);
-                  ring.setData('unit', unit);
-                  unit.setData('selectionRing', ring);
-                }
-                ring.setVisible(true);
+              selectedUnits.push(unit);
+              unit.setData('selected', true);
+              const g = unit.getData('graphics') as Phaser.GameObjects.Graphics;
+              if (g) {
+                g.clear();
+                g.fillStyle(0x00ffea, 0.8);
+                g.fillCircle(unit.x, unit.y, 20);
+                g.lineStyle(3, 0xffff00);
+                g.strokeCircle(unit.x, unit.y, 20);
               }
             }
           });
@@ -1087,15 +1232,15 @@ const QuaternionGame = () => {
       this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
         if (isSelecting) {
           selectionGraphics.clear();
-          selectionGraphics.lineStyle(2, 0x00ffea, 0.8);
-          selectionGraphics.fillStyle(0x00ffea, 0.1);
-          selectionGraphics.fillRect(
+          selectionGraphics.lineStyle(2, 0x00ffea, 1);
+          selectionGraphics.strokeRect(
             selectionStart.x,
             selectionStart.y,
             pointer.worldX - selectionStart.x,
             pointer.worldY - selectionStart.y
           );
-          selectionGraphics.strokeRect(
+          selectionGraphics.fillStyle(0x00ffea, 0.1);
+          selectionGraphics.fillRect(
             selectionStart.x,
             selectionStart.y,
             pointer.worldX - selectionStart.x,
@@ -1122,6 +1267,49 @@ const QuaternionGame = () => {
         if (state.gameOver) {
           const scenario = state.endgameScenario || null;
           setEndgameScenario(scenario);
+          
+          // Generate final chronicle
+          if (storyGeneratorRef.current) {
+            const narrativeContext: NarrativeContext = {
+              biome: mapConfig.type,
+              resourceBalance: {
+                matter: resources.ore,
+                energy: resources.energy,
+                life: resources.biomass,
+                knowledge: resources.data
+              },
+              instability: instability,
+              playerDecisions: [],
+              gameTime: gameTime,
+              ethicalAlignment: state.players[0]?.moralAlignment || 0,
+              techTier: researchedTechs.size
+            };
+            
+            const timeline = storyGeneratorRef.current.detectTimeline(narrativeContext);
+            const currentPlayerId = playerId || effectiveConfig?.playerId || 'player_' + Date.now();
+            
+            storyGeneratorRef.current.updatePlayerPhilosophy(
+              currentPlayerId,
+              narrativeContext,
+              timeline,
+              state.winner === 1 ? 'Victory' : 'Defeat'
+            );
+            
+            // Generate ending narrative
+            storyGeneratorRef.current.generateNarrativeEvent('chronicle', narrativeContext).then(event => {
+              setNarrativeEvents(prev => [...prev, event]);
+            });
+            
+            // Generate chronicle for export
+            storyGeneratorRef.current.generateChronicle(
+              currentPlayerId,
+              narrativeContext,
+              timeline
+            ).then(chronicle => {
+              setChronicleData(chronicle);
+            });
+          }
+          
           setGameOver({ 
             won: state.winner === 1, 
             reason: 'Game ended',
@@ -1176,6 +1364,215 @@ const QuaternionGame = () => {
             }
           });
           setWinConditionProgress(progress);
+        }
+
+        // Update Audio System - Adaptive Music
+        if (!gameOver) {
+          // Calculate intensity based on instability and combat state
+          const intensity = Math.min(1, instability / 200);
+          
+          // Calculate morality based on resource balance and ethical alignment
+          const resourceBalance = {
+            matter: resources.ore,
+            energy: resources.energy,
+            life: resources.biomass,
+            knowledge: resources.data
+          };
+          const mean = (resourceBalance.matter + resourceBalance.energy + resourceBalance.life + resourceBalance.knowledge) / 4;
+          const variance = (
+            Math.pow(resourceBalance.matter - mean, 2) +
+            Math.pow(resourceBalance.energy - mean, 2) +
+            Math.pow(resourceBalance.life - mean, 2) +
+            Math.pow(resourceBalance.knowledge - mean, 2)
+          ) / 4;
+          const balance = Math.sqrt(variance) / mean;
+          
+          // Morality: -1 (exploit) to +1 (conserve)
+          // Positive if life/biomass is high, negative if energy/exploitation is high
+          const morality = (resourceBalance.life - resourceBalance.energy) / (mean || 1);
+          const normalizedMorality = Math.max(-1, Math.min(1, morality + (state.players[0]?.moralAlignment || 0) / 100));
+          
+          updateGameAudio({
+            intensity,
+            morality: normalizedMorality,
+            instability
+          });
+        }
+
+        // Update AI Storytelling System
+        if (storyGeneratorRef.current && !gameOver) {
+          const currentTime = Date.now();
+          
+          // Update narrative context
+          const narrativeContext: NarrativeContext = {
+            biome: mapConfig.type,
+            resourceBalance: {
+              matter: resources.ore,
+              energy: resources.energy,
+              life: resources.biomass,
+              knowledge: resources.data
+            },
+            instability: instability,
+            playerDecisions: [],
+            gameTime: gameTime,
+            ethicalAlignment: state.players[0]?.moralAlignment || 0,
+            techTier: researchedTechs.size
+          };
+          
+          storyGeneratorRef.current.updateContext(narrativeContext);
+          
+          // Generate narrative events periodically (every 30 seconds)
+          if (currentTime - lastNarrativeUpdate > 30000) {
+            const timeline = storyGeneratorRef.current.detectTimeline(narrativeContext);
+            
+            // Generate dialogue event
+            storyGeneratorRef.current.generateNarrativeEvent('dialogue', narrativeContext).then(event => {
+              if (event.content) {
+                setNarrativeEvents(prev => [...prev, event]);
+                const axisCommander: Record<string, string> = {
+                  matter: 'AUREN',
+                  energy: 'LIRA',
+                  life: 'LIRA',
+                  knowledge: 'VIREL'
+                };
+                const commander = event.axis ? axisCommander[event.axis] : 'CORE';
+                sendAIMessage(commander, event.content);
+              }
+            });
+            
+            setLastNarrativeUpdate(currentTime);
+          }
+          
+          // Update narrative log
+          setNarrativeEvents(storyGeneratorRef.current.getNarrativeLog());
+        }
+
+        // Update AI Creative Gameplay Systems
+        if (!gameOver) {
+          const currentTime = Date.now();
+          const currentPlayerId = playerId || effectiveConfig?.playerId || 'player_' + Date.now();
+
+          // Emergent Diplomacy - generate alliances (every 60 seconds)
+          if (diplomacyAIRef.current && currentTime - lastDiplomacyCheck > 60000) {
+            const alliances = diplomacyAIRef.current.generateTerrainDrivenAlliances(state);
+            if (alliances.length > 0) {
+              setActiveAlliances(prev => [...prev, ...alliances]);
+              alliances.forEach(alliance => {
+                sendAIMessage('CORE', `New alliance formed: ${alliance.reason}`);
+              });
+            }
+            setLastDiplomacyCheck(currentTime);
+          }
+
+          // Living World Events (every 45 seconds)
+          if (worldEventsRef.current && currentTime - lastWorldEventCheck > 45000) {
+            const playerActions = {
+              deforest: 0, // Would track from game state
+              pollute: 0,
+              extract: 0
+            };
+            
+            const events = worldEventsRef.current.generateEcosystemEvents(state, playerActions);
+            if (events.length > 0) {
+              setWorldEvents(prev => [...prev, ...events]);
+              events.forEach(event => {
+                sendAIMessage('LIRA', event.description);
+                worldEventsRef.current?.applyEventEffects(event, state);
+              });
+            }
+            
+            worldEventsRef.current.updateEvents();
+            setLastWorldEventCheck(currentTime);
+          }
+
+          // AI Dungeon Master - orchestrate narrative (every 30 seconds)
+          if (dungeonMasterRef.current && currentTime - lastDungeonMasterCheck > 30000) {
+            const narrative = dungeonMasterRef.current.orchestrateGameNarrative(state);
+            
+            if (narrative.tiles.length > 0) {
+              setDynamicTiles(prev => [...prev, ...narrative.tiles]);
+              narrative.tiles.forEach(tile => {
+                sendAIMessage('CORE', `${tile.name} discovered: ${tile.description}`);
+              });
+            }
+            
+            if (narrative.moments.length > 0) {
+              setHeroicMoments(prev => [...prev, ...narrative.moments]);
+              narrative.moments.forEach(moment => {
+                sendAIMessage('AUREN', moment.setup);
+              });
+            }
+            
+            setLastDungeonMasterCheck(currentTime);
+          }
+
+          // Alternative Victory Conditions (every 60 seconds)
+          if (victoryConditionsRef.current && currentTime - lastVictoryCheck > 60000) {
+            const victories = victoryConditionsRef.current.enableCreativeWinConditions(state);
+            if (victories.length > 0) {
+              setAlternativeVictories(victories);
+              
+              // Check if any victory achieved
+              const achieved = victoryConditionsRef.current.checkVictories(state);
+              if (achieved) {
+                setGameOver({
+                  won: true,
+                  reason: `Victory: ${achieved.name}`,
+                  scenario: undefined
+                });
+              }
+            }
+            setLastVictoryCheck(currentTime);
+          }
+
+          // Symbiotic Gameplay - generate offers (every 90 seconds)
+          if (symbioticGameplayRef.current && currentTime - lastSymbioticCheck > 90000) {
+            const offers = symbioticGameplayRef.current.createPlayerAISymbiosis(
+              state,
+              currentPlayerId
+            );
+            if (offers.length > 0) {
+              setAiOffers(prev => [...prev, ...offers]);
+              offers.forEach(offer => {
+                sendAIMessage('CORE', `AI Offer: ${offer.terms}`);
+              });
+            }
+            setLastSymbioticCheck(currentTime);
+          }
+
+          // Adaptive Learning AI (every 2 minutes)
+          if (adaptiveLearningRef.current && currentTime - lastLearningCheck > 120000) {
+            const adaptation = adaptiveLearningRef.current.learnAndMirrorPlayer(state, currentPlayerId);
+            if (adaptation.signatureMove) {
+              sendAIMessage('KOR', `AI has learned your ${adaptation.signatureMove} tactic!`);
+            }
+            
+            const apprentices = adaptiveLearningRef.current.createAIApprentices(state, currentPlayerId);
+            if (apprentices.length > 0) {
+              apprentices.forEach(apprentice => {
+                sendAIMessage('VIREL', `AI faction is learning ${apprentice.learningFocus} from you`);
+              });
+            }
+            
+            setLastLearningCheck(currentTime);
+          }
+
+          // Dynamic Tech Tree (every 60 seconds)
+          if (dynamicTechTreeRef.current && currentTime - lastTechTreeCheck > 60000) {
+            const newTechs = dynamicTechTreeRef.current.generateTerrainInfluencedTech(
+              state,
+              currentPlayerId
+            );
+            if (newTechs.length > 0) {
+              newTechs.forEach(tech => {
+                sendAIMessage('VIREL', `New technology unlocked: ${tech.name} - ${tech.description}`);
+                toast.success(`Terrain Tech Unlocked: ${tech.name}`, {
+                  description: tech.effects
+                });
+              });
+            }
+            setLastTechTreeCheck(currentTime);
+          }
         }
 
         // Update Resource Puzzle Systems
@@ -1244,23 +1641,17 @@ const QuaternionGame = () => {
         }
       }
 
-      // Update unit graphics positions
+      // Update unit graphics positions (simplified from Neural Frontier)
       playerUnits.forEach(unit => {
-        const graphic = unit.getData('graphic');
-        if (graphic) {
-          graphic.setPosition(unit.x, unit.y);
-          
-          // Update health bar
-          const healthBar = graphic.getData('healthBar');
-          if (healthBar) {
-            const health = unit.getData('health') || 100;
-            const maxHealth = unit.getData('maxHealth') || 100;
-            healthBar.clear();
-            const healthPercent = health / maxHealth;
-            const color = healthPercent > 0.5 ? 0x00ff00 : healthPercent > 0.25 ? 0xffff00 : 0xff0000;
-            healthBar.fillStyle(color, 1);
-            healthBar.fillRect(-15, -20, 30 * healthPercent, 4);
-          }
+        const g = unit.getData('graphics') as Phaser.GameObjects.Graphics;
+        if (g) {
+          g.clear();
+          const color = unit.getData('selected') ? 0xffff00 : 0x00ffea;
+          const lineWidth = unit.getData('selected') ? 3 : 2;
+          g.fillStyle(0x00ffea, 0.8);
+          g.fillCircle(unit.x, unit.y, 20);
+          g.lineStyle(lineWidth, color);
+          g.strokeCircle(unit.x, unit.y, 20);
         }
         
         // Unit combat logic
@@ -1411,10 +1802,14 @@ const QuaternionGame = () => {
           aiUnit.setAlpha(0.9);
           aiUnit.setTint(0xff4444); // Red tint for enemies
         } else {
-          // Fallback to graphics
+          // Fallback to simple graphics
           aiUnit.setDisplaySize(24, 24);
-          const aiGraphic = createUnitGraphic(this, x, y, 0xff4444, 'soldier');
-          aiUnit.setData('graphic', aiGraphic);
+          const aiGraphics = this.add.graphics();
+          aiGraphics.fillStyle(0xff4444, 0.8);
+          aiGraphics.fillCircle(x, y, 20);
+          aiGraphics.lineStyle(2, 0xffffff);
+          aiGraphics.strokeCircle(x, y, 20);
+          aiUnit.setData('graphics', aiGraphics);
         }
         
         aiUnit.setData('type', 'soldier');
@@ -1434,25 +1829,18 @@ const QuaternionGame = () => {
         sendAIMessage('LIRA', 'Enemy units detected! Prepare defenses!');
       }
 
-      // AI unit combat
+      // AI unit combat (simplified graphics update)
       aiUnits.forEach(aiUnit => {
         if (!aiUnit.active) return;
         
-        const graphic = aiUnit.getData('graphic');
-        if (graphic) {
+        const g = aiUnit.getData('graphics') as Phaser.GameObjects.Graphics;
+        if (g) {
           // Update graphic position for units using graphics
-          graphic.setPosition(aiUnit.x, aiUnit.y);
-          
-          const healthBar = graphic.getData('healthBar');
-          if (healthBar) {
-            const health = aiUnit.getData('health') || 200;
-            const maxHealth = aiUnit.getData('maxHealth') || 200;
-            healthBar.clear();
-            const healthPercent = health / maxHealth;
-            const color = healthPercent > 0.5 ? 0xff0000 : healthPercent > 0.25 ? 0xff8800 : 0x880000;
-            healthBar.fillStyle(color, 1);
-            healthBar.fillRect(-15, -20, 30 * healthPercent, 4);
-          }
+          g.clear();
+          g.fillStyle(0xff4444, 0.8);
+          g.fillCircle(aiUnit.x, aiUnit.y, 20);
+          g.lineStyle(2, 0xffffff);
+          g.strokeCircle(aiUnit.x, aiUnit.y, 20);
         } else {
           // For sprite-based units, update floating health bar
           const health = aiUnit.getData('health') || 200;
@@ -1904,7 +2292,7 @@ const QuaternionGame = () => {
                 <ul className="list-disc list-inside space-y-1 text-sm ml-2">
                   <li><strong className="text-cyan-400">ElevenLabs:</strong> AI voice generation for commanders</li>
                   <li><strong className="text-cyan-400">OpenArt:</strong> AI-generated visual assets</li>
-                  <li><strong className="text-cyan-400">Google Gemini 2.5 Flash:</strong> Strategic AI decision-making</li>
+                  <li><strong className="text-cyan-400">Google AI:</strong> Strategic AI decision-making</li>
                   <li><strong className="text-cyan-400">Fuser:</strong> Adaptive music generation</li>
                   <li><strong className="text-cyan-400">Luma AI:</strong> 3D environment generation</li>
                 </ul>
@@ -1928,7 +2316,7 @@ const QuaternionGame = () => {
         <EndgameScene
           endgameData={EndgameManager.getEndgameData(
             endgameScenario,
-            gameStateRef.current?.players.get(1)?.resources || resources,
+            gameStateRef.current?.players?.get(1)?.resources || resources,
             gameTime
           )}
           gameTime={gameTime}
@@ -2152,7 +2540,7 @@ const QuaternionGame = () => {
                 </div>
                 <div className="text-xs text-gray-400 flex items-center gap-2 bg-gray-800/50 px-2 py-1 rounded backdrop-blur-sm">
                   <Trophy className="w-3 h-3 text-yellow-400" />
-                  <span>Chroma Awards 2025 - Puzzle/Strategy | Tools: ElevenLabs, OpenArt, Gemini, Fuser, Luma AI</span>
+                  <span>Chroma Awards 2025 - Puzzle/Strategy | Tools: ElevenLabs, OpenArt, Google AI, Fuser, Luma AI</span>
                 </div>
               </div>
             </div>
@@ -2424,6 +2812,111 @@ const QuaternionGame = () => {
               advice={advisorAdvice}
               onDismiss={() => setAdvisorAdvice(null)}
             />
+          )}
+
+          {/* Narrative Display */}
+          <div className="absolute top-20 right-4 z-20 w-80 max-h-[500px]">
+            <NarrativeDisplay events={narrativeEvents} maxHeight="400px" />
+          </div>
+
+          {/* AI Offers Panel */}
+          {aiOffers.length > 0 && (
+            <div className="absolute bottom-24 left-4 z-20">
+              <AIOffersPanel
+                offers={aiOffers}
+                onAccept={(offerId) => {
+                  if (symbioticGameplayRef.current) {
+                    symbioticGameplayRef.current.acceptOffer(offerId);
+                    setAiOffers(prev => prev.filter(o => o.id !== offerId));
+                    toast.success('AI offer accepted!');
+                  }
+                }}
+                onReject={(offerId) => {
+                  if (symbioticGameplayRef.current) {
+                    symbioticGameplayRef.current.rejectOffer(offerId);
+                    setAiOffers(prev => prev.filter(o => o.id !== offerId));
+                  }
+                }}
+              />
+            </div>
+          )}
+
+          {/* Alternative Victories Display */}
+          {alternativeVictories.length > 0 && (
+            <div className="absolute top-80 left-4 z-20 w-80">
+              <AlternativeVictoriesDisplay victories={alternativeVictories} />
+            </div>
+          )}
+
+          {/* Dynamic Tiles Indicator */}
+          {dynamicTiles.length > 0 && (
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-30">
+              {dynamicTiles.map(tile => (
+                <div
+                  key={tile.id}
+                  className="bg-gray-800/90 border-2 border-yellow-400 rounded-lg p-4 mb-2 animate-in zoom-in shadow-2xl"
+                  style={{
+                    boxShadow: '0 0 20px rgba(255, 255, 0, 0.5)'
+                  }}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className="w-5 h-5 text-yellow-400" />
+                    <h3 className="text-lg font-bold text-yellow-400">{tile.name}</h3>
+                  </div>
+                  <p className="text-sm text-gray-300 mb-3">{tile.description}</p>
+                  <p className="text-xs text-yellow-400">{tile.benefit}</p>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (dungeonMasterRef.current) {
+                        dungeonMasterRef.current.activateDynamicTile(tile.id);
+                        setDynamicTiles(prev => prev.filter(t => t.id !== tile.id));
+                        toast.success(`${tile.name} activated!`);
+                      }
+                    }}
+                    className="mt-3 w-full bg-yellow-600 hover:bg-yellow-700"
+                  >
+                    Activate
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Chronicle Exporter (shown after game ends) */}
+          {gameOver && chronicleData && showChronicle && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4">
+              <div className="max-w-2xl w-full">
+                <ChronicleExporter
+                  chronicle={chronicleData}
+                  onExport={(format) => {
+                    if (format === 'pdf' || format === 'html') {
+                      setShowChronicle(false);
+                    }
+                  }}
+                />
+                <Button
+                  onClick={() => setShowChronicle(false)}
+                  variant="outline"
+                  className="mt-4 w-full"
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          {/* Chronicle Button (show after game ends) */}
+          {gameOver && chronicleData && !showChronicle && (
+            <div className="absolute bottom-4 right-4 z-30">
+              <Button
+                onClick={() => setShowChronicle(true)}
+                className="bg-purple-600/90 hover:bg-purple-700 backdrop-blur-sm border border-purple-400/30"
+              >
+                <BookOpen className="w-4 h-4 mr-2" />
+                View Chronicle
+              </Button>
+            </div>
           )}
         </>
       )}

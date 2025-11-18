@@ -27,6 +27,8 @@ export default class ChromaPulseSynth {
   private lfo?: OscillatorNode;
   private lfoGain?: GainNode;
   private filter?: BiquadFilterNode;
+  private delay?: DelayNode;
+  private delayGain?: GainNode;
   private isPlaying = false;
 
   // Synth parameters (from playbook recipe)
@@ -75,10 +77,10 @@ export default class ChromaPulseSynth {
     this.gain.gain.value = 0.3; // Start at 30% volume
 
     // Create chorus effect (simple delay-based)
-    const delay = ctx.createDelay(0.02);
-    const delayGain = ctx.createGain();
-    delayGain.gain.value = 0.3;
-    delay.delayTime.value = 0.01;
+    this.delay = ctx.createDelay(0.02);
+    this.delayGain = ctx.createGain();
+    this.delayGain.gain.value = 0.3;
+    this.delay.delayTime.value = 0.01;
 
     // Connect: LFO -> filter frequency
     this.lfo.connect(this.lfoGain);
@@ -87,9 +89,9 @@ export default class ChromaPulseSynth {
     // Connect: oscillator -> filter -> delay -> gain -> output
     this.oscillator.connect(this.filter);
     this.filter.connect(this.gain);
-    this.filter.connect(delay);
-    delay.connect(delayGain);
-    delayGain.connect(this.gain);
+    this.filter.connect(this.delay);
+    this.delay.connect(this.delayGain);
+    this.delayGain.connect(this.gain);
 
     // Connect to ambient/SFX gain (not music)  
     if (this.gain) {
@@ -122,12 +124,16 @@ export default class ChromaPulseSynth {
     this.filter?.disconnect();
     this.gain?.disconnect();
     this.lfoGain?.disconnect();
+    this.delay?.disconnect();
+    this.delayGain?.disconnect();
 
     this.oscillator = undefined;
     this.lfo = undefined;
     this.filter = undefined;
     this.gain = undefined;
     this.lfoGain = undefined;
+    this.delay = undefined;
+    this.delayGain = undefined;
 
     this.isPlaying = false;
   }
