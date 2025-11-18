@@ -21,6 +21,7 @@ import { COMMANDERS, AI_SUGGESTIONS, BUILDINGS, TECH_TREE } from '@/data/gameDat
 import { toast } from 'sonner';
 import { QuaternionGameState } from '@/game/QuaternionGameState';
 import { GameLoop } from '@/game/GameLoop';
+import { safeSetInteractive } from '@/utils/inputSafe';
 
 interface GameResources {
   ore: number;
@@ -257,7 +258,7 @@ const Game = () => {
           resource.setStrokeStyle(2, resType.color);
           resource.setData('type', resType.type);
           resource.setData('amount', 1000);
-          resource.setInteractive();
+          safeSetInteractive(resource, {});
           resourceNodes.push(resource as Phaser.GameObjects.Sprite);
 
           const label = this.add.text(x, y, resType.label[0], {
@@ -279,7 +280,7 @@ const Game = () => {
         unit.displayWidth = 40;
         unit.displayHeight = 40;
         unit.setTint(0x00ffea);
-        unit.setInteractive();
+        safeSetInteractive(unit, {});
         unit.setData('type', i < 3 ? 'worker' : 'infantry');
         unit.setData('health', 100);
         unit.setData('maxHealth', 100);

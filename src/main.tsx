@@ -1,6 +1,11 @@
+// PATCHED BY CURSOR - phaser hitArea fix - 2024-11-18
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import { applyPhaserInputShims } from "./engine/phaserShim";
+
+// Apply Phaser input shims early, before any Phaser scenes initialize
+applyPhaserInputShims();
 
 // Enable debug mode
 window.__QUAT_DEBUG__ = true;
@@ -35,42 +40,29 @@ window.addEventListener('unhandledrejection', (ev) => {
   console.error('[QUAT DEBUG] unhandled rejection', ev.reason);
 });
 
+// PATCHED BY CURSOR - phaser hitArea fix - 2024-11-18
 // Handle window.postMessage events (e.g., from iframes)
-// Filter unknown message types to avoid console spam
-let _lastMsgWarn = 0;
+// Gracefully handle iframe-pos and other known message types without warnings
 window.addEventListener('message', (ev) => {
   try {
-    const data = ev.data;
-    
-    // Ignore non-object data
-    if (!data || typeof data !== 'object') return;
-    
-    // If using structured messages, require a type field
-    if (!data.type || typeof data.type !== 'string') return;
+    const data = ev && ev.data;
+    if (!data) return;
 
-    switch (data.type) {
-      case 'iframe-pos':
-        // Handle iframe position updates if needed
-        // You can add specific handling here
-        break;
-      
-      // Add other supported message types here as needed
-      
-      default:
-        // Silently ignore unknown message types to avoid console spam
-        // Only warn in development mode, throttled
-        if (import.meta.env.DEV) {
-          const now = Date.now();
-          if (now - _lastMsgWarn > 5000) {
-            console.warn('[QUAT DEBUG] Unknown message type:', data.type);
-            _lastMsgWarn = now;
-          }
-        }
-        return;
+    // If it's a known shape, we handle; else ignore quietly to avoid polluting logs
+    if (data && data.type === 'iframe-pos') {
+      // silently accept or update a debug overlay if you want
+      // Optional: store last seen iframe pos for debug:
+      window.__QUAT_LAST_IFRAME_POS__ = data;
+      // do not log loudly unless debug mode
+      if (window.__QUAT_DEBUG__) {
+        console.log('[QUAT DEBUG] received iframe-pos message', data);
+      }
+      return;
     }
+
+    // otherwise existing message handlers should handle it; fallthrough
   } catch (err) {
-    // Log meaningful info, but avoid spamming
-    console.error('[QUAT DEBUG] message handler error', err);
+    console.warn('[QUAT DEBUG] message handler error', err);
   }
 });
 

@@ -437,7 +437,7 @@ const Index = () => {
           <h2 className="text-3xl sm:text-4xl font-bold text-center mb-4 text-primary">Face Colossal Threats</h2>
           <div className="w-24 h-1 bg-primary mx-auto mb-8 sm:mb-12 shadow-neon" />
           
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 max-w-5xl mx-auto">
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group">
               <div className="aspect-[4/3] relative overflow-hidden">
                 <img 
@@ -455,34 +455,6 @@ const Index = () => {
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '100ms' }}>
               <div className="aspect-[4/3] relative overflow-hidden">
                 <img 
-                  src="/assets/monsters/DALL·E 2024-11-22 18.54.19 - Design a breathtaking sci-fi illustration for 'Quaternion_ Defend the Dimensions.' Depict a massive elemental monster formed from four floating island.webp"
-                  alt="Elemental Monster"
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                />
-              </div>
-              <CardContent className="p-6">
-                <h3 className="text-xl font-bold text-primary mb-2">Four-Powered Titan</h3>
-                <p className="text-muted-foreground text-sm">Towering monster radiating Time, Space, Matter, and Energy.</p>
-              </CardContent>
-            </Card>
-
-            <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '200ms' }}>
-              <div className="aspect-[4/3] relative overflow-hidden">
-                <img 
-                  src="/assets/monsters/DALL·E 2024-11-22 18.49.09 - Create an original and highly detailed sci-fi illustration of a colossal elemental monster formed from four floating islands, each representing a dist.webp"
-                  alt="Floating Islands Monster"
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                />
-              </div>
-              <CardContent className="p-6">
-                <h3 className="text-xl font-bold text-primary mb-2">Dimensional Beast</h3>
-                <p className="text-muted-foreground text-sm">Each island represents a distinct dimension of power.</p>
-              </CardContent>
-            </Card>
-
-            <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group">
-              <div className="aspect-[4/3] relative overflow-hidden">
-                <img 
                   src="/assets/monsters/DALL·E 2024-11-22 18.44.15 - Design an enhanced sci-fi movie poster for 'Quaternion,' focusing on the battle between a colossal monster and three futuristic starships. The monster.webp"
                   alt="Battle Scene Monster"
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
@@ -491,20 +463,6 @@ const Index = () => {
               <CardContent className="p-6">
                 <h3 className="text-xl font-bold text-primary mb-2">Cosmic Battle</h3>
                 <p className="text-muted-foreground text-sm">Engage in epic battles against overwhelming forces.</p>
-              </CardContent>
-            </Card>
-
-            <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '100ms' }}>
-              <div className="aspect-[4/3] relative overflow-hidden">
-                <img 
-                  src="/assets/monsters/DALL·E 2024-11-22 18.42.21 - Create a visually striking sci-fi movie poster for 'Quaternion.' The central focus is a towering, glowing monster radiating four powers_ Time (blue, s.webp"
-                  alt="Glowing Monster"
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                />
-              </div>
-              <CardContent className="p-6">
-                <h3 className="text-xl font-bold text-primary mb-2">Radiant Guardian</h3>
-                <p className="text-muted-foreground text-sm">Glowing with the four primal forces of the universe.</p>
               </CardContent>
             </Card>
 

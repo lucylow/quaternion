@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { MapRenderer } from '../MapRenderer';
 import { MAP_THEMES } from '../MapThemeGenerator';
+import { safeSetInteractive } from '../../utils/inputSafe';
 
 export class MapScene extends Phaser.Scene {
   mapRenderer: MapRenderer | null = null;
@@ -74,7 +75,7 @@ export class MapScene extends Phaser.Scene {
         }
       );
 
-      button.setInteractive({ useHandCursor: true });
+      buttonsafeSetInteractive(.setInteractive({ useHandCursor: true });, { useHandCursor: true });
       button.setDepth(100);
       button.setScrollFactor(0);
 
@@ -105,7 +106,7 @@ export class MapScene extends Phaser.Scene {
       }
     );
 
-    regenerateButton.setInteractive({ useHandCursor: true });
+    regenerateButtonsafeSetInteractive(.setInteractive({ useHandCursor: true });, { useHandCursor: true });
     regenerateButton.setDepth(100);
     regenerateButton.setScrollFactor(0);
 

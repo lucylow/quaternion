@@ -1,6 +1,7 @@
 // src/frontend/ui/ResponsiveMobileUI.ts
 
 import Phaser from 'phaser';
+import { safeSetInteractive } from '../utils/inputSafe';
 
 interface TouchControl {
   bg?: Phaser.GameObjects.Arc;
@@ -176,7 +177,7 @@ export class ResponsiveMobileUI {
 
       button.setScrollFactor(0);
       button.setDepth(1000);
-      button.setInteractive({ useHandCursor: true });
+      safeSetInteractive(button, { useHandCursor: true });
 
       const text = this.scene.add.text(
         startX + btn.offset.x,

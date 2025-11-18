@@ -1121,7 +1121,7 @@ const QuaternionGame = () => {
       // Create enhanced player base
       playerBase = this.add.rectangle(150, 350, 80, 80, 0x00ffea, 0.9);
       playerBase.setStrokeStyle(3, 0x00ffea, 1);
-      playerBase.setInteractive({ useHandCursor: true });
+      safeSetInteractive(playerBase, { useHandCursor: true });
       playerBase.on('pointerdown', () => {
         console.log('[Scene] Player base clicked at', playerBase.x, playerBase.y);
       });
@@ -1162,7 +1162,7 @@ const QuaternionGame = () => {
         unit.displayWidth = 40;
         unit.displayHeight = 40;
         unit.setTint(0x00ffea);
-        unit.setInteractive({ useHandCursor: true }); // CRITICAL: Make units clickable!
+        safeSetInteractive(unit, { useHandCursor: true }); // CRITICAL: Make units clickable!
         unit.setData('type', unitType);
         unit.setData('axis', unitAxis);
         unit.setData('health', 100);
@@ -2188,7 +2188,7 @@ const QuaternionGame = () => {
         aiUnit.setData('state', 'attacking');
         
         // Make AI units interactive for debugging/click detection
-        aiUnit.setInteractive({ useHandCursor: false });
+        safeSetInteractive(aiUnit, { useHandCursor: false });
         aiUnit.on('pointerdown', () => {
           console.log('[Scene] AI unit clicked at', aiUnit.x, aiUnit.y);
         });
