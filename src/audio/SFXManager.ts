@@ -12,6 +12,7 @@
  */
 
 import AudioManager from './AudioManager';
+import AdaptiveEffects from './AdaptiveEffects';
 
 export type SFXCue = {
   key: string;
@@ -148,6 +149,13 @@ export default class SFXManager {
       pitch?: number;
       position?: { x: number; y: number; z?: number }; // For spatial audio
       pan?: number; // -1 (left) to 1 (right)
+      effects?: {
+        reverb?: number; // 0-1, reverb amount
+        lowpass?: number; // Hz, lowpass filter cutoff
+        highpass?: number; // Hz, highpass filter cutoff
+        distortion?: number; // 0-1, distortion amount
+        compression?: boolean; // Enable compression
+      };
     } = {}
   ): PlaybackHandle | null {
     const cue = this.cueRegistry.get(key);
@@ -174,15 +182,134 @@ export default class SFXManager {
     source.buffer = buffer;
     source.loop = cue.loop;
 
-    // Apply pitch variation
-    const pitch = options.pitch ?? 1.0;
-    if (pitch !== 1.0) {
-      source.playbackRate.value = pitch;
+    // Apply pitch variation with slight randomization for organic feel
+    const basePitch = options.pitch ?? 1.0;
+    const pitchVariation = cue.category === 'combat' ? 0.05 : 0.02; // More variation for combat
+    const pitch = basePitch + (Math.random() - 0.5) * pitchVariation;
+    source.playbackRate.value = Math.max(0.25, Math.min(4.0, pitch));
+
+    // Create gain node with volume variation
+    const gain = audioCtx.createGain();
+    const baseVolume = options.volume ?? 1.0;
+    const volumeVariation = cue.category === 'combat' ? 0.1 : 0.05;
+    const volume = baseVolume * (1 + (Math.random() - 0.5) * volumeVariation);
+    gain.gain.value = Math.max(0, Math.min(1, volume));
+
+    // Build processing chain
+    let processingChain: AudioNode = gain;
+
+    // Apply effects based on category and options
+    let effects = options.effects || {};
+    const nodesToCleanup: AudioNode[] = [source, gain];
+
+    // Apply adaptive effects based on game state (chroma/instability)
+    const adaptiveEffects = AdaptiveEffects.instance();
+    if (adaptiveEffects) {
+      const chromaLevel = adaptiveEffects.getChromaLevel();
+      const instabilityLevel = adaptiveEffects.getInstabilityLevel();
+      
+      // Enhance combat sounds with chroma
+      if (cue.category === 'combat' && chromaLevel > 0.3) {
+        if (!effects.reverb) effects.reverb = 0;
+        effects.reverb += chromaLevel * 0.2; // More reverb at high chroma
+        if (!effects.distortion) effects.distortion = 0;
+        effects.distortion += chromaLevel * 0.15; // More distortion at high chroma
+      }
+      
+      // Add instability effects to all sounds
+      if (instabilityLevel > 0.2) {
+        if (!effects.distortion) effects.distortion = 0;
+        effects.distortion += instabilityLevel * 0.1; // Slight distortion from instability
+        if (!effects.lowpass) effects.lowpass = 20000;
+        effects.lowpass = Math.max(1000, effects.lowpass - (instabilityLevel * 5000)); // Muffle with instability
+      }
     }
 
-    // Create gain node
-    const gain = audioCtx.createGain();
-    gain.gain.value = options.volume ?? 1.0;
+    // Lowpass filter (for muffled/distant sounds)
+    let lowpassFilter: BiquadFilterNode | null = null;
+    if (effects.lowpass) {
+      lowpassFilter = audioCtx.createBiquadFilter();
+      lowpassFilter.type = 'lowpass';
+      lowpassFilter.frequency.value = effects.lowpass;
+      lowpassFilter.Q.value = 1.0;
+      processingChain.connect(lowpassFilter);
+      processingChain = lowpassFilter;
+      nodesToCleanup.push(lowpassFilter);
+    }
+
+    // Highpass filter (for removing low-end rumble)
+    let highpassFilter: BiquadFilterNode | null = null;
+    if (effects.highpass) {
+      highpassFilter = audioCtx.createBiquadFilter();
+      highpassFilter.type = 'highpass';
+      highpassFilter.frequency.value = effects.highpass;
+      highpassFilter.Q.value = 1.0;
+      processingChain.connect(highpassFilter);
+      processingChain = highpassFilter;
+      nodesToCleanup.push(highpassFilter);
+    }
+
+    // Distortion (for aggressive sounds)
+    let distortionNode: WaveShaperNode | null = null;
+    let distortionGain: GainNode | null = null;
+    if (effects.distortion && effects.distortion > 0) {
+      distortionGain = audioCtx.createGain();
+      distortionGain.gain.value = 1.0 + effects.distortion * 2.0; // Pre-gain
+      
+      distortionNode = audioCtx.createWaveShaper();
+      const curve = new Float32Array(65536);
+      const amount = effects.distortion;
+      for (let i = 0; i < 65536; i++) {
+        const x = (i - 32768) / 32768;
+        curve[i] = ((3 + amount) * x * 20) / (Math.PI + amount * Math.abs(x));
+      }
+      distortionNode.curve = curve;
+      distortionNode.oversample = '4x';
+      
+      processingChain.connect(distortionGain);
+      distortionGain.connect(distortionNode);
+      processingChain = distortionNode;
+      nodesToCleanup.push(distortionGain, distortionNode);
+    }
+
+    // Compression (for dynamic range control)
+    let compressor: DynamicsCompressorNode | null = null;
+    if (effects.compression) {
+      compressor = audioCtx.createDynamicsCompressor();
+      compressor.threshold.value = -24;
+      compressor.knee.value = 30;
+      compressor.ratio.value = 12;
+      compressor.attack.value = 0.003;
+      compressor.release.value = 0.1;
+      processingChain.connect(compressor);
+      processingChain = compressor;
+      nodesToCleanup.push(compressor);
+    }
+
+    // Reverb (for spatial depth)
+    let reverbNode: ConvolverNode | null = null;
+    let reverbGain: GainNode | null = null;
+    if (effects.reverb && effects.reverb > 0) {
+      reverbGain = audioCtx.createGain();
+      reverbGain.gain.value = effects.reverb * 0.3; // Scale reverb amount
+      
+      reverbNode = audioCtx.createConvolver();
+      // Create simple reverb impulse
+      const impulseLength = audioCtx.sampleRate * 0.3; // 300ms
+      const impulse = audioCtx.createBuffer(2, impulseLength, audioCtx.sampleRate);
+      for (let channel = 0; channel < 2; channel++) {
+        const channelData = impulse.getChannelData(channel);
+        for (let i = 0; i < impulseLength; i++) {
+          channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / impulseLength, 1.5);
+        }
+      }
+      reverbNode.buffer = impulse;
+      
+      // Parallel reverb path
+      processingChain.connect(reverbGain);
+      reverbGain.connect(reverbNode);
+      nodesToCleanup.push(reverbGain, reverbNode);
+    }
 
     // Spatial audio (if position provided)
     let panner: StereoPannerNode | PannerNode | null = null;
@@ -192,29 +319,47 @@ export default class SFXManager {
       panner.panningModel = 'HRTF';
       panner.distanceModel = 'inverse';
       panner.refDistance = 1;
-      panner.maxDistance = 100;
-      panner.rolloffFactor = 1;
+      panner.maxDistance = 150; // Increased max distance
+      panner.rolloffFactor = 2.0; // Increased for better distance attenuation
       panner.coneInnerAngle = 360;
       panner.coneOuterAngle = 0;
       panner.coneOuterGain = 0;
       
-      panner.positionX.value = options.position.x;
-      panner.positionY.value = options.position.y;
-      panner.positionZ.value = options.position.z ?? 0;
+      // Set position (using modern API with fallback)
+      if ((panner as any).positionX) {
+        (panner as any).positionX.value = options.position.x;
+        (panner as any).positionY.value = options.position.y;
+        (panner as any).positionZ.value = options.position.z ?? 0;
+      } else if ((panner as any).setPosition) {
+        (panner as any).setPosition(options.position.x, options.position.y, options.position.z ?? 0);
+      }
+      
+      // Note: The panner automatically handles distance-based volume attenuation
+      // based on the listener position (set via AudioManager.setListenerPosition)
+      
+      processingChain.connect(panner);
+      nodesToCleanup.push(panner);
     } else if (options.pan !== undefined) {
       // Use stereo panner for simple left/right panning
       panner = audioCtx.createStereoPanner();
       panner.pan.value = Math.max(-1, Math.min(1, options.pan));
+      processingChain.connect(panner);
+      nodesToCleanup.push(panner);
     }
 
-    // Connect nodes
-    source.connect(gain);
-    if (panner) {
-      gain.connect(panner);
-      panner.connect(this.audioManager.getSfxGainNode());
-    } else {
-      gain.connect(this.audioManager.getSfxGainNode());
+    // Connect to output
+    const outputNode = panner || processingChain;
+    
+    // Connect direct path
+    outputNode.connect(this.audioManager.getSfxGainNode());
+    
+    // Connect reverb path if present
+    if (reverbNode) {
+      reverbNode.connect(this.audioManager.getSfxGainNode());
     }
+
+    // Connect source to processing chain
+    source.connect(gain);
 
     // Start playback
     source.start(0);
@@ -226,15 +371,23 @@ export default class SFXManager {
       } catch (e) {
         // Already stopped
       }
-      source.disconnect();
-      gain.disconnect();
-      panner?.disconnect();
+      nodesToCleanup.forEach(node => {
+        try {
+          node.disconnect();
+        } catch (e) {
+          // Ignore disconnect errors
+        }
+      });
     };
 
     source.onended = () => {
-      gain.disconnect();
-      panner?.disconnect();
-      source.disconnect();
+      nodesToCleanup.forEach(node => {
+        try {
+          node.disconnect();
+        } catch (e) {
+          // Ignore disconnect errors
+        }
+      });
     };
 
     const handle: PlaybackHandle = { id, stop };
@@ -281,19 +434,48 @@ export default class SFXManager {
   }
 
   /**
-   * Convenience methods for common actions
+   * Convenience methods for common actions with enhanced effects
    */
   playUIClick() { 
     // Add slight pitch variation for organic feel
     const pitch = 0.95 + Math.random() * 0.1;
-    return this.playCue('UI_Click_Soft', { volume: 0.8, pitch }); 
+    return this.playCue('UI_Click_Soft', { 
+      volume: 0.8, 
+      pitch,
+      effects: {
+        compression: true, // Crisp click
+        highpass: 200, // Remove low-end
+      }
+    }); 
   }
   playUIHover() { 
     const pitch = 0.98 + Math.random() * 0.04;
-    return this.playCue('UI_Hover_Glow', { volume: 0.6, pitch }); 
+    return this.playCue('UI_Hover_Glow', { 
+      volume: 0.6, 
+      pitch,
+      effects: {
+        reverb: 0.1, // Subtle reverb for glow
+      }
+    }); 
   }
-  playUIError() { return this.playCue('UI_Error_Beep', { volume: 0.9 }); }
-  playUIConfirm() { return this.playCue('UI_Confirm_Long', { volume: 0.8 }); }
+  playUIError() { 
+    return this.playCue('UI_Error_Beep', { 
+      volume: 0.9,
+      effects: {
+        compression: true,
+        distortion: 0.1, // Slight distortion for harshness
+      }
+    }); 
+  }
+  playUIConfirm() { 
+    return this.playCue('UI_Confirm_Long', { 
+      volume: 0.8,
+      effects: {
+        reverb: 0.2, // Pleasant reverb
+        compression: true,
+      }
+    }); 
+  }
   
   playTerrainAmbient(biome: string): PlaybackHandle | null {
     const key = `Ambient_${biome}`;
@@ -304,23 +486,94 @@ export default class SFXManager {
 
   playUnitAttack(position?: { x: number; y: number; z?: number }) { 
     const pitch = 0.9 + Math.random() * 0.2; // More variation for combat
-    return this.playCue('Unit_Attack_Shot', { volume: 0.9, pitch, position }); 
+    return this.playCue('Unit_Attack_Shot', { 
+      volume: 0.9, 
+      pitch, 
+      position,
+      effects: {
+        compression: true, // Compress for punch
+        highpass: 80, // Remove low-end rumble
+        reverb: 0.15, // Subtle reverb for depth
+      }
+    }); 
   }
   playUnitHit(position?: { x: number; y: number; z?: number }) { 
     const pitch = 0.85 + Math.random() * 0.3;
-    return this.playCue('Unit_Hit_Impact', { volume: 0.8, pitch, position }); 
+    return this.playCue('Unit_Hit_Impact', { 
+      volume: 0.8, 
+      pitch, 
+      position,
+      effects: {
+        compression: true, // Compress for impact
+        distortion: 0.2, // Slight distortion for crunch
+        reverb: 0.1, // Subtle reverb
+      }
+    }); 
   }
   playUnitDestroyed(position?: { x: number; y: number; z?: number }) { 
-    return this.playCue('Unit_Destroyed_Blast', { volume: 1.0, position }); 
+    return this.playCue('Unit_Destroyed_Blast', { 
+      volume: 1.0, 
+      position,
+      effects: {
+        compression: true, // Heavy compression for impact
+        distortion: 0.3, // More distortion for destruction
+        reverb: 0.4, // More reverb for epic feel
+        lowpass: 8000, // Slight lowpass for warmth
+      }
+    }); 
   }
 
-  playNodeCapture() { return this.playCue('Node_Capture_Complete', { volume: 0.9 }); }
-  playNodeCaptureStart() { return this.playCue('Node_Capture_Start', { volume: 0.8 }); }
+  playNodeCapture() { 
+    return this.playCue('Node_Capture_Complete', { 
+      volume: 0.9,
+      effects: {
+        reverb: 0.3, // Triumphant reverb
+        compression: true,
+      }
+    }); 
+  }
+  playNodeCaptureStart() { 
+    return this.playCue('Node_Capture_Start', { 
+      volume: 0.8,
+      effects: {
+        reverb: 0.15, // Subtle reverb
+        compression: true,
+      }
+    }); 
+  }
 
   playAdvisorPing() { return this.playCue('Advisor_Ping', { volume: 0.6 }); }
 
-  playKaijuRise() { return this.playCue('Kaiju_Rise', { volume: 1.0 }); }
-  playVictory() { return this.playCue('Victory_Reveal', { volume: 1.0 }); }
-  playCollapse() { return this.playCue('Collapse_Fail', { volume: 1.0 }); }
+  playKaijuRise() { 
+    return this.playCue('Kaiju_Rise', { 
+      volume: 1.0,
+      effects: {
+        compression: true, // Heavy compression for impact
+        distortion: 0.2, // Slight distortion for aggression
+        reverb: 0.5, // Epic reverb
+        lowpass: 12000, // Slight lowpass for warmth
+      }
+    }); 
+  }
+  playVictory() { 
+    return this.playCue('Victory_Reveal', { 
+      volume: 1.0,
+      effects: {
+        reverb: 0.6, // Warm reverb
+        compression: true,
+      }
+    }); 
+  }
+  playCollapse() { 
+    return this.playCue('Collapse_Fail', { 
+      volume: 1.0,
+      effects: {
+        compression: true,
+        distortion: 0.4, // Heavy distortion for chaos
+        reverb: 0.5, // Chaotic reverb
+        lowpass: 6000, // Muffled for failure
+      }
+    }); 
+  }
 }
 

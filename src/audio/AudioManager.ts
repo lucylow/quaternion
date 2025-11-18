@@ -320,5 +320,53 @@ export default class AudioManager {
   getBuffer(key: string): AudioBuffer | undefined {
     return this.buffers[key];
   }
+
+  /**
+   * Update listener position for 3D spatial audio
+   * Call this from the game loop with camera position
+   */
+  setListenerPosition(x: number, y: number, z: number = 0): void {
+    if (!this.audioCtx || !this.audioCtx.listener) return;
+    
+    const listener = this.audioCtx.listener;
+    
+    // Update position (using legacy API for compatibility)
+    if ((listener as any).positionX) {
+      // Modern API
+      (listener as any).positionX.value = x;
+      (listener as any).positionY.value = y;
+      (listener as any).positionZ.value = z;
+    } else if ((listener as any).setPosition) {
+      // Legacy API
+      (listener as any).setPosition(x, y, z);
+    }
+  }
+
+  /**
+   * Update listener orientation for 3D spatial audio
+   * Forward vector and up vector for proper 3D audio
+   */
+  setListenerOrientation(
+    forwardX: number, forwardY: number, forwardZ: number,
+    upX: number = 0, upY: number = 0, upZ: number = 1
+  ): void {
+    if (!this.audioCtx || !this.audioCtx.listener) return;
+    
+    const listener = this.audioCtx.listener;
+    
+    // Update orientation (using legacy API for compatibility)
+    if ((listener as any).forwardX) {
+      // Modern API
+      (listener as any).forwardX.value = forwardX;
+      (listener as any).forwardY.value = forwardY;
+      (listener as any).forwardZ.value = forwardZ;
+      (listener as any).upX.value = upX;
+      (listener as any).upY.value = upY;
+      (listener as any).upZ.value = upZ;
+    } else if ((listener as any).setOrientation) {
+      // Legacy API
+      (listener as any).setOrientation(forwardX, forwardY, forwardZ, upX, upY, upZ);
+    }
+  }
 }
 

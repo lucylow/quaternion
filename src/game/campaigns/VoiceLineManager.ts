@@ -162,6 +162,146 @@ export class VoiceLineManager {
       text: 'You know, for beings with such short lifespans, you sure do make choices that last forever. Fascinating.',
       ssml: `<speak><voice name="Patch"><prosody rate="1.03">You know, for beings with such short lifespans, you sure do make choices that last forever. Fascinating.</prosody><break time="200ms"/></voice></speak>`
     });
+
+    // Commander-specific voice lines
+    this.initializeCommanderVoiceLines();
+  }
+
+  /**
+   * Initialize commander-specific voice lines
+   */
+  private initializeCommanderVoiceLines() {
+    // The Architect - Methodical, patient, detail-oriented
+    this.voiceLines.set('architect_early_game', {
+      id: 'architect_early_game',
+      character: 'Architect',
+      text: 'A fortress built in haste is a fortress built to fall. We build for eternity.',
+      ssml: `<speak><voice name="Architect"><prosody rate="0.92">A fortress built in haste is a fortress built to fall. We build for eternity.</prosody><break time="200ms"/></voice></speak>`
+    });
+
+    this.voiceLines.set('architect_battle', {
+      id: 'architect_battle',
+      character: 'Architect',
+      text: 'Let them break upon our walls. Mathematics favors the prepared.',
+      ssml: `<speak><voice name="Architect"><prosody rate="0.94">Let them break upon our walls. Mathematics favors the prepared.</prosody><break time="200ms"/></voice></speak>`
+    });
+
+    this.voiceLines.set('architect_resource', {
+      id: 'architect_resource',
+      character: 'Architect',
+      text: 'Every resource is a calculation. Every calculation is a step toward victory.',
+      ssml: `<speak><voice name="Architect"><prosody rate="0.93">Every resource is a calculation. Every calculation is a step toward victory.</prosody><break time="200ms"/></voice></speak>`
+    });
+
+    // The Aggressor - Aggressive, impatient, risk-taking
+    this.voiceLines.set('aggressor_early_game', {
+      id: 'aggressor_early_game',
+      character: 'Aggressor',
+      text: 'Every moment we wait is a moment they prepare. Attack now!',
+      ssml: `<speak><voice name="Aggressor"><prosody rate="1.05"><emphasis level="strong">Every moment we wait is a moment they prepare. Attack now!</emphasis></prosody><break time="150ms"/></voice></speak>`
+    });
+
+    this.voiceLines.set('aggressor_battle', {
+      id: 'aggressor_battle',
+      character: 'Aggressor',
+      text: 'Push forward! Break their lines! Victory or death!',
+      ssml: `<speak><voice name="Aggressor"><prosody rate="1.08"><emphasis level="strong">Push forward! Break their lines! Victory or death!</emphasis></prosody><break time="200ms"/></voice></speak>`
+    });
+
+    this.voiceLines.set('aggressor_victory', {
+      id: 'aggressor_victory',
+      character: 'Aggressor',
+      text: 'They hesitated. We did not. That is why we stand victorious.',
+      ssml: `<speak><voice name="Aggressor"><prosody rate="1.04">They hesitated. We did not. That is why we stand victorious.</prosody><break time="200ms"/></voice></speak>`
+    });
+
+    // The Nomad - Exploratory, innovative, mobile
+    this.voiceLines.set('nomad_early_game', {
+      id: 'nomad_early_game',
+      character: 'Nomad',
+      text: 'The world is vast. Those who stay in one place are already defeated.',
+      ssml: `<speak><voice name="Nomad"><prosody rate="0.98">The world is vast. Those who stay in one place are already defeated.</prosody><break time="200ms"/></voice></speak>`
+    });
+
+    this.voiceLines.set('nomad_battle', {
+      id: 'nomad_battle',
+      character: 'Nomad',
+      text: 'They expect a battle. We give them a hunt.',
+      ssml: `<speak><voice name="Nomad"><prosody rate="1.00">They expect a battle. We give them a hunt.</prosody><break time="200ms"/></voice></speak>`
+    });
+
+    this.voiceLines.set('nomad_discovery', {
+      id: 'nomad_discovery',
+      character: 'Nomad',
+      text: 'Every corner of the map holds a secret. Every secret is an advantage.',
+      ssml: `<speak><voice name="Nomad"><prosody rate="0.99">Every corner of the map holds a secret. Every secret is an advantage.</prosody><break time="200ms"/></voice></speak>`
+    });
+
+    // The Tactician - Calculated, precise, micro-focused
+    this.voiceLines.set('tactician_early_game', {
+      id: 'tactician_early_game',
+      character: 'Tactician',
+      text: 'Victory is not about strength—it\'s about knowing exactly when and where to apply it.',
+      ssml: `<speak><voice name="Tactician"><prosody rate="0.96">Victory is not about strength—it's about knowing exactly when and where to apply it.</prosody><break time="250ms"/></voice></speak>`
+    });
+
+    this.voiceLines.set('tactician_battle', {
+      id: 'tactician_battle',
+      character: 'Tactician',
+      text: 'Watch. Learn. Execute. This is how wars are won.',
+      ssml: `<speak><voice name="Tactician"><prosody rate="0.95">Watch. Learn. Execute. This is how wars are won.</prosody><break time="200ms"/></voice></speak>`
+    });
+
+    this.voiceLines.set('tactician_analysis', {
+      id: 'tactician_analysis',
+      character: 'Tactician',
+      text: 'Information is the greatest weapon. Know your enemy, know yourself, know victory.',
+      ssml: `<speak><voice name="Tactician"><prosody rate="0.94">Information is the greatest weapon. Know your enemy, know yourself, know victory.</prosody><break time="250ms"/></voice></speak>`
+    });
+
+    // The Harvester - Patient, economic, defensive
+    this.voiceLines.set('harvester_early_game', {
+      id: 'harvester_early_game',
+      character: 'Harvester',
+      text: 'Let them fight. We build. When they are exhausted, we will be unstoppable.',
+      ssml: `<speak><voice name="Harvester"><prosody rate="0.91">Let them fight. We build. When they are exhausted, we will be unstoppable.</prosody><break time="250ms"/></voice></speak>`
+    });
+
+    this.voiceLines.set('harvester_battle', {
+      id: 'harvester_battle',
+      character: 'Harvester',
+      text: 'Every unit lost is a resource wasted. We fight smart, not hard.',
+      ssml: `<speak><voice name="Harvester"><prosody rate="0.93">Every unit lost is a resource wasted. We fight smart, not hard.</prosody><break time="200ms"/></voice></speak>`
+    });
+
+    this.voiceLines.set('harvester_economy', {
+      id: 'harvester_economy',
+      character: 'Harvester',
+      text: 'Resources flow like rivers. Patience yields wealth, and wealth yields victory.',
+      ssml: `<speak><voice name="Harvester"><prosody rate="0.92">Resources flow like rivers. Patience yields wealth, and wealth yields victory.</prosody><break time="250ms"/></voice></speak>`
+    });
+
+    // The Wildcard - Chaotic, innovative, unpredictable
+    this.voiceLines.set('wildcard_early_game', {
+      id: 'wildcard_early_game',
+      character: 'Wildcard',
+      text: 'Predictability is death. Let\'s see what happens when we break all the rules.',
+      ssml: `<speak><voice name="Wildcard"><prosody rate="1.02">Predictability is death. Let's see what happens when we break all the rules.</prosody><break time="200ms"/></voice></speak>`
+    });
+
+    this.voiceLines.set('wildcard_battle', {
+      id: 'wildcard_battle',
+      character: 'Wildcard',
+      text: 'They think they know our strategy. They\'re about to learn they know nothing.',
+      ssml: `<speak><voice name="Wildcard"><prosody rate="1.03">They think they know our strategy. They're about to learn they know nothing.</prosody><break time="200ms"/></voice></speak>`
+    });
+
+    this.voiceLines.set('wildcard_innovation', {
+      id: 'wildcard_innovation',
+      character: 'Wildcard',
+      text: 'Conventional wisdom is for conventional losers. Let\'s try something impossible.',
+      ssml: `<speak><voice name="Wildcard"><prosody rate="1.04">Conventional wisdom is for conventional losers. Let's try something impossible.</prosody><break time="200ms"/></voice></speak>`
+    });
   }
 
   /**
@@ -223,9 +363,23 @@ export class VoiceLineManager {
     const voiceMap: Record<string, string> = {
       'Lian': 'VR6AewLTigWG4xSOukaG', // Arnold - authoritative
       'Mara': 'EXAVITQu4vr4xnSDxMaL', // Bella - empathetic
-      'Patch': 'ThT5KcBeYPX3keUQqHPh'  // Dorothy - neutral/robotic
+      'Patch': 'ThT5KcBeYPX3keUQqHPh',  // Dorothy - neutral/robotic
+      'Architect': 'VR6AewLTigWG4xSOukaG', // Arnold - methodical, authoritative
+      'Aggressor': 'VR6AewLTigWG4xSOukaG', // Arnold - aggressive, commanding
+      'Nomad': 'EXAVITQu4vr4xnSDxMaL', // Bella - exploratory, curious
+      'Tactician': 'VR6AewLTigWG4xSOukaG', // Arnold - calculated, precise
+      'Harvester': 'EXAVITQu4vr4xnSDxMaL', // Bella - patient, calm
+      'Wildcard': 'ThT5KcBeYPX3keUQqHPh'  // Dorothy - unpredictable, chaotic
     };
     return voiceMap[character];
+  }
+
+  /**
+   * Get commander voice line by commander ID and situation
+   */
+  getCommanderVoiceLine(commanderId: string, situation: string): VoiceLine | undefined {
+    const id = `${commanderId}_${situation}`;
+    return this.voiceLines.get(id);
   }
 
   /**
