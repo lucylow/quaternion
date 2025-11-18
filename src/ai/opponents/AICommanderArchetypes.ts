@@ -138,18 +138,27 @@ export class AICommanderArchetypes {
           "You will walk into my web.",
           "Time is on my side.",
           "Methodical. Systematic. Inevitable.",
+          "Haste makes waste. I make no mistakes.",
+          "While you rush, I build. While you attack, I prepare.",
+          "The strongest fortress is built one stone at a time.",
+          "Your impatience will be your undoing.",
+          "I don't need to be fast. I just need to be right.",
         ],
       },
       preferredStrategies: [
         "turtle_defense",
         "methodical_expansion",
         "defensive_build",
+        "fortress_strategy",
       ],
       counterStrategies: [
         "surprise_attacks",
         "unconventional_tactics",
         "early_pressure",
+        "unexpected_strategies",
       ],
+      description: "A patient strategist who builds impenetrable defenses and expands methodically. Predictable but formidable.",
+      difficulty: "medium",
     },
     THE_MIRROR: {
       traits: {
@@ -171,18 +180,27 @@ export class AICommanderArchetypes {
           "Imitation is the sincerest form of warfare.",
           "I learn from you, then I surpass you.",
           "Every move you make, I make better.",
+          "Why innovate when I can perfect your innovations?",
+          "Your best ideas become my weapons.",
+          "I don't need original strategies. I need effective ones.",
+          "Watch closely. You're teaching me how to beat you.",
+          "The student becomes the master, and the master becomes the student.",
         ],
       },
       preferredStrategies: [
         "mirror_strategy",
         "adaptive_response",
         "counter_build",
+        "strategy_theft",
       ],
       counterStrategies: [
         "completely_novel_approach",
         "random_strategy",
         "unpredictable_tactics",
+        "chaotic_play",
       ],
+      description: "An adaptive AI that learns from and mirrors player strategies, then improves upon them. Extremely dangerous against predictable players.",
+      difficulty: "extreme",
     },
     THE_TACTICIAN: {
       traits: {
@@ -204,14 +222,22 @@ export class AICommanderArchetypes {
           "Positioning is everything.",
           "The perfect move at the perfect time.",
           "Strategy over brute force.",
+          "A well-placed strike is worth a thousand wasted attacks.",
+          "I don't need more units. I need better positioning.",
+          "The battlefield is a chessboard, and I am the grandmaster.",
+          "Victory belongs to those who think three moves ahead.",
+          "Efficiency and precision. That's how wars are won.",
         ],
       },
       preferredStrategies: [
         "tactical_positioning",
         "flanking",
         "strategic_timing",
+        "micro_management",
       ],
-      counterStrategies: ["brute_force", "overwhelming_numbers", "simple_rush"],
+      counterStrategies: ["brute_force", "overwhelming_numbers", "simple_rush", "unexpected_aggression"],
+      description: "A balanced commander who excels at tactical positioning and strategic timing. Versatile but can be overwhelmed.",
+      difficulty: "medium",
     },
     THE_ECONOMIST: {
       traits: {
@@ -233,18 +259,27 @@ export class AICommanderArchetypes {
           "Build the foundation, then strike.",
           "Patience and prosperity.",
           "Money is the ultimate weapon.",
+          "Every resource invested wisely compounds into victory.",
+          "While you fight, I prosper. While you struggle, I thrive.",
+          "The best defense is an economy that never stops growing.",
+          "Wars are won in the mines and refineries, not just on the battlefield.",
+          "Time is money, and I have both in abundance.",
         ],
       },
       preferredStrategies: [
         "economic_boom",
         "resource_focus",
         "late_game_power",
+        "economic_domination",
       ],
       counterStrategies: [
         "early_aggression",
         "military_rush",
         "resource_denial",
+        "timing_attacks",
       ],
+      description: "A master economist who prioritizes resource accumulation and economic growth over early military engagement.",
+      difficulty: "easy",
     },
     THE_WILDCARD: {
       traits: {
@@ -266,23 +301,33 @@ export class AICommanderArchetypes {
           "Let's try something completely insane!",
           "Rules? What rules?",
           "The unexpected is my weapon!",
+          "Why follow a plan when I can make one up on the spot?",
+          "Predictability is death. Chaos is life!",
+          "I don't know what I'm doing, and neither do you!",
+          "The best strategy is no strategy at all!",
+          "Let's see what happens when I do... this!",
         ],
       },
       preferredStrategies: [
         "chaotic_tactics",
         "unpredictable_moves",
         "surprise_attacks",
+        "random_strategies",
       ],
       counterStrategies: [
         "consistent_strategy",
         "defensive_turtle",
         "methodical_approach",
+        "stable_economy",
       ],
+      description: "A completely unpredictable commander who thrives on chaos and confusion. Impossible to counter but unreliable.",
+      difficulty: "hard",
     },
   };
 
   /**
    * Create a commander profile from archetype
+   * Adds slight randomization to traits to ensure each commander instance feels unique
    */
   public static createCommander(
     archetype: CommanderArchetype,
@@ -334,6 +379,8 @@ export class AICommanderArchetypes {
       voiceProfile: base.voiceProfile,
       preferredStrategies: [...base.preferredStrategies],
       counterStrategies: [...base.counterStrategies],
+      description: base.description,
+      difficulty: base.difficulty,
     };
   }
 
@@ -357,7 +404,68 @@ export class AICommanderArchetypes {
   }
 
   /**
-   * Clamp value
+   * Get archetype by difficulty level
+   */
+  public static getArchetypesByDifficulty(
+    difficulty: "easy" | "medium" | "hard" | "extreme",
+  ): CommanderArchetype[] {
+    return (Object.keys(this.ARCHETYPES) as CommanderArchetype[]).filter(
+      (archetype) => this.ARCHETYPES[archetype].difficulty === difficulty,
+    );
+  }
+
+  /**
+   * Get a random catchphrase for an archetype
+   */
+  public static getRandomCatchphrase(
+    archetype: CommanderArchetype,
+    seed: number,
+  ): string {
+    const profile = this.ARCHETYPES[archetype];
+    const rng = new SeededRandom(seed);
+    return rng.choice(profile.voiceProfile.catchphrases);
+  }
+
+  /**
+   * Get archetype information (without creating a full profile)
+   */
+  public static getArchetypeInfo(
+    archetype: CommanderArchetype,
+  ): Omit<CommanderProfile, "archetype" | "traits"> {
+    const base = this.ARCHETYPES[archetype];
+    return {
+      behavior: base.behavior,
+      weakness: base.weakness,
+      voiceProfile: base.voiceProfile,
+      preferredStrategies: [...base.preferredStrategies],
+      counterStrategies: [...base.counterStrategies],
+      description: base.description,
+      difficulty: base.difficulty,
+    };
+  }
+
+  /**
+   * Check if a strategy is preferred by an archetype
+   */
+  public static isPreferredStrategy(
+    archetype: CommanderArchetype,
+    strategy: string,
+  ): boolean {
+    return this.ARCHETYPES[archetype].preferredStrategies.includes(strategy);
+  }
+
+  /**
+   * Check if a strategy counters an archetype
+   */
+  public static isCounterStrategy(
+    archetype: CommanderArchetype,
+    strategy: string,
+  ): boolean {
+    return this.ARCHETYPES[archetype].counterStrategies.includes(strategy);
+  }
+
+  /**
+   * Clamp value between min and max
    */
   private static clamp(min: number, max: number, value: number): number {
     return Math.max(min, Math.min(max, value));

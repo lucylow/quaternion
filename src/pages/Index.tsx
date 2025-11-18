@@ -11,19 +11,50 @@ import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/quaternion-hero.webp";
 import mapImage from "@/assets/game-maps.webp";
 import { OptimizedImage } from "@/components/ui/OptimizedImage";
+import { getLandingPageAudio } from "@/audio/LandingPageAudio";
 
 const Index = () => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const audioInitialized = useRef(false);
+  const audio = getLandingPageAudio();
+
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
       setMobileMenuOpen(false);
+      audio.playClick();
+    }
+  };
+
+  // Initialize audio on first user interaction
+  const initializeAudioOnInteraction = async () => {
+    if (audioInitialized.current) return;
+    
+    try {
+      await audio.initialize();
+      await audio.startBackgroundMusic();
+      audioInitialized.current = true;
+    } catch (error) {
+      console.warn('Audio initialization failed:', error);
     }
   };
 
   useEffect(() => {
+    // Initialize audio on any user interaction
+    const handleUserInteraction = () => {
+      initializeAudioOnInteraction();
+      // Remove listeners after first interaction
+      document.removeEventListener('click', handleUserInteraction);
+      document.removeEventListener('touchstart', handleUserInteraction);
+      document.removeEventListener('keydown', handleUserInteraction);
+    };
+
+    document.addEventListener('click', handleUserInteraction, { once: true });
+    document.addEventListener('touchstart', handleUserInteraction, { once: true });
+    document.addEventListener('keydown', handleUserInteraction, { once: true });
+
     // Scroll progress bar
     const progressBar = document.createElement('div');
     progressBar.className = 'fixed top-0 left-0 h-1 bg-gradient-to-r from-primary to-secondary z-[100] transition-all';

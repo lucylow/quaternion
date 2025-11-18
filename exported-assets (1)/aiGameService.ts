@@ -60,11 +60,22 @@ export interface MapData {
 
 export interface AIDecision {
   type: 'build' | 'move' | 'attack' | 'gather' | 'expand' | 'defend';
+  action: string;
+  priority?: number;
   target?: string;
   position?: { x: number; y: number };
   unitIds?: string[];
   confidence: number;
   reasoning: string;
+  deception?: {
+    tactic: string;
+    plan: any;
+  };
+  emotionalTrigger?: {
+    emotion: string;
+    taunt: string;
+  };
+  quirkApplied?: any;
 }
 
 export interface AIAnalytics {
@@ -73,6 +84,37 @@ export interface AIAnalytics {
   strategyPhase: 'early' | 'mid' | 'late';
   resourceEfficiency: number;
   militaryStrength: number;
+  commanderProfile?: {
+    archetype: string;
+    description: string;
+    difficulty: string;
+    traits: {
+      aggression: number;
+      caution: number;
+      adaptability: number;
+      innovation: number;
+      ruthlessness: number;
+      predictability: number;
+    };
+    behavior: string;
+    weakness: string;
+  };
+}
+
+export interface CommanderProfile {
+  archetype: string;
+  description?: string;
+  difficulty?: string;
+  traits: {
+    aggression: number;
+    caution: number;
+    adaptability: number;
+    innovation: number;
+    ruthlessness: number;
+    predictability: number;
+  };
+  behavior: string;
+  weakness: string;
 }
 
 export class AIGameService {
@@ -93,15 +135,21 @@ export class AIGameService {
   }
 
   /**
-   * Create a new game session
+   * Create a new game session with optional commander archetype
    */
-  async createGame(mapWidth: number = 64, mapHeight: number = 64, aiDifficulty: 'easy' | 'medium' | 'hard' = 'medium'): Promise<{ gameId: string; state: GameState }> {
+  async createGame(
+    mapWidth: number = 64, 
+    mapHeight: number = 64, 
+    aiDifficulty: 'easy' | 'medium' | 'hard' = 'medium',
+    commanderArchetype?: string
+  ): Promise<{ gameId: string; state: GameState }> {
     try {
       const response = await this.client.post('/api/game/create', {
         mapWidth,
         mapHeight,
         seed: Math.floor(Math.random() * 1000000),
         aiDifficulty,
+        commanderArchetype,
       });
 
       this.gameId = response.data.gameId;
