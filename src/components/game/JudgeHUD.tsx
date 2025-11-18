@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronUp, Download, Share2, FileJson, AlertTriangle, Info } from 'lucide-react';
+import { ChevronDown, ChevronUp, Download, Share2, FileJson, AlertTriangle, Info, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -20,6 +20,7 @@ interface JudgeHUDProps {
 
 export function JudgeHUD({ seed, commanderId, mapConfig, outcome }: JudgeHUDProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [hidden, setHidden] = useState(false);
   const { metadata, loading, error, generateReplay, downloadReplay, shareReplay } = useReplayGenerator();
 
   const handleGenerate = () => {
@@ -36,6 +37,23 @@ export function JudgeHUD({ seed, commanderId, mapConfig, outcome }: JudgeHUDProp
     return text.substring(0, maxLength) + '...';
   };
 
+  if (hidden) {
+    return (
+      <TooltipProvider>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setHidden(false)}
+          className="fixed top-20 right-4 z-40"
+          aria-label="Show Judge Replay panel"
+        >
+          <FileJson className="w-4 h-4 mr-2" />
+          Show Judge Replay
+        </Button>
+      </TooltipProvider>
+    );
+  }
+
   return (
     <TooltipProvider>
       <aside 
@@ -49,15 +67,25 @@ export function JudgeHUD({ seed, commanderId, mapConfig, outcome }: JudgeHUDProp
             <FileJson className="w-5 h-5 text-primary" />
             <h3 className="font-semibold text-foreground">Judge Replay</h3>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setCollapsed(!collapsed)}
-            aria-label={collapsed ? 'Expand panel' : 'Collapse panel'}
-            aria-expanded={!collapsed}
-          >
-            {collapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setCollapsed(!collapsed)}
+              aria-label={collapsed ? 'Expand panel' : 'Collapse panel'}
+              aria-expanded={!collapsed}
+            >
+              {collapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setHidden(true)}
+              aria-label="Hide panel"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
 
         {!collapsed && (

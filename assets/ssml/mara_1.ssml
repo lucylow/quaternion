@@ -1,0 +1,7 @@
+<speak>
+  <voice name="Mara">
+    <prosody rate="0.92">Please — listen. It remembers more than we do.</prosody>
+    <break time="250ms"/>
+  </voice>
+</speak>
+

@@ -36,13 +36,18 @@ export class ImageAssetLoader {
       { key: 'map-hybrid', path: '/assets/maps/DALL·E 2024-11-20 16.22.56 - Design both 2D and 3D maps for a StarCraft-inspired game titled \'Eclipse Down.\' The 2D map should display a tactical, top-down interface with detailed.webp', category: 'map' },
     ];
 
-    // Monster assets - key monsters for the game
+    // Monster assets - key monsters for the game (all 11 available images)
     this.monsterAssets = [
       { key: 'monster-celestial-1', path: '/assets/monsters/DALL·E 2024-11-20 16.27.14 - Create an AI-generated image of a Celestial Monster character from a celestial-themed game. The monster is chaotic and otherworldly, with glowing cosm.webp', category: 'monster' },
       { key: 'monster-celestial-2', path: '/assets/monsters/DALL·E 2024-11-20 16.27.15 - Create an AI-generated image of a Celestial Monster character from a celestial-themed game. The monster is chaotic and otherworldly, with glowing cosm.webp', category: 'monster' },
       { key: 'monster-quaternion-poster-1', path: '/assets/monsters/DALL·E 2024-11-22 18.35.00 - Design a cinematic, ultra-high-quality sci-fi movie poster for \'Quaternion.\' The composition features a massive, glowing monster emanating the four po.webp', category: 'monster' },
       { key: 'monster-quaternion-poster-2', path: '/assets/monsters/DALL·E 2024-11-22 18.36.36 - Create a visually striking and highly detailed sci-fi movie poster for \'Quaternion.\' At the center, a colossal, glowing monster radiates four distinct.webp', category: 'monster' },
+      { key: 'monster-quaternion-poster-3', path: '/assets/monsters/DALL·E 2024-11-22 18.40.56 - Design a highly cinematic sci-fi movie poster for \'Quaternion,\' featuring a towering monster radiating four distinct powers_ Time (blue), Space (green.webp', category: 'monster' },
+      { key: 'monster-quaternion-poster-4', path: '/assets/monsters/DALL·E 2024-11-22 18.42.21 - Create a visually striking sci-fi movie poster for \'Quaternion.\' The central focus is a towering, glowing monster radiating four powers_ Time (blue, s.webp', category: 'monster' },
+      { key: 'monster-quaternion-battle', path: '/assets/monsters/DALL·E 2024-11-22 18.44.15 - Design an enhanced sci-fi movie poster for \'Quaternion,\' focusing on the battle between a colossal monster and three futuristic starships. The monster.webp', category: 'monster' },
       { key: 'monster-elemental', path: '/assets/monsters/DALL·E 2024-11-22 18.49.09 - Create an original and highly detailed sci-fi illustration of a colossal elemental monster formed from four floating islands, each representing a dist.webp', category: 'monster' },
+      { key: 'monster-elemental-islands', path: '/assets/monsters/DALL·E 2024-11-22 18.54.19 - Design a breathtaking sci-fi illustration for \'Quaternion_ Defend the Dimensions.\' Depict a massive elemental monster formed from four floating island.webp', category: 'monster' },
+      { key: 'monster-quaternion-dimensions', path: '/assets/monsters/DALL·E 2024-11-22 19.02.15 - Create a visually striking and highly original sci-fi illustration for \'Quaternion_ Defend the Dimensions.\' Center the image on a colossal monster for.webp', category: 'monster' },
       { key: 'monster-horror', path: '/assets/monsters/DALL·E 2024-11-20 16.27.04 - Create a dramatic, horror-themed scene from the celestial-themed game WOOHOO, where the Celestial Monster is attacking all the characters. The monster.webp', category: 'monster' },
     ];
 
@@ -75,10 +80,17 @@ export class ImageAssetLoader {
    * Load all assets into a Phaser scene
    */
   static loadAssets(scene: Phaser.Scene): void {
+    console.log(`[ImageAssetLoader] Loading ${this.allAssets.length} assets...`);
     this.allAssets.forEach(asset => {
       const encodedPath = this.encodePath(asset.path);
-      scene.load.image(asset.key, encodedPath);
+      console.log(`[ImageAssetLoader] Loading ${asset.key} from ${encodedPath}`);
+      try {
+        scene.load.image(asset.key, encodedPath);
+      } catch (error) {
+        console.error(`[ImageAssetLoader] Failed to queue load for ${asset.key}:`, error);
+      }
     });
+    console.log(`[ImageAssetLoader] Queued ${this.allAssets.length} assets for loading`);
   }
 
   /**

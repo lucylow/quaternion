@@ -338,21 +338,40 @@ const QuaternionGame = () => {
 
       // Wait for all assets to load
       this.load.once('complete', () => {
-        console.log('Assets loaded successfully');
-        console.log('Available textures:', Object.keys(this.textures.list));
+        const loadedTextures = Object.keys(this.textures.list);
+        console.log('[Preload] Assets loaded successfully');
+        console.log('[Preload] Total textures loaded:', loadedTextures.length);
+        console.log('[Preload] Available textures:', loadedTextures);
+        
+        // Log which map textures were successfully loaded
+        const mapKeys = ImageAssetLoader.getMapKeys();
+        const loadedMaps = mapKeys.filter(key => this.textures.exists(key));
+        console.log(`[Preload] Successfully loaded ${loadedMaps.length}/${mapKeys.length} map textures:`, loadedMaps);
+        
+        if (loadedMaps.length === 0) {
+          console.warn('[Preload] WARNING: No map textures loaded! Check asset paths and file names.');
+        }
+        
         setTimeout(() => {
           setLoading(false);
           gameStateRef.current?.start();
         }, 500);
       });
 
-      // Log loading errors
+      // Log loading progress
       this.load.on('filecomplete', (key: string, type: string, data: any) => {
-        console.log(`Loaded: ${key} (${type})`);
+        console.log(`[Preload] Loaded: ${key} (${type})`);
       });
 
       this.load.on('loaderror', (file: Phaser.Loader.File) => {
-        console.error(`Failed to load: ${file.key} from ${file.src}`);
+        console.error(`[Preload] Failed to load: ${file.key} from ${file.src}`);
+        console.error(`[Preload] Error details:`, file);
+      });
+
+      this.load.on('fileprogress', (file: Phaser.Loader.File, value: number) => {
+        if (value > 0 && value < 1) {
+          console.log(`[Preload] Loading ${file.key}: ${(value * 100).toFixed(1)}%`);
+        }
       });
 
       // Fallback timeout in case assets don't load
@@ -387,6 +406,7 @@ const QuaternionGame = () => {
     // Create enhanced unit graphics with axis-themed animations
     function createUnitGraphic(scene: Phaser.Scene, x: number, y: number, color: number, type: string = 'worker', axis?: 'matter' | 'energy' | 'life' | 'knowledge'): Phaser.GameObjects.Container {
       const container = scene.add.container(x, y);
+      container.setDepth(100); // Ensure units are visible above background
       
       // Determine axis design if not provided (default to matter for workers, energy for soldiers)
       const unitAxis = axis || (type === 'worker' ? 'matter' : 'energy');
@@ -522,13 +542,20 @@ const QuaternionGame = () => {
       // Use a map image as background if available, otherwise fall back to gradient
       let backgroundImage: Phaser.GameObjects.Image | Phaser.GameObjects.Graphics | null = null;
 
+      // Log all available textures for debugging
+      const availableTextures = Object.keys(this.textures.list);
+      console.log('[Background] Available textures:', availableTextures);
+      console.log('[Background] Total textures:', availableTextures.length);
+
       // Try to use selected map first, then fall back to random map or gradient
       const selectedMapId = routeConfig?.mapId;
       let mapKey: string | null = null;
 
       if (selectedMapId) {
+        console.log(`[Background] Selected map ID: ${selectedMapId}`);
         // Try to load the selected map using the mapping helper
         mapKey = ImageAssetLoader.getMapKeyByMapId(selectedMapId);
+        console.log(`[Background] Mapped to key: ${mapKey}`);
         
         // Fallback: try to find by path if direct mapping fails
         if (!mapKey) {
@@ -537,49 +564,65 @@ const QuaternionGame = () => {
             const asset = ImageAssetLoader.getMapAssetByPath(mapConfig.imagePath);
             if (asset) {
               mapKey = asset.key;
+              console.log(`[Background] Found by path, key: ${mapKey}`);
             }
           }
         }
         
         // Verify the map key exists in textures
         if (mapKey && !this.textures.exists(mapKey)) {
-          console.warn(`Map texture not found for key: ${mapKey}, trying fallback`);
+          console.warn(`[Background] Map texture not found for key: ${mapKey}, trying fallback`);
           mapKey = null;
+        } else if (mapKey) {
+          console.log(`[Background] Confirmed texture exists for key: ${mapKey}`);
         }
       }
 
       // If no specific map found, try to find any available map
       if (!mapKey) {
         const mapKeys = ImageAssetLoader.getMapKeys();
-        console.log('No specific map selected, trying available maps:', mapKeys);
+        console.log('[Background] No specific map selected, trying available maps:', mapKeys);
         // Try each map key until we find one that exists
         const shuffledKeys = [...mapKeys].sort(() => Math.random() - 0.5);
         for (const key of shuffledKeys) {
           if (this.textures.exists(key)) {
             mapKey = key;
-            console.log(`Found available map: ${key}`);
+            console.log(`[Background] Found available map: ${key}`);
             break;
           } else {
-            console.warn(`Map texture not found: ${key}`);
+            console.warn(`[Background] Map texture not found: ${key}`);
           }
         }
       }
       
       if (!mapKey) {
-        console.warn('No map textures available. Available textures:', Object.keys(this.textures.list));
+        console.warn('[Background] No map textures available. Available textures:', availableTextures);
+        console.warn('[Background] Expected map keys:', ImageAssetLoader.getMapKeys());
       }
 
       // Helper function to create map background
       const createMapBackground = (key: string): Phaser.GameObjects.Image | null => {
         if (!this.textures.exists(key)) {
-          console.warn(`Texture ${key} does not exist`);
+          console.warn(`[Background] Texture ${key} does not exist`);
           return null;
         }
         try {
           // Get texture dimensions
           const texture = this.textures.get(key);
+          if (!texture || !texture.source || !texture.source[0]) {
+            console.error(`[Background] Invalid texture structure for ${key}`);
+            return null;
+          }
+          
           const textureWidth = texture.source[0].width;
           const textureHeight = texture.source[0].height;
+          
+          if (!textureWidth || !textureHeight || textureWidth === 0 || textureHeight === 0) {
+            console.error(`[Background] Invalid texture dimensions for ${key}: ${textureWidth}x${textureHeight}`);
+            return null;
+          }
+          
+          console.log(`[Background] Creating map image with key: ${key}, dimensions: ${textureWidth}x${textureHeight}`);
           
           // Create map image at origin (0,0) to cover the entire game world
           const img = this.add.image(0, 0, key);
@@ -596,40 +639,47 @@ const QuaternionGame = () => {
           img.setTint(0x001122); // Darken the map slightly
           img.setDepth(-1000); // Behind everything
           
-          console.log(`Map background created: ${key} at scale ${scale.toFixed(2)}`);
+          console.log(`[Background] Map background created successfully: ${key} at scale ${scale.toFixed(2)}`);
           return img;
         } catch (error) {
-          console.error(`Failed to create map image with key ${key}:`, error);
+          console.error(`[Background] Failed to create map image with key ${key}:`, error);
           return null;
         }
       };
 
       // Try to create the map image, with error handling
       if (mapKey) {
+        console.log(`[Background] Attempting to create background with key: ${mapKey}`);
         backgroundImage = createMapBackground(mapKey);
         
         // If map creation failed, try to find another available map
         if (!backgroundImage) {
+          console.log('[Background] Primary map failed, trying fallback maps...');
           const mapKeys = ImageAssetLoader.getMapKeys();
           for (const key of mapKeys) {
             if (key !== mapKey && this.textures.exists(key)) {
+              console.log(`[Background] Trying fallback map: ${key}`);
               backgroundImage = createMapBackground(key);
               if (backgroundImage) {
-                console.log(`Using fallback map: ${key}`);
+                console.log(`[Background] Successfully using fallback map: ${key}`);
                 break;
               }
             }
           }
+        } else {
+          console.log(`[Background] Successfully created background with primary map: ${mapKey}`);
         }
       }
       
       // Fallback to gradient background if map image creation failed
       if (!backgroundImage) {
+        console.warn('[Background] All map attempts failed, using gradient fallback');
         const bgGraphics = this.add.graphics();
         bgGraphics.fillGradientStyle(0x001122, 0x001122, 0x002244, 0x002244, 1);
         bgGraphics.fillRect(0, 0, width * 2, height * 2);
+        bgGraphics.setDepth(-1000);
         backgroundImage = bgGraphics;
-        console.log('Using gradient fallback background');
+        console.log('[Background] Gradient fallback background created');
       }
       
       // Add grid overlay on top of background
@@ -982,6 +1032,11 @@ const QuaternionGame = () => {
       cameraRef.current = camera;
       camera.setBounds(0, 0, width * 2, height * 2);
       camera.setZoom(1.0);
+      
+      // Center camera on player base at start
+      const playerBaseX = 150;
+      const playerBaseY = 350;
+      camera.centerOn(playerBaseX, playerBaseY);
       
       // Mouse wheel zoom
       this.input.on('wheel', (pointer: Phaser.Input.Pointer, gameObjects: any[], deltaX: number, deltaY: number, deltaZ: number) => {

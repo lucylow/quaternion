@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import Phaser from 'phaser';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Brain, Zap, Leaf, Box, Building, Swords, MessageCircle } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Minimap } from '@/components/game/Minimap';
 import { BuildQueue } from '@/components/game/BuildQueue';
 import { TechTreeModal } from '@/components/game/TechTreeModal';
@@ -15,6 +15,7 @@ import { BuildMenu } from '@/components/game/BuildMenu';
 import { JudgeHUD } from '@/components/game/JudgeHUD';
 import { COMMANDERS, AI_SUGGESTIONS, BUILDINGS, TECH_TREE } from '@/data/gameData';
 import { toast } from 'sonner';
+import { ImageAssetLoader } from '@/game/ImageAssetLoader';
 
 interface GameResources {
   ore: number;
@@ -44,10 +45,20 @@ const Game = () => {
   const [researchedTechs, setResearchedTechs] = useState<Set<string>>(new Set());
   const [aiMessages, setAiMessages] = useState<Array<{ commander: string; message: string; id: number }>>([]);
   
+  const location = useLocation();
+  const routeConfig = (location.state as any)?.config;
+  
   // Game metadata for Judge HUD replay generation
-  const [gameSeed] = useState(Math.floor(Math.random() * 1000000));
-  const [commanderId] = useState('AUREN');
-  const [mapConfig] = useState({ type: 'Crystalline Plains', width: 40, height: 30 });
+  const [gameSeed] = useState(routeConfig?.seed || Math.floor(Math.random() * 1000000));
+  const [commanderId] = useState(routeConfig?.commanderId || 'AUREN');
+  const [mapConfig] = useState({ 
+    type: routeConfig?.mapType || routeConfig?.mapId || 'Crystalline Plains', 
+    width: routeConfig?.mapWidth || 40, 
+    height: routeConfig?.mapHeight || 30,
+    mapId: routeConfig?.mapId,
+    mapImagePath: routeConfig?.mapImagePath
+  });
+  const [selectedMapKey, setSelectedMapKey] = useState<string | null>(routeConfig?.mapId ? ImageAssetLoader.getMapKeyByMapId(routeConfig.mapId) : null);
   
   const navigate = useNavigate();
 
@@ -110,23 +121,92 @@ const Game = () => {
         setLoadingProgress(value * 100);
       });
 
-      setTimeout(() => {
-        setLoading(false);
-      }, 1000);
+      // Load map assets
+      ImageAssetLoader.loadMaps(this);
+      
+      // If we have a specific map selected, ensure it's loaded
+      if (selectedMapKey) {
+        const mapAsset = ImageAssetLoader.getMapKeys().find(key => key === selectedMapKey);
+        if (mapAsset) {
+          console.log(`[Game] Preloading selected map: ${selectedMapKey}`);
+        }
+      }
+
+      this.load.on('complete', () => {
+        setTimeout(() => {
+          setLoading(false);
+        }, 500);
+      });
     }
 
     function create(this: Phaser.Scene) {
       const { width, height } = this.cameras.main;
 
-      // Create grid background with enhanced visuals
+      // Try to load map background image if available
+      let mapBackground: Phaser.GameObjects.Image | null = null;
+      let mapKey: string | null = selectedMapKey;
+      
+      // If we have a map ID, try to get the corresponding key
+      if (!mapKey && mapConfig.mapId) {
+        mapKey = ImageAssetLoader.getMapKeyByMapId(mapConfig.mapId);
+      }
+      
+      // If still no key, try to get a random map or use the first available
+      if (!mapKey) {
+        const availableMaps = ImageAssetLoader.getMapKeys();
+        if (availableMaps.length > 0) {
+          // Try to find a map that's loaded
+          for (const key of availableMaps) {
+            if (this.textures.exists(key)) {
+              mapKey = key;
+              break;
+            }
+          }
+        }
+      }
+      
+      // Create map background if available
+      if (mapKey && this.textures.exists(mapKey)) {
+        try {
+          const texture = this.textures.get(mapKey);
+          if (texture && texture.source && texture.source[0]) {
+            const textureWidth = texture.source[0].width;
+            const textureHeight = texture.source[0].height;
+            
+            if (textureWidth > 0 && textureHeight > 0) {
+              mapBackground = this.add.image(0, 0, mapKey);
+              mapBackground.setOrigin(0, 0);
+              mapBackground.setDepth(-100); // Behind everything
+              
+              // Scale to cover the game area
+              const scaleX = (width * 2) / textureWidth;
+              const scaleY = (height * 2) / textureHeight;
+              const scale = Math.max(scaleX, scaleY);
+              mapBackground.setScale(scale);
+              
+              // Add a dark overlay to make game elements more visible
+              const overlay = this.add.rectangle(0, 0, width * 2, height * 2, 0x000000, 0.3);
+              overlay.setOrigin(0, 0);
+              overlay.setDepth(-99);
+              
+              console.log(`[Game] Map background loaded: ${mapKey}`);
+            }
+          }
+        } catch (error) {
+          console.warn(`[Game] Failed to create map background:`, error);
+        }
+      }
+      
+      // Create grid overlay on top of map (if no map, this is the background)
       const bgGraphics = this.add.graphics();
-      bgGraphics.lineStyle(1, 0x00ffea, 0.08);
+      bgGraphics.lineStyle(1, 0x00ffea, mapBackground ? 0.15 : 0.08);
       for (let x = 0; x < width * 2; x += 64) {
         bgGraphics.lineBetween(x, 0, x, height * 2);
       }
       for (let y = 0; y < height * 2; y += 64) {
         bgGraphics.lineBetween(0, y, width * 2, y);
       }
+      bgGraphics.setDepth(-50); // Above map but below units
 
       // Create player base
       const playerBase = this.add.circle(200, 200, 50, 0x00ffea, 0.3);
@@ -231,10 +311,25 @@ const Game = () => {
 
       // Mouse controls for unit movement
       this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+        // Right-click to move selected units
         if (pointer.rightButtonDown() && selectedUnits.length > 0) {
           selectedUnits.forEach((unit, idx) => {
-            const offset = idx * 40;
-            this.physics.moveTo(unit, pointer.worldX + offset, pointer.worldY, 200);
+            // Spread units slightly when moving to same location
+            const angle = (idx / selectedUnits.length) * Math.PI * 2;
+            const spread = 30;
+            const offsetX = Math.cos(angle) * spread;
+            const offsetY = Math.sin(angle) * spread;
+            
+            const targetX = pointer.worldX + offsetX;
+            const targetY = pointer.worldY + offsetY;
+            
+            // Stop current movement
+            if (unit.body) {
+              (unit.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
+            }
+            
+            // Move to target
+            this.physics.moveTo(unit, targetX, targetY, 200);
             
             // Show movement indicator
             const indicator = this.add.circle(pointer.worldX, pointer.worldY, 5, 0x00ff00, 0.8);
@@ -246,15 +341,79 @@ const Game = () => {
               onComplete: () => indicator.destroy()
             });
           });
+          toast.info(`Moving ${selectedUnits.length} unit(s)`);
         } else if (pointer.leftButtonDown()) {
-          isSelecting = true;
-          selectionStart = { x: pointer.worldX, y: pointer.worldY };
+          // Left-click to select (but not if clicking on a unit - that's handled by unit.on('pointerdown'))
+          const clickedUnit = playerUnits.find(unit => {
+            const distance = Phaser.Math.Distance.Between(
+              pointer.worldX, pointer.worldY,
+              unit.x, unit.y
+            );
+            return distance < 25; // Unit radius
+          });
+          
+          if (!clickedUnit) {
+            isSelecting = true;
+            selectionStart = { x: pointer.worldX, y: pointer.worldY };
+          }
         }
       });
 
-      this.input.on('pointerup', () => {
+      this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => {
         if (isSelecting) {
           isSelecting = false;
+          
+          // Select units in selection box
+          const selectionBox = {
+            x: Math.min(selectionStart.x, pointer.worldX),
+            y: Math.min(selectionStart.y, pointer.worldY),
+            width: Math.abs(pointer.worldX - selectionStart.x),
+            height: Math.abs(pointer.worldY - selectionStart.y)
+          };
+          
+          const newSelection: Phaser.Physics.Arcade.Sprite[] = [];
+          playerUnits.forEach(unit => {
+            if (unit.x >= selectionBox.x && 
+                unit.x <= selectionBox.x + selectionBox.width &&
+                unit.y >= selectionBox.y && 
+                unit.y <= selectionBox.y + selectionBox.height) {
+              newSelection.push(unit);
+            }
+          });
+          
+          // Update selection
+          selectedUnits.forEach(u => {
+            u.setData('selected', false);
+            const g = u.getData('graphics') as Phaser.GameObjects.Graphics;
+            if (g) {
+              g.clear();
+              g.fillStyle(0x00ffea, 0.8);
+              g.fillCircle(u.x, u.y, 20);
+              g.lineStyle(2, 0xffffff);
+              g.strokeCircle(u.x, u.y, 20);
+            }
+          });
+          
+          selectedUnits = newSelection;
+          selectedUnits.forEach(unit => {
+            unit.setData('selected', true);
+            const g = unit.getData('graphics') as Phaser.GameObjects.Graphics;
+            if (g) {
+              g.clear();
+              g.fillStyle(0x00ffea, 0.8);
+              g.fillCircle(unit.x, unit.y, 20);
+              g.lineStyle(3, 0xffff00);
+              g.strokeCircle(unit.x, unit.y, 20);
+            }
+          });
+          
+          if (selectedUnits.length > 0) {
+            setSelectedUnit(selectedUnits[0].getData('type'));
+            toast.info(`Selected ${selectedUnits.length} unit(s)`);
+          } else {
+            setSelectedUnit(null);
+          }
+          
           selectionGraphics.clear();
         }
       });

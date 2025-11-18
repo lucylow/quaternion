@@ -1,0 +1,7 @@
+<speak>
+  <voice name="Lian">
+    <prosody rate="0.95"><emphasis level="moderate">We move when I say we move.</emphasis></prosody>
+    <break time="150ms"/>
+  </voice>
+</speak>
+

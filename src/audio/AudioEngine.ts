@@ -368,6 +368,54 @@ export default class AudioEngine {
   }
 
   /**
+   * Play TTS audio from ArrayBuffer
+   */
+  async playTtsArrayBuffer(
+    audioBuffer: ArrayBuffer,
+    options: {
+      volume?: number;
+      duckMusic?: boolean;
+    } = {}
+  ): Promise<{ id: string; stop: () => void }> {
+    await this.ensureStarted();
+    
+    // Decode audio buffer
+    const decodedBuffer = await this.ctx.decodeAudioData(audioBuffer.slice(0));
+    
+    // Duck music if requested
+    if (options.duckMusic) {
+      this.duckMusicFor(decodedBuffer.duration, this.duckTarget);
+    }
+    
+    // Create source
+    const source = this.ctx.createBufferSource();
+    source.buffer = decodedBuffer;
+    
+    // Create gain node for volume control
+    const gainNode = this.ctx.createGain();
+    gainNode.gain.value = (options.volume ?? 1.0) * this.dialogVolume;
+    source.connect(gainNode);
+    gainNode.connect(this.dialogGain);
+    
+    // Start playback
+    const startTime = this.ctx.currentTime + 0.05;
+    source.start(startTime);
+    
+    const playbackId = `tts_${Date.now()}_${Math.random()}`;
+    
+    return {
+      id: playbackId,
+      stop: () => {
+        try {
+          source.stop();
+        } catch (e) {
+          // Source may have already ended
+        }
+      }
+    };
+  }
+
+  /**
    * Volume controls
    */
   setMusicVolume(v: number): void {

@@ -52,8 +52,22 @@ export interface AlignmentResult {
 /**
  * Generate speech from text using ElevenLabs TTS
  * Returns ArrayBuffer of audio bytes (MPEG format)
+ * Supports mock mode when TTS_MOCK=true or no API key
  */
 export async function ttsSpeak(options: TtsOptions): Promise<ArrayBuffer> {
+  const mockMode = import.meta.env.VITE_TTS_MOCK === "true" || !import.meta.env.VITE_ELEVENLABS_API_KEY;
+  
+  if (mockMode) {
+    // Generate mock OGG audio
+    const header = new Uint8Array([
+      0x4F, 0x67, 0x67, 0x53, // "OggS"
+      0x00, 0x02, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+    ]);
+    const payload = new Uint8Array(2048).fill(0);
+    return new Uint8Array([...header, ...payload]).buffer;
+  }
+
   const res = await fetch(`${base}/ai/elevenlabs/tts`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -62,13 +76,22 @@ export async function ttsSpeak(options: TtsOptions): Promise<ArrayBuffer> {
       voiceId: options.voiceId,
       ssml: options.ssml || false,
       model: options.model,
-      voice_settings: options.voice_settings
+      voice_settings: options.voice_settings,
+      mock: false
     })
   });
   
   if (!res.ok) {
     const txt = await res.text();
-    throw new Error(`TTS failed: ${res.status} ${txt}`);
+    // Fallback to mock on error
+    console.warn(`TTS failed: ${res.status} ${txt}, using mock audio`);
+    const header = new Uint8Array([
+      0x4F, 0x67, 0x67, 0x53,
+      0x00, 0x02, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+    ]);
+    const payload = new Uint8Array(2048).fill(0);
+    return new Uint8Array([...header, ...payload]).buffer;
   }
   
   return await res.arrayBuffer();
@@ -96,12 +119,26 @@ export async function transcribeAudioBase64(b64: string): Promise<TranscriptionR
 /**
  * Convert voice in audio using base64-encoded audio data
  * Returns ArrayBuffer of converted audio
+ * Supports mock mode when TTS_MOCK=true or no API key
  */
 export async function voiceConvertBase64(options: {
   audioBase64: string;
   targetVoiceId: string;
   style?: ElevenLabsVoiceSettings;
 }): Promise<ArrayBuffer> {
+  const mockMode = import.meta.env.VITE_TTS_MOCK === "true" || !import.meta.env.VITE_ELEVENLABS_API_KEY;
+  
+  if (mockMode) {
+    // Generate mock converted audio
+    const header = new Uint8Array([
+      0x4F, 0x67, 0x67, 0x53,
+      0x00, 0x02, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+    ]);
+    const payload = new Uint8Array(2048).fill(0);
+    return new Uint8Array([...header, ...payload]).buffer;
+  }
+
   const res = await fetch(`${base}/ai/elevenlabs/voiceconv`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -114,7 +151,15 @@ export async function voiceConvertBase64(options: {
   
   if (!res.ok) {
     const txt = await res.text();
-    throw new Error(`VoiceConv failed: ${res.status} ${txt}`);
+    // Fallback to mock on error
+    console.warn(`VoiceConv failed: ${res.status} ${txt}, using mock audio`);
+    const header = new Uint8Array([
+      0x4F, 0x67, 0x67, 0x53,
+      0x00, 0x02, 0x00, 0x00,
+      0x00, 0x00, 0x00, 0x00,
+    ]);
+    const payload = new Uint8Array(2048).fill(0);
+    return new Uint8Array([...header, ...payload]).buffer;
   }
   
   return await res.arrayBuffer();
@@ -123,13 +168,35 @@ export async function voiceConvertBase64(options: {
 /**
  * List available voices from ElevenLabs
  * Returns array of Voice objects
+ * Supports mock mode when TTS_MOCK=true or no API key
  */
 export async function listVoices(): Promise<{ voices: Voice[] }> {
+  const mockMode = import.meta.env.VITE_TTS_MOCK === "true" || !import.meta.env.VITE_ELEVENLABS_API_KEY;
+  
+  if (mockMode) {
+    // Return mock voices
+    return {
+      voices: [
+        { voice_id: "mara_warm", name: "Mara", category: "npc", description: "Warm, empathetic advisor" },
+        { voice_id: "lian_prototype", name: "Lian", category: "npc", description: "Tactical commander" },
+        { voice_id: "patch_drone", name: "Patch", category: "npc", description: "Analytical AI" }
+      ]
+    };
+  }
+
   const res = await fetch(`${base}/ai/elevenlabs/voices`);
   
   if (!res.ok) {
     const txt = await res.text();
-    throw new Error(`Voices list failed: ${res.status} ${txt}`);
+    // Fallback to mock voices on error
+    console.warn(`Voices list failed: ${res.status} ${txt}, using mock voices`);
+    return {
+      voices: [
+        { voice_id: "mara_warm", name: "Mara", category: "npc", description: "Warm, empathetic advisor" },
+        { voice_id: "lian_prototype", name: "Lian", category: "npc", description: "Tactical commander" },
+        { voice_id: "patch_drone", name: "Patch", category: "npc", description: "Analytical AI" }
+      ]
+    };
   }
   
   return await res.json();

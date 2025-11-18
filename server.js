@@ -147,6 +147,30 @@ app.all('/api/ai/elevenlabs/*', async (req, res) => {
   }
 });
 
+// Music generation API route (for local development - production uses edge function)
+app.post('/api/ai/musicgen', async (req, res) => {
+  try {
+    // Import the music generation handler
+    const musicgenHandler = require('./api/ai/musicgen.js');
+    await musicgenHandler.default(req, res);
+  } catch (error) {
+    console.error('Music generation route error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// LTX Video Generation API routes (for local development - production uses edge function)
+app.all('/api/ai/ltx/*', async (req, res) => {
+  try {
+    // Import the LTX handler
+    const ltxHandler = require('./api/ai/ltx.js');
+    await ltxHandler.default(req, res);
+  } catch (error) {
+    console.error('LTX route error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Art Generation API routes
 try {
   const artGenerationRoutes = require('./src/routes/artGenerationRoutes.js');

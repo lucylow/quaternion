@@ -159,9 +159,19 @@ const Lobby = () => {
   }, []);
 
   const handleStartSinglePlayer = () => {
-    // Neural Frontier (simple game) doesn't need complex config
+    // Neural Frontier (simple game) - pass map config if selected
     if (gameType === 'neural-frontier') {
-      navigate('/game');
+      const config: any = {};
+      if (selectedMap) {
+        config.mapId = selectedMap.id;
+        config.mapType = selectedMap.id;
+        config.mapWidth = selectedMap.gridSize.width;
+        config.mapHeight = selectedMap.gridSize.height;
+        config.mapImagePath = selectedMap.imagePath;
+      }
+      navigate('/game', {
+        state: { config }
+      });
       return;
     }
 
@@ -596,41 +606,99 @@ const Lobby = () => {
 
             {/* Show simplified config for Neural Frontier */}
             {gameType === 'neural-frontier' && (
-              <Card className="bg-card/70 border-primary/30 mb-6">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Gamepad2 className="w-5 h-5 text-cyan-400" />
-                    Neural Frontier - Quick Start
-                  </CardTitle>
-                  <CardDescription>
-                    A streamlined RTS experience with AI commanders and tactical gameplay. Perfect for quick matches!
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div className="p-4 bg-background/50 rounded-lg border border-primary/20">
-                        <h4 className="font-semibold mb-2 text-primary">Features</h4>
-                        <ul className="text-sm text-muted-foreground space-y-1">
-                          <li>• Quick 15-20 minute matches</li>
-                          <li>• AI commander suggestions</li>
-                          <li>• Simplified resource management</li>
-                          <li>• Tactical unit control</li>
-                        </ul>
-                      </div>
-                      <div className="p-4 bg-background/50 rounded-lg border border-primary/20">
-                        <h4 className="font-semibold mb-2 text-primary">Perfect For</h4>
-                        <ul className="text-sm text-muted-foreground space-y-1">
-                          <li>• Beginners learning RTS</li>
-                          <li>• Quick gaming sessions</li>
-                          <li>• Casual play</li>
-                          <li>• Testing game mechanics</li>
-                        </ul>
+              <>
+                <Card className="bg-card/70 border-primary/30 mb-6">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Gamepad2 className="w-5 h-5 text-cyan-400" />
+                      Neural Frontier - Quick Start
+                    </CardTitle>
+                    <CardDescription>
+                      A streamlined RTS experience with AI commanders and tactical gameplay. Perfect for quick matches!
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="p-4 bg-background/50 rounded-lg border border-primary/20">
+                          <h4 className="font-semibold mb-2 text-primary">Features</h4>
+                          <ul className="text-sm text-muted-foreground space-y-1">
+                            <li>• Quick 15-20 minute matches</li>
+                            <li>• AI commander suggestions</li>
+                            <li>• Simplified resource management</li>
+                            <li>• Tactical unit control</li>
+                          </ul>
+                        </div>
+                        <div className="p-4 bg-background/50 rounded-lg border border-primary/20">
+                          <h4 className="font-semibold mb-2 text-primary">Perfect For</h4>
+                          <ul className="text-sm text-muted-foreground space-y-1">
+                            <li>• Beginners learning RTS</li>
+                            <li>• Quick gaming sessions</li>
+                            <li>• Casual play</li>
+                            <li>• Testing game mechanics</li>
+                          </ul>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+
+                {/* Map Selection for Neural Frontier */}
+                <Card className="bg-card/70 border-primary/30 mb-6">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Map className="w-5 h-5 text-cyan-400" />
+                      Select Map
+                    </CardTitle>
+                    <CardDescription>
+                      Choose a background map for your Neural Frontier match
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {showMapSelector || !selectedMap ? (
+                      <div className="max-h-[600px] overflow-y-auto">
+                        <MapSelector
+                          onMapSelect={handleMapSelect}
+                          selectedMapId={selectedMap?.id}
+                        />
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-background/50 rounded-lg border border-primary/20">
+                        <div className="flex items-center gap-4">
+                          {selectedMap.imagePath && (
+                            <OptimizedImage
+                              src={selectedMap.imagePath}
+                              alt={`${selectedMap.name} - ${selectedMap.description}`}
+                              className="w-32 h-32 rounded-lg"
+                              objectFit="cover"
+                              fallbackSrc="/placeholder.svg"
+                            />
+                          )}
+                          <div className="flex-1">
+                            <h4 className="font-semibold text-lg mb-1">{selectedMap.name}</h4>
+                            <p className="text-sm text-muted-foreground mb-2">
+                              {selectedMap.description}
+                            </p>
+                            <div className="flex gap-2">
+                              <Badge className={selectedMap.difficulty === 'easy' ? 'bg-green-500' : selectedMap.difficulty === 'medium' ? 'bg-yellow-500' : 'bg-red-500'}>
+                                {selectedMap.difficulty.toUpperCase()}
+                              </Badge>
+                              <Badge variant="outline">{selectedMap.theme}</Badge>
+                            </div>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowMapSelector(true)}
+                          >
+                            Change Map
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </>
             )}
 
             {/* Puzzle Selection - Only shown when puzzle mode is selected (Quaternion only) */}

@@ -283,4 +283,37 @@ export default class AudioManager {
   getEngine(): AudioEngine {
     return this.engine;
   }
+
+  /**
+   * Play TTS audio from ArrayBuffer
+   */
+  async playTtsArrayBuffer(
+    audioBuffer: ArrayBuffer,
+    options: {
+      volume?: number;
+      duckMusic?: boolean;
+    } = {}
+  ): Promise<{ id: string; stop: () => void }> {
+    return this.engine.playTtsArrayBuffer(audioBuffer, options);
+  }
+
+  /**
+   * Duck music (for external control)
+   */
+  duckMusic(enable: boolean): void {
+    if (enable) {
+      this.engine.duckMusicFor(5, 0.25); // Duck for 5 seconds
+    }
+  }
+
+  /**
+   * Get singleton instance
+   */
+  private static instanceCache: AudioManager | null = null;
+  static instance(): AudioManager {
+    if (!this.instanceCache) {
+      this.instanceCache = new AudioManager();
+    }
+    return this.instanceCache;
+  }
 }
