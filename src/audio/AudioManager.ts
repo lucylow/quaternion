@@ -129,6 +129,41 @@ export default class AudioManager {
   }
 
   /**
+   * Preload multiple SFX items (for SFXManager compatibility)
+   */
+  async preload(items: Array<{ key: string; url: string }>): Promise<void> {
+    await Promise.all(
+      items.map(item => this.preloadSFX(item.key, item.url))
+    );
+  }
+
+  /**
+   * Play SFX (lowercase alias for compatibility)
+   */
+  playSfx(name: string, options?: {
+    volume?: number;
+    pitch?: number;
+    delay?: number;
+    pan?: number;
+    loop?: boolean;
+  }): { id: string; stop: () => void } | null {
+    try {
+      this.playSFX(name, options);
+      // Return a handle for compatibility
+      return {
+        id: name,
+        stop: () => {
+          // Note: AudioEngine doesn't have stop by name, but SFXManager tracks loops
+          console.warn('stop() called on playSfx handle - use SFXManager.stopCue() instead');
+        }
+      };
+    } catch (error) {
+      console.warn(`Failed to play SFX ${name}:`, error);
+      return null;
+    }
+  }
+
+  /**
    * Play commander dialogue
    */
   async playCommanderDialogue(
