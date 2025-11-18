@@ -2380,7 +2380,7 @@ const QuaternionGame = () => {
         <EndgameScene
           endgameData={EndgameManager.getEndgameData(
             endgameScenario,
-            gameStateRef.current?.players.get(1)?.resources || resources,
+            gameStateRef.current?.players?.get(1)?.resources || resources,
             gameTime
           )}
           gameTime={gameTime}
