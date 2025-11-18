@@ -270,7 +270,7 @@ export const UNIT_TYPES: Record<string, UnitType> = {
   soldier: {
     id: 'soldier',
     name: 'Soldier',
-    cost: { matter: 100, energy: 50, life: 25 },
+    cost: { matter: 100, energy: 50 },
     health: 200,
     damage: 25,
     speed: 4,
@@ -290,7 +290,7 @@ export const UNIT_TYPES: Record<string, UnitType> = {
   heavy: {
     id: 'heavy',
     name: 'Heavy Unit',
-    cost: { matter: 200, energy: 100, life: 50 },
+    cost: { matter: 200, energy: 100 },
     health: 500,
     damage: 50,
     speed: 2,

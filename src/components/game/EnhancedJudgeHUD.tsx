@@ -5,13 +5,23 @@ import { Badge } from '@/components/ui/badge';
 import { Download, Copy, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
+interface ReplayMetadata {
+  replayId: string;
+  metadata: { replayId: string; duration: number };
+  contentHash: string;
+  partial: boolean;
+  actions: any[];
+  highlights: any[];
+  moralVerdict?: { path: string; summary: string };
+}
+
 interface EnhancedJudgeHUDProps {
   seed: number;
   commanderId: string;
   mapConfig: { type: string; width: number; height: number };
   gameTime: number;
   instability: number;
-  replaySystem?: { generateArtifact: () => Promise<unknown> } | null;
+  replaySystem?: { finalize: (data: any) => ReplayMetadata } | null;
 }
 
 export const EnhancedJudgeHUD = ({
@@ -24,7 +34,7 @@ export const EnhancedJudgeHUD = ({
 }: EnhancedJudgeHUDProps) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [replayGenerated, setReplayGenerated] = useState(false);
-  const [replayData, setReplayData] = useState<Record<string, unknown> | null>(null);
+  const [replayData, setReplayData] = useState<ReplayMetadata | null>(null);
 
   const handleGenerateReplay = () => {
     if (!replaySystem) {

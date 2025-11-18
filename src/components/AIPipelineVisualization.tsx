@@ -233,8 +233,7 @@ const AIPipelineVisualization = () => {
                     <foreignObject x="-10" y="-5" width="20" height="10">
                       <div className="flex items-center justify-center h-full">
                         <IconComponent 
-                          className={`w-4 h-4 ${isActive ? 'text-white' : ''}`}
-                          style={{ color: isActive ? '#ffffff' : node.color }}
+                          className="w-4 h-4"
                         />
                       </div>
                     </foreignObject>

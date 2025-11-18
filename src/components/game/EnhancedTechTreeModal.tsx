@@ -29,6 +29,7 @@ interface EnhancedTechTreeModalProps {
     hasAir: boolean;
     hasHeavy: boolean;
     hasStealth: boolean;
+    unitCount?: number;
   };
 }
 
@@ -82,7 +83,12 @@ export const EnhancedTechTreeModal = ({
       researchedTech: Array.from(researchedTechs),
       availableTech,
       gamePhase,
-      enemyComposition
+      enemyComposition: enemyComposition || {
+        hasAir: false,
+        hasHeavy: false,
+        hasStealth: false,
+        unitCount: 0
+      }
     };
 
     const recommendation = advisor.generateRecommendation(context);
@@ -97,7 +103,12 @@ export const EnhancedTechTreeModal = ({
         researchedTech: Array.from(researchedTechs),
         availableTech,
         gamePhase,
-        enemyComposition
+        enemyComposition: enemyComposition || {
+          hasAir: false,
+          hasHeavy: false,
+          hasStealth: false,
+          unitCount: 0
+        }
       };
 
       const preview = simulator.previewSequence(hoveredNode, context);

@@ -100,7 +100,7 @@ export class MilitaryAgent extends BaseAgent {
   }
 
   protected updateStrategyWeights(action: AgentAction, outcome: number): void {
-    const tacticKey = `${action.type}_${action.strategyType || 'general'}`;
+    const tacticKey = `${action.type}_${(action as any).strategyType || 'general'}`;
     const currentWeight = this.tacticalPlanner.get(tacticKey) || 0.5;
     const newWeight = currentWeight + (outcome * this.learningRate);
     this.tacticalPlanner.set(tacticKey, this.clamp(newWeight, 0, 1));

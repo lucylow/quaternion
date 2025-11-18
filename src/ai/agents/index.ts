@@ -13,11 +13,14 @@ export { ResearchAgent } from './ResearchAgent';
 export { ScoutingAgent } from './ScoutingAgent';
 
 // Coordination system
-export { AIControllerCoordinator, StrategicDecision } from './AIControllerCoordinator';
+export { AIControllerCoordinator } from './AIControllerCoordinator';
+export type { StrategicDecision } from './AIControllerCoordinator';
 
 // Unit-level agents
-export { UnitAgent, UnitPersonality, UnitRole, SensorData, BehaviorType } from './UnitAgent';
+export { UnitAgent } from './UnitAgent';
+export type { UnitPersonality, UnitRole, SensorData, BehaviorType } from './UnitAgent';
 
 // Safety and validation
-export { LLMSafetyManager, HeuristicFallback, ValidationType, LLMResponse } from './LLMSafetyManager';
+export { LLMSafetyManager, HeuristicFallback } from './LLMSafetyManager';
+export type { ValidationType, LLMResponse } from './LLMSafetyManager';
 
