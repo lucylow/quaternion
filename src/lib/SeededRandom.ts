@@ -31,7 +31,7 @@ export class SeededRandom {
   /**
    * Generate random float between min and max
    */
-  public nextFloat(min: number, max: number): number {
+  public nextFloat(min: number = 0, max: number = 1): number {
     return this.next() * (max - min) + min;
   }
 
@@ -55,6 +55,17 @@ export class SeededRandom {
       [result[i], result[j]] = [result[j], result[i]];
     }
     return result;
+  }
+
+  /**
+   * Sample n random elements from array without replacement
+   */
+  public sample<T>(array: T[], n: number): T[] {
+    if (n > array.length) {
+      throw new Error("Cannot sample more elements than array length");
+    }
+    const shuffled = this.shuffle(array);
+    return shuffled.slice(0, n);
   }
 
   /**

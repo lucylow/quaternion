@@ -218,7 +218,7 @@ export class AdaptiveLearningAI {
     let minResources = Infinity;
 
     this.aiFactions.forEach((faction, id) => {
-      const total = Object.values(faction.resources || {}).reduce((a: number, b: number) => a + b, 0);
+      const total = Object.values(faction.resources || {}).reduce((a: number, b: number) => a + b, 0) as number;
       if (total < minResources) {
         minResources = total;
         weakest = faction;

@@ -22,7 +22,7 @@ export interface Taunt {
 
 export class EmotionalManipulator {
   private voiceSystem: any; // Would integrate with actual voice system
-  private playerEmotionalState: PlayerEmotion = 'neutral';
+  private playerEmotionalState: PlayerEmotion = 'frustration';
   private tauntCooldown: number = 0;
   private rng: SeededRandom;
   private tauntHistory: Taunt[];

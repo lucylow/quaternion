@@ -145,7 +145,7 @@ export class SymbioticGameplay {
     const researchedTechs = this.getCollectiveResearchedTechs(gameState);
     
     researchedTechs.forEach((tech, count) => {
-      if (count >= 2) {
+      if (Number(count) >= 2) {
         // Unlock cooperative power
         const power = this.cooperativePowers.get(`coop_${tech}`);
         if (power && !power.unlocked) {
