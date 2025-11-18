@@ -215,33 +215,64 @@ const Lobby = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: roomName,
-          mapType: multiplayerConfig.mapType,
-          mapWidth: multiplayerConfig.mapWidth,
-          mapHeight: multiplayerConfig.mapHeight,
-          commanderId: multiplayerConfig.commanderId,
-          cooperativeMode: multiplayerConfig.cooperativeMode,
-          quaternionAxis: multiplayerConfig.quaternionAxis
+          name: roomName.trim(),
+          mapType: multiplayerConfig.mapType || 'crystalline_plains',
+          mapWidth: multiplayerConfig.mapWidth || 40,
+          mapHeight: multiplayerConfig.mapHeight || 30,
+          commanderId: multiplayerConfig.commanderId || 'AUREN',
+          cooperativeMode: multiplayerConfig.cooperativeMode || false,
+          quaternionAxis: multiplayerConfig.quaternionAxis,
+          seed: Math.floor(Math.random() * 1000000),
+          difficulty: multiplayerConfig.difficulty || 'medium'
         })
       });
 
       if (response.ok) {
         const data = await response.json();
+        
+        // Store playerId and roomId in localStorage for reconnection
+        if (data.playerId) {
+          localStorage.setItem('quaternion_playerId', data.playerId);
+        }
+        if (data.roomId) {
+          localStorage.setItem('quaternion_roomId', data.roomId);
+        }
+        
+        // Store room data for game loading
+        if (data.room) {
+          localStorage.setItem('quaternion_roomData', JSON.stringify(data.room));
+        }
+        
+        toast.success(`Room "${roomName}" created successfully!`, {
+          description: `Room ID: ${data.roomId}`
+        });
+        
+        // Navigate to game with full config
         navigate('/quaternion', {
           state: {
             config: {
               ...multiplayerConfig,
-              roomId: data.roomId
+              mode: 'multiplayer',
+              roomId: data.roomId,
+              playerId: data.playerId,
+              seed: data.room?.seed,
+              mapType: data.room?.mapType,
+              mapWidth: data.room?.mapWidth,
+              mapHeight: data.room?.mapHeight,
+              cooperativeMode: data.room?.cooperativeMode,
+              quaternionAxis: multiplayerConfig.quaternionAxis,
+              difficulty: data.room?.difficulty
             }
           }
         });
       } else {
-        const error = await response.json();
-        toast.error(error.message || 'Failed to create room');
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+        toast.error(error.error || error.message || 'Failed to create room');
+        console.error('Room creation error:', error);
       }
     } catch (error) {
-      toast.error('Failed to create room');
-      console.error(error);
+      toast.error('Failed to create room: Network error');
+      console.error('Room creation network error:', error);
     } finally {
       setCreatingRoom(false);
     }
