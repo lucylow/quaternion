@@ -46,35 +46,75 @@ window.addEventListener('unhandledrejection', (ev) => {
 // Handle window.postMessage events (e.g., from iframes)
 // Gracefully handle iframe-pos and other known message types without warnings
 // This handler only processes window.postMessage events and does NOT interfere with button clicks
-window.addEventListener('message', (ev) => {
-  try {
-    // Only process messages with data and type properties
-    const data = ev && ev.data;
-    if (!data || typeof data !== 'object') return;
+(function installSafeMessageHandler() {
+  const allowedTypes = new Set(['iframe-pos', 'iframe-resize', 'iframe-scroll', 'game-event', 'ui-resize']);
+  let lastWarnTime = 0;
+  const warnThrottleMs = 5000; // Only warn once per 5 seconds for unknown types
 
-    // Handle iframe-related messages (from embedded content, not from game buttons)
-    // These should NEVER interfere with click events or game functionality
-    if (data.type === 'iframe-pos' || data.type === 'iframe-resize' || data.type === 'iframe-scroll') {
-      // Silently store for debug if needed
-      window.__QUAT_LAST_IFRAME_POS__ = data;
-      // Only log in debug mode, and do it quietly
-      if (window.__QUAT_DEBUG__) {
-        console.log('[QUAT DEBUG] received iframe message', data.type);
+  window.addEventListener('message', (ev) => {
+    try {
+      // Safely extract message data
+      if (!ev || !ev.data) return;
+      
+      const data = ev.data;
+      
+      // Handle non-object data types (strings, numbers, etc.) - ignore them
+      if (typeof data !== 'object' || data === null) return;
+      
+      // Handle arrays - they're objects but we don't process them
+      if (Array.isArray(data)) return;
+
+      // Safely extract message type
+      let msgType: string | null = null;
+      try {
+        msgType = (data && typeof data === 'object' && ('type' in data || 'msgType' in data))
+          ? (data.type || data.msgType || null)
+          : null;
+      } catch (e) {
+        // If accessing properties fails, ignore this message
+        return;
       }
-      // Return early - do NOT stop propagation or prevent default
-      // This is just a passive listener for iframe messages
-      return;
-    }
 
-    // For other message types, let them fall through to other handlers
-    // We don't stop propagation here - button clicks work independently
-  } catch (err) {
-    // Log errors but don't let them break anything
-    if (window.__QUAT_DEBUG__) {
-      console.warn('[QUAT DEBUG] message handler error', err);
+      if (!msgType || typeof msgType !== 'string') return;
+
+      // Handle known iframe-related messages silently
+      if (allowedTypes.has(msgType)) {
+        // Silently store for debug if needed
+        try {
+          if (msgType === 'iframe-pos' || msgType === 'iframe-resize' || msgType === 'iframe-scroll') {
+            (window as any).__QUAT_LAST_IFRAME_POS__ = data;
+          }
+        } catch (e) {
+          // Ignore errors when storing debug data
+        }
+        // Silently handle - no warnings for known types
+        return;
+      }
+
+      // For unknown message types, throttle warnings to avoid spam
+      const now = Date.now();
+      if (now - lastWarnTime > warnThrottleMs) {
+        if (window.__QUAT_DEBUG__) {
+          console.warn('[QUAT DEBUG] Unknown message type (throttled):', msgType);
+        }
+        lastWarnTime = now;
+      }
+      // Silently ignore unknown types - don't let them fall through
+      return;
+
+    } catch (err) {
+      // Log errors but don't let them break anything
+      // Only log iframe-pos related errors in debug mode
+      if (window.__QUAT_DEBUG__) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        // Only warn if it's not a common benign error
+        if (!errorMsg.includes('Cannot read') && !errorMsg.includes('undefined')) {
+          console.warn('[QUAT DEBUG] message handler error', err);
+        }
+      }
     }
-  }
-}, { passive: true }); // Use passive listener to ensure it doesn't block UI events
+  }, { passive: true }); // Use passive listener to ensure it doesn't block UI events
+})();
 
 console.log('[QUAT DEBUG] main.tsx loaded');
 

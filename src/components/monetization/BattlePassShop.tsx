@@ -523,7 +523,7 @@ export function BattlePassShop() {
                 
                 <ul className="space-y-3">
                   {pass.benefits.map((benefit, index) => (
-                    <li key={index} className="flex items-start gap-3">
+                    <li key={`${pass.id}-benefit-${index}-${benefit}`} className="flex items-start gap-3">
                       <div className="mt-0.5">
                         <Check className="h-5 w-5 text-green-500 flex-shrink-0" />
                       </div>

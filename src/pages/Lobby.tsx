@@ -18,6 +18,7 @@ import { PUZZLES, getAvailablePuzzles, getPuzzle, type Puzzle } from '@/data/puz
 import { toast } from 'sonner';
 import { MapSelector } from '@/components/game/MapSelector';
 import { MapConfig } from '@/types/map';
+import { speakDialogue } from '@/audio';
 
 interface GameConfig {
   mode: 'single' | 'multiplayer' | 'campaign' | 'puzzle' | 'theater';
@@ -178,7 +179,13 @@ const Lobby = () => {
     }
   }, []);
 
-  const handleStartSinglePlayer = () => {
+  const handleStartSinglePlayer = async () => {
+    // Speak the button text
+    const buttonText = singlePlayerMode === 'puzzle' 
+      ? (selectedPuzzle ? `Start Puzzle: ${getPuzzle(selectedPuzzle)?.name}` : 'Select a Puzzle to Start')
+      : 'Start Single Player Game';
+    speakDialogue(buttonText).catch(() => {}); // Non-blocking
+    
     // Neural Frontier (simple game) doesn't need complex config
     if (gameType === 'neural-frontier') {
       navigate('/game');
@@ -721,7 +728,7 @@ const Lobby = () => {
                                   <div className="font-semibold text-white mt-2 mb-1">Constraints:</div>
                                   <ul className="list-disc list-inside space-y-0.5">
                                     {puzzle.constraints.slice(0, 2).map((constraint, idx) => (
-                                      <li key={idx}>
+                                      <li key={`${puzzle.id}-constraint-${idx}-${constraint.type}`}>
                                         {constraint.type === 'time_limit' && `${constraint.value}s time limit`}
                                         {constraint.type === 'resource_min' && `Min ${constraint.resource}: ${constraint.value}`}
                                         {constraint.type === 'resource_max' && `Max ${constraint.resource}: ${constraint.value}`}
@@ -751,7 +758,7 @@ const Lobby = () => {
                           <h5 className="font-semibold mb-2">Hints for {getPuzzle(selectedPuzzle)?.name}:</h5>
                           <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
                             {getPuzzle(selectedPuzzle)?.hints.map((hint, idx) => (
-                              <li key={idx}>{hint}</li>
+                              <li key={`${selectedPuzzle}-hint-${idx}-${hint.substring(0, 20)}`}>{hint}</li>
                             ))}
                           </ul>
                         </div>

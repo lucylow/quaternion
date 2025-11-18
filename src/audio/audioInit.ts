@@ -7,6 +7,7 @@ import SFXManager from './SFXManager';
 import AdaptiveEffects from './AdaptiveEffects';
 import AdvisorVoiceFilter from './AdvisorVoiceFilter';
 import ChromaPulseSynth from './ChromaPulseSynth';
+import BackgroundMusic from './BackgroundMusic';
 
 export async function initializeAudio() {
   try {
@@ -57,11 +58,34 @@ export async function initializeAudio() {
       // Continue without music - game will still work
     }
 
-    // Start chroma pulse synth (procedural ambient)
-    // Uncomment when ready:
-    // chromaSynth.start();
+    // Start background music (procedural - no files needed)
+    try {
+      const backgroundMusic = BackgroundMusic.instance();
+      await backgroundMusic.init();
+      // Start after a short delay to ensure audio context is ready
+      // This will be triggered by user interaction (game start)
+      setTimeout(async () => {
+        try {
+          await backgroundMusic.start();
+        } catch (err) {
+          console.warn('BackgroundMusic: Failed to start (will retry on user interaction)', err);
+        }
+      }, 100);
+    } catch (bgMusicError) {
+      console.warn('BackgroundMusic initialization failed (non-critical):', bgMusicError);
+    }
 
-    console.log('Audio system initialized with SFX & adaptive effects');
+    // Start chroma pulse synth (procedural ambient)
+    // Start after a short delay to ensure audio context is ready
+    setTimeout(async () => {
+      try {
+        await chromaSynth.start();
+      } catch (err) {
+        console.warn('ChromaPulseSynth: Failed to start (will retry on user interaction)', err);
+      }
+    }, 100);
+
+    console.log('Audio system initialized with SFX, adaptive effects, and background music');
   } catch (error) {
     console.warn('Audio initialization failed (non-critical):', error);
     // Don't throw - audio is optional

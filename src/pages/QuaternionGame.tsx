@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import useStableKeyGetter from '@/hooks/useStableKeys';
 import Phaser from 'phaser';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -6,7 +7,7 @@ import { ArrowLeft, Brain, Zap, Leaf, Box, Building, Swords, Trophy, X, RotateCc
 import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { QuaternionGameState } from '@/game/QuaternionGameState';
-import { TECH_TREE, BUILDINGS, COMMANDERS, UNIT_TYPES, AI_SUGGESTIONS } from '@/data/quaternionData';
+import { TECH_TREE, BUILDINGS, COMMANDERS, UNIT_TYPES, AI_SUGGESTIONS, WIN_CONDITIONS, NEURAL_FRONTIER_WIN_CONDITIONS } from '@/data/quaternionData';
 import { BuildMenu } from '@/components/game/BuildMenu';
 import { TechTreeModal } from '@/components/game/TechTreeModal';
 import { UnitPanel } from '@/components/game/UnitPanel';
@@ -29,6 +30,9 @@ import { ResourceAdvisorPanel } from '@/components/game/ResourceAdvisorPanel';
 import { ResourceType } from '@/game/ResourceManager';
 import { initializeAudio } from '@/audio/audioInit';
 import { getAudioManager, updateGameAudio, playSFX, playUISound, playResourceSound, playCombatSound, playCommanderDialogue } from '@/audio/AudioSystemIntegration';
+import BackgroundMusic from '@/audio/BackgroundMusic';
+import ChromaPulseSynth from '@/audio/ChromaPulseSynth';
+import MapMusicManager from '@/audio/MapMusicManager';
 import { AXIS_DESIGNS, getAxisDesign, hexToPhaserColor, AI_THOUGHT_VISUALS, BIOME_THEMES } from '@/design/QuaternionDesignSystem';
 import { AIStoryGenerator, NarrativeEvent, NarrativeContext } from '@/game/narrative/AIStoryGenerator';
 import { NarrativeDisplay } from '@/components/narrative/NarrativeDisplay';
@@ -89,6 +93,8 @@ const QuaternionGame = () => {
   const [aiMessages, setAiMessages] = useState<Array<{ commander: string; message: string; id: number }>>([]);
   const [gameOver, setGameOver] = useState<{ won: boolean; reason: string; scenario?: EndgameScenario } | null>(null);
   const [endgameScenario, setEndgameScenario] = useState<EndgameScenario | null>(null);
+  const messageIdCounterRef = useRef(0);
+  const getMessageKey = useStableKeyGetter(aiMessages, (msg) => msg.id);
   const [showPerformanceStats, setShowPerformanceStats] = useState(false);
   const [performanceStats, setPerformanceStats] = useState<PerformanceStats | null>(null);
   const [winConditionProgress, setWinConditionProgress] = useState<Record<string, { progress: number; max: number; label: string }>>({});
@@ -143,6 +149,12 @@ const QuaternionGame = () => {
   // Get game configuration from route state or use defaults
   const location = useLocation();
   const routeConfig = (location.state as any)?.config;
+  
+  // Determine game type from route pathname or config
+  const gameType: 'neural-frontier' | 'quaternion' = 
+    location.pathname === '/game/neural-frontier' || routeConfig?.gameType === 'neural-frontier'
+      ? 'neural-frontier'
+      : 'quaternion';
   
   // Try to load room data from localStorage if not in route state (for page refresh/reconnection)
   const loadRoomDataFromStorage = () => {
@@ -218,12 +230,44 @@ const QuaternionGame = () => {
       console.log('Creating Phaser game...');
 
       // Initialize audio system (non-blocking, will work after user interaction)
-      initializeAudio().catch(err => console.warn('Audio init deferred:', err));
+      initializeAudio().then(async () => {
+        // Set music for the selected map
+        try {
+          const mapMusicManager = MapMusicManager.instance();
+          const selectedMapId = routeConfig?.mapId;
+          
+          if (selectedMapId) {
+            await mapMusicManager.setMusicForMapId(selectedMapId);
+            console.log(`[MapMusic] Set music for map ID: ${selectedMapId}`);
+          } else if (effectiveConfig?.mapType) {
+            // Fallback: try to find a map with matching theme
+            // For now, use a default theme based on mapType
+            const mapType = effectiveConfig.mapType;
+            // Map common mapType values to themes
+            const themeMap: Record<string, string> = {
+              'crystalline_plains': 'open',
+              'twilight_biome': 'alien',
+              'urban_battlefield': 'urban',
+              'underwater_biome': 'aquatic',
+              'mountainous_terrain': 'mountain',
+              'desert_terrain': 'desert',
+              'icy_wasteland': 'ice',
+              'volcanic_terrain': 'volcanic',
+              'alien_jungle': 'jungle'
+            };
+            const theme = themeMap[mapType] || 'mixed';
+            await mapMusicManager.setMusicForTheme(theme);
+            console.log(`[MapMusic] Set music for mapType: ${mapType} (theme: ${theme})`);
+          }
+        } catch (err) {
+          console.warn('[MapMusic] Failed to set map music:', err);
+        }
+      }).catch(err => console.warn('Audio init deferred:', err));
 
       // Store functions in variables accessible to the scene
       const showToast = toast;
       const sendAIMessage = (commander: string, message: string) => {
-        const id = Date.now();
+        const id = Date.now() * 10000 + (messageIdCounterRef.current++ % 10000);
         setAiMessages(prev => [...prev, { commander, message, id }]);
         showToast(message, {
           description: `${COMMANDERS[commander].name} - ${COMMANDERS[commander].role}`,
@@ -301,6 +345,36 @@ const QuaternionGame = () => {
             gameStateRef.current?.start();
             gameLoopRef.current?.start();
             console.log('[GameLoop] Started successfully');
+            
+            // Start background music when game starts (after user interaction)
+            // This ensures audio context is ready
+            setTimeout(async () => {
+              try {
+                const audioManager = getAudioManager();
+                if (audioManager) {
+                  const audioContext = audioManager.getAudioContext();
+                  if (audioContext && audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                  }
+                  
+                  // Start background music
+                  const bgMusic = BackgroundMusic.instance();
+                  if (!bgMusic.isActive()) {
+                    await bgMusic.start();
+                  }
+                  
+                  // Start chroma pulse synth
+                  const chromaSynth = ChromaPulseSynth.instance();
+                  if (!chromaSynth.isActive()) {
+                    await chromaSynth.start();
+                  }
+                  
+                  console.log('[Audio] Background music and ambient sound started');
+                }
+              } catch (audioError) {
+                console.warn('[Audio] Failed to start background music:', audioError);
+              }
+            }, 500); // Small delay to ensure game is fully initialized
           }
         }).catch((error) => {
           const errorMsg = 'Failed to initialize game loop';
@@ -1208,7 +1282,7 @@ const QuaternionGame = () => {
           if (!pointer.leftButtonDown()) return; // Only left clicks
           
           // Deselect all other units
-          selectedUnits.forEach(u => {
+          selectedUnitsRef.current.forEach(u => {
             if (u !== unit) {
               u.setData('selected', false);
               const g = u.getData('graphics') as Phaser.GameObjects.Graphics;
@@ -1228,7 +1302,7 @@ const QuaternionGame = () => {
           
           // Select this unit
           if (!unit.getData('selected')) {
-            selectedUnits.length = 0;
+            selectedUnitsRef.current.length = 0;
             selectedUnits.push(unit);
             unit.setData('selected', true);
             const g = unit.getData('graphics') as Phaser.GameObjects.Graphics;
@@ -1240,7 +1314,7 @@ const QuaternionGame = () => {
               g.strokeCircle(unit.x, unit.y, 20);
             }
             setSelectedUnit(unitType);
-            setSelectedUnits([...selectedUnits]);
+            setSelectedUnits(newSelection);
             console.log('[Scene] Unit selected:', unitType);
           }
         });
@@ -1294,7 +1368,7 @@ const QuaternionGame = () => {
       this.input.keyboard?.on('keydown-T', () => setShowTechTree(true));
       this.input.keyboard?.on('keydown-B', () => setShowBuildMenu(true));
       this.input.keyboard?.on('keydown-S', () => {
-        selectedUnits.forEach(unit => {
+        selectedUnitsRef.current.forEach(unit => {
           if (unit.active) {
             unit.setVelocity(0, 0);
             unit.setData('target', null);
@@ -1342,12 +1416,12 @@ const QuaternionGame = () => {
         console.log('[Scene] Phaser pointerdown detected:', pointer.x, pointer.y, 'button:', pointer.buttons, 'world:', pointer.worldX, pointer.worldY);
         if (pointer.rightButtonDown()) {
           // Right click - move/attack command
-          if (selectedUnits.length > 0) {
+          if (selectedUnitsRef.current.length > 0) {
             const worldX = pointer.worldX;
             const worldY = pointer.worldY;
             
             // Check if any unit is in attack mode
-            const inAttackMode = selectedUnits.some(unit => unit.getData('attackMode'));
+            const inAttackMode = selectedUnitsRef.current.some(unit => unit.getData('attackMode'));
             
             // Check if clicking on enemy (prioritize if in attack mode)
             let targetFound = false;
@@ -1355,7 +1429,7 @@ const QuaternionGame = () => {
               if (!enemy.active) return;
               const dist = Phaser.Math.Distance.Between(enemy.x, enemy.y, worldX, worldY);
               if (dist < 30 || (inAttackMode && dist < 100)) {
-                selectedUnits.forEach(unit => {
+                selectedUnitsRef.current.forEach(unit => {
                   if (unit.active) {
                     unit.setData('target', enemy);
                     unit.setData('state', 'attacking');
@@ -1370,7 +1444,7 @@ const QuaternionGame = () => {
             if (!targetFound && aiBase) {
               const dist = Phaser.Math.Distance.Between(aiBase.x, aiBase.y, worldX, worldY);
               if (dist < 50) {
-                selectedUnits.forEach(unit => {
+                selectedUnitsRef.current.forEach(unit => {
                   unit.setData('target', aiBase);
                   unit.setData('state', 'attacking');
                   this.physics.moveToObject(unit, aiBase, 120);
@@ -1384,7 +1458,7 @@ const QuaternionGame = () => {
               resourceNodes.forEach(node => {
                 const dist = Phaser.Math.Distance.Between(node.x, node.y, worldX, worldY);
                 if (dist < 30) {
-                  selectedUnits.forEach(unit => {
+                  selectedUnitsRef.current.forEach(unit => {
                     if (unit.getData('type') === 'worker') {
                       unit.setData('target', node);
                       unit.setData('state', 'gathering');
@@ -1398,7 +1472,7 @@ const QuaternionGame = () => {
             
             // Default move command
             if (!targetFound) {
-              selectedUnits.forEach(unit => {
+              selectedUnitsRef.current.forEach(unit => {
                 unit.setData('state', 'moving');
                 this.physics.moveTo(unit, worldX, worldY, 120);
                 
@@ -1491,7 +1565,7 @@ const QuaternionGame = () => {
           const maxY = Math.max(selectionStart.y, pointer.worldY);
 
           // Clear previous selection
-          const currentSelected = [...selectedUnits];
+          const currentSelected = [...selectedUnitsRef.current];
           currentSelected.forEach(u => {
             u.setData('selected', false);
             const g = u.getData('graphics') as Phaser.GameObjects.Graphics;
@@ -1539,9 +1613,10 @@ const QuaternionGame = () => {
       this.input.keyboard?.on('keydown', (event: KeyboardEvent) => {
         if ((event.ctrlKey || event.metaKey) && event.key >= '1' && event.key <= '9') {
           const groupNum = parseInt(event.key);
-          if (selectedUnits.length > 0) {
-            controlGroups.set(groupNum, [...selectedUnits]);
-            showToast.success(`Control group ${groupNum} created with ${selectedUnits.length} units`);
+          selectedUnitsRef.current = newSelected;
+          if (selectedUnitsRef.current.length > 0) {
+            controlGroups.set(groupNum, [...selectedUnitsRef.current]);
+            showToast.success(`Control group ${groupNum} created with ${selectedUnitsRef.current.length} units`);
           }
         }
       });
@@ -1554,7 +1629,7 @@ const QuaternionGame = () => {
             const group = controlGroups.get(i);
             if (group && group.length > 0) {
               // Clear current selection
-              const currentSelected = [...selectedUnits];
+              const currentSelected = [...selectedUnitsRef.current];
               currentSelected.forEach(u => {
                 const ring = u.getData('selectionRing') as Phaser.GameObjects.Ellipse | undefined;
                 if (ring) ring.setVisible(false);
@@ -1596,6 +1671,7 @@ const QuaternionGame = () => {
         if (isSelecting) {
           selectionGraphics.clear();
           selectionGraphics.lineStyle(2, 0x00ffea, 1);
+              selectedUnitsRef.current = newSelected;
           selectionGraphics.strokeRect(
             selectionStart.x,
             selectionStart.y,
@@ -2416,9 +2492,9 @@ const QuaternionGame = () => {
 
       // Space bar - center camera on selection
       if (this.input.keyboard?.checkDown(this.input.keyboard.addKey('SPACE'), 200)) {
-        if (selectedUnits.length > 0) {
-          const avgX = selectedUnits.reduce((sum, u) => sum + (u.active ? u.x : 0), 0) / selectedUnits.length;
-          const avgY = selectedUnits.reduce((sum, u) => sum + (u.active ? u.y : 0), 0) / selectedUnits.length;
+        if (selectedUnitsRef.current.length > 0) {
+          const avgX = selectedUnitsRef.current.reduce((sum, u) => sum + (u.active ? u.x : 0), 0) / selectedUnitsRef.current.length;
+          const avgY = selectedUnitsRef.current.reduce((sum, u) => sum + (u.active ? u.y : 0), 0) / selectedUnitsRef.current.length;
           this.tweens.add({
             targets: camera,
             scrollX: Phaser.Math.Clamp(avgX - width / 2, 0, width * 2 - width),
@@ -2621,7 +2697,7 @@ const QuaternionGame = () => {
   }, [resources, gameOver]);
 
   const addAIMessage = (commander: string, message: string) => {
-    const id = Date.now();
+    const id = Date.now() * 10000 + (messageIdCounterRef.current++ % 10000);
     setAiMessages(prev => [...prev, { commander, message, id }]);
     toast(message, {
       description: `${COMMANDERS[commander].name} - ${COMMANDERS[commander].role}`,
@@ -2845,7 +2921,7 @@ const QuaternionGame = () => {
 
   // Handle unit commands from CommandPanel
   const handleUnitCommand = (command: string, data?: any) => {
-    if (!phaserGameRef.current || selectedUnits.length === 0) return;
+    if (!phaserGameRef.current || selectedUnitsRef.current.length === 0) return;
 
     const scene = phaserGameRef.current.scene.scenes[0];
     if (!scene) return;
@@ -2865,7 +2941,7 @@ const QuaternionGame = () => {
         scene.events.emit('command-special', { units: selectedUnits });
         break;
       case 'stop':
-        selectedUnits.forEach(unit => {
+        selectedUnitsRef.current.forEach(unit => {
           if (unit.active) {
             unit.setData('target', null);
             unit.setData('state', 'idle');
@@ -3392,18 +3468,30 @@ const QuaternionGame = () => {
             {!showVictoryConditions ? (
               <Button
                 onClick={() => setShowVictoryConditions(true)}
-                className="bg-gray-800/90 border border-cyan-400/50 hover:bg-gray-700/90"
+                className={`bg-gray-800/90 border hover:bg-gray-700/90 ${
+                  gameType === 'neural-frontier'
+                    ? 'border-cyan-400/50'
+                    : 'border-purple-400/50'
+                }`}
                 variant="outline"
               >
                 <Trophy className="w-4 h-4 mr-2" />
                 Victory Conditions
               </Button>
             ) : (
-              <div className="bg-gray-800/90 border border-cyan-400/50 rounded-lg p-4">
+              <div className={`bg-gray-800/90 border rounded-lg p-4 ${
+                gameType === 'neural-frontier'
+                  ? 'border-cyan-400/50'
+                  : 'border-purple-400/50'
+              }`}>
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-cyan-300 text-base font-bold flex items-center gap-2 text-readable-neon">
+                  <h3 className={`text-base font-bold flex items-center gap-2 text-readable-neon ${
+                    gameType === 'neural-frontier'
+                      ? 'text-cyan-300'
+                      : 'text-purple-300'
+                  }`}>
                     <Trophy className="w-5 h-5" />
-                    Victory Conditions
+                    {gameType === 'neural-frontier' ? 'Victory Goals' : 'Victory Conditions'}
                   </h3>
                   <Button
                     onClick={() => setShowVictoryConditions(false)}
@@ -3415,22 +3503,63 @@ const QuaternionGame = () => {
                   </Button>
                 </div>
                 <div className="space-y-3">
-                  {Object.entries(winConditionProgress).map(([key, condition]) => (
-                    <div key={key} className="space-y-1">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-cyan-200 text-readable">{condition.label}</span>
-                        <span className="text-cyan-300 text-readable-neon font-semibold">
-                          {Math.floor((condition.progress / condition.max) * 100)}%
-                        </span>
-                      </div>
-                      <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-cyan-400 to-cyan-600 transition-all duration-300"
-                          style={{ width: `${Math.min((condition.progress / condition.max) * 100, 100)}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
+                  {gameType === 'neural-frontier' ? (
+                    // Neural Frontier: Simpler, more casual display
+                    <>
+                      {NEURAL_FRONTIER_WIN_CONDITIONS.map((condition) => {
+                        const progress = winConditionProgress[condition.id] || { progress: 0, max: 1, label: condition.name };
+                        return (
+                          <div key={condition.id} className="space-y-1">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="flex items-center gap-2 text-cyan-200 text-readable">
+                                <span className="text-lg">{condition.icon}</span>
+                                <span>{condition.name}</span>
+                              </span>
+                              <span className="text-cyan-300 text-readable-neon font-semibold">
+                                {Math.floor((progress.progress / progress.max) * 100)}%
+                              </span>
+                            </div>
+                            <p className="text-xs text-cyan-300/70 text-readable mb-1">{condition.description}</p>
+                            <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-gradient-to-r from-cyan-400 to-cyan-600 transition-all duration-300"
+                                style={{ width: `${Math.min((progress.progress / progress.max) * 100, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </>
+                  ) : (
+                    // Quaternion Strategy: Full detailed display
+                    <>
+                      {Object.entries(winConditionProgress).map(([key, condition]) => {
+                        const winCondition = WIN_CONDITIONS.find(wc => wc.id === key);
+                        return (
+                          <div key={key} className="space-y-1">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="flex items-center gap-2 text-purple-200 text-readable">
+                                {winCondition && <span className="text-lg">{winCondition.icon}</span>}
+                                <span>{condition.label}</span>
+                              </span>
+                              <span className="text-purple-300 text-readable-neon font-semibold">
+                                {Math.floor((condition.progress / condition.max) * 100)}%
+                              </span>
+                            </div>
+                            {winCondition && (
+                              <p className="text-xs text-purple-300/70 text-readable mb-1">{winCondition.description}</p>
+                            )}
+                            <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-gradient-to-r from-purple-400 to-purple-600 transition-all duration-300"
+                                style={{ width: `${Math.min((condition.progress / condition.max) * 100, 100)}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -3453,13 +3582,13 @@ const QuaternionGame = () => {
 
           {/* Enhanced AI Messages with Minimalistic Design */}
           <div className="absolute top-20 right-4 z-20 space-y-2 max-w-sm">
-            {aiMessages.map(msg => {
+            {aiMessages.map((msg, idx) => {
               const commander = COMMANDERS[msg.commander];
               const commanderColor = commander.color || '#00ffea';
               
               return (
                 <div
-                  key={msg.id}
+                  key={getMessageKey(msg, idx)}
                   className="bg-gray-800/90 backdrop-blur-sm border rounded-lg p-3 animate-in slide-in-from-right shadow-lg transition-all hover:scale-[1.02]"
                   style={{
                     borderColor: `${commanderColor}40`,

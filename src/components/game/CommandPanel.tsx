@@ -32,9 +32,14 @@ export const CommandPanel = ({ selectedUnits, onCommand }: CommandPanelProps) =>
   useEffect(() => {
     // Initialize interaction audio
     const initAudio = async () => {
-      const audio = InteractionAudio.instance();
-      await audio.init();
-      setInteractionAudio(audio);
+      try {
+        const audio = InteractionAudio.instance();
+        await audio.init();
+        setInteractionAudio(audio);
+      } catch (error) {
+        console.warn('Failed to initialize interaction audio:', error);
+        // Continue without audio
+      }
     };
     initAudio();
 
@@ -52,8 +57,20 @@ export const CommandPanel = ({ selectedUnits, onCommand }: CommandPanelProps) =>
       const command = shortcuts[key];
       if (command && (command === 'stop' || hasSelection)) {
         setPressedKey(key);
-        if (interactionAudio) {
-          interactionAudio.play('command', { volume: 0.6 });
+        // Play sound effect for command
+        try {
+          const audio = InteractionAudio.instance();
+          if (audio && audio.isEnabled()) {
+            if (command === 'move') {
+              audio.play('move', { volume: 0.5 });
+            } else if (command === 'attack') {
+              audio.play('attack', { volume: 0.6 });
+            } else {
+              audio.play('command', { volume: 0.6 });
+            }
+          }
+        } catch (error) {
+          // Continue without audio
         }
         onCommand(command);
       }
@@ -70,7 +87,7 @@ export const CommandPanel = ({ selectedUnits, onCommand }: CommandPanelProps) =>
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [hasSelection, onCommand, interactionAudio]);
+  }, [hasSelection, onCommand]);
 
   const commands = [
     {
@@ -151,23 +168,64 @@ export const CommandPanel = ({ selectedUnits, onCommand }: CommandPanelProps) =>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {
-                      if (!disabled && interactionAudio) {
-                        interactionAudio.play('command', { volume: 0.6 });
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      
+                      // Don't execute if disabled
+                      if (disabled) {
+                        // Play error sound for disabled button
+                        try {
+                          const audio = InteractionAudio.instance();
+                          if (audio && audio.isEnabled()) {
+                            audio.play('error', { volume: 0.3 });
+                          }
+                        } catch (error) {
+                          // Continue without audio
+                        }
+                        return;
                       }
+
+                      // Play appropriate sound effect
+                      try {
+                        const audio = InteractionAudio.instance();
+                        if (audio && audio.isEnabled()) {
+                          if (cmd.id === 'move') {
+                            audio.play('move', { volume: 0.5 });
+                          } else if (cmd.id === 'attack') {
+                            audio.play('attack', { volume: 0.6 });
+                          } else if (cmd.id === 'patrol') {
+                            audio.play('command', { volume: 0.5, pitch: 0.9 });
+                          } else if (cmd.id === 'special') {
+                            audio.play('command', { volume: 0.6, pitch: 1.2 });
+                          } else {
+                            audio.play('command', { volume: 0.6 });
+                          }
+                        }
+                      } catch (error) {
+                        // Continue without audio
+                      }
+
+                      // Visual feedback
                       setActiveCommand(cmd.id);
                       setTimeout(() => setActiveCommand(null), 300);
+                      
+                      // Execute command
                       onCommand(cmd.id);
                     }}
                     disabled={disabled}
                     className={cn(
                       'border min-w-[60px] flex flex-col items-center gap-1 h-auto py-2',
                       'transition-all duration-200 hover:scale-110 active:scale-95',
-                      'relative overflow-hidden group',
+                      'relative overflow-hidden group cursor-pointer touch-manipulation',
+                      'select-none z-10',
                       disabled && 'opacity-50 cursor-not-allowed',
-                      pressedKey === cmd.shortcut && 'ring-2 scale-105',
-                      isActive && 'scale-110'
+                      !disabled && 'hover:shadow-lg active:scale-95',
+                      pressedKey === cmd.shortcut && 'ring-2 ring-offset-2 scale-105',
+                      isActive && 'scale-110 ring-2 ring-offset-1'
                     )}
+                    type="button"
+                    aria-label={`${cmd.label} command (${cmd.shortcut})`}
                     style={{
                       color: cmdAxisDesign.primary,
                       borderColor: `${cmdAxisDesign.primary}50`,

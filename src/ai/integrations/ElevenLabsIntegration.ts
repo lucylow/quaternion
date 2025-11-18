@@ -178,37 +178,63 @@ export class ElevenLabsIntegration {
       }
     });
 
-    // Commander voices (using ElevenLabs default voices as examples)
-    this.voiceProfiles.set('the architect', {
-      voiceId: 'EXAVITQu4vr4xnSDxMaL', // Bella - methodical, confident
-      name: 'the architect',
-      description: 'Methodical strategist',
+    // CORE - Logic Advisor: Analytical, precise, focused on optimization
+    this.voiceProfiles.set('core', {
+      voiceId: 'JBFqnCBsd6RMkjVDRZzb', // George - clear, professional, methodical
+      name: 'core',
+      description: 'Analytical logic advisor - precise and methodical',
+      settings: {
+        stability: 0.75, // High stability for precise, consistent delivery
+        similarityBoost: 0.8,
+        style: 0.1 // Low style for clear, unadorned speech
+      }
+    });
+
+    // AUREN - Empathy Advisor: Compassionate, ethical, values preservation
+    this.voiceProfiles.set('auren', {
+      voiceId: 'XB0fDUnXU5powFXDhCwa', // Charlotte - warm, caring, empathetic
+      name: 'auren',
+      description: 'Compassionate empathy advisor - warm and caring',
       settings: {
         stability: 0.7,
-        similarityBoost: 0.75,
-        style: 0.1
+        similarityBoost: 0.85, // High similarity for consistent warmth
+        style: 0.2 // Slight style for emotional expressiveness
       }
     });
 
-    this.voiceProfiles.set('the aggressor', {
-      voiceId: 'VR6AewLTigWG4xSOukaG', // Arnold - aggressive, energetic
-      name: 'the aggressor',
-      description: 'Aggressive commander',
+    // LIRA - Agility Advisor: Aggressive, tactical, combat-focused
+    this.voiceProfiles.set('lira', {
+      voiceId: 'VR6AewLTigWG4xSOukaG', // Arnold - aggressive, energetic, decisive
+      name: 'lira',
+      description: 'Aggressive agility advisor - energetic and tactical',
       settings: {
-        stability: 0.5,
+        stability: 0.5, // Lower stability for dynamic, energetic delivery
         similarityBoost: 0.7,
-        style: 0.4
+        style: 0.4 // Higher style for aggressive, expressive speech
       }
     });
 
-    this.voiceProfiles.set('the guardian', {
-      voiceId: 'ThT5KcBeYPX3keUQqHPh', // Dorothy - calm, defensive
-      name: 'the guardian',
-      description: 'Defensive strategist',
+    // VIREL - Knowledge Advisor: Curious, intellectual, research-oriented
+    this.voiceProfiles.set('virel', {
+      voiceId: 'ThT5KcBeYPX3keUQqHPh', // Dorothy - calm, measured, thoughtful
+      name: 'virel',
+      description: 'Intellectual knowledge advisor - thoughtful and scholarly',
       settings: {
-        stability: 0.8,
+        stability: 0.8, // High stability for measured, scholarly delivery
         similarityBoost: 0.8,
-        style: 0.0
+        style: 0.15 // Low-moderate style for clear, intellectual speech
+      }
+    });
+
+    // KOR - Chaos Advisor: Unpredictable, chaotic, challenges conventions
+    this.voiceProfiles.set('kor', {
+      voiceId: 'MF3mGyEYCl7XYWbV9V6O', // Elli - expressive, varied, dynamic
+      name: 'kor',
+      description: 'Chaotic advisor - unpredictable and expressive',
+      settings: {
+        stability: 0.45, // Lower stability for unpredictable, varied delivery
+        similarityBoost: 0.65, // Lower similarity for more variation
+        style: 0.5 // High style for expressive, dynamic speech
       }
     });
   }

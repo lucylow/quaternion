@@ -9,6 +9,7 @@
 
 import AudioManager from './AudioManager';
 import AdaptiveEffects from './AdaptiveEffects';
+import { MusicPreset } from './MusicPreset';
 
 /**
  * Chroma Pulse Synth
@@ -45,6 +46,7 @@ export default class ChromaPulseSynth {
   private phaserLfo?: OscillatorNode;
   private phaserGain?: GainNode;
   private isPlaying = false;
+  private updateInterval?: number;
 
   // Synth parameters (from playbook recipe)
   private baseFreq = 220; // Hz (A3)
@@ -54,6 +56,16 @@ export default class ChromaPulseSynth {
   private detuneAmount = 0.02; // Detuning for oscillator 2 (2% detune)
   private harmonicRatio = 1.5; // Oscillator 3 frequency ratio (perfect fifth)
   private randomVariation = 0.05; // Random variation for organic feel
+  
+  // Preset-specific parameters
+  private filterCenterFreq = 1200;
+  private filterQ = 1.2;
+  private mainVolume = 0.25;
+  private detunedVolume = 0.15;
+  private harmonicVolume = 0.1;
+  private distortionAmount = 0.6;
+  private phaserDepth = 500;
+  private reverbAmount = 0.2;
 
   private constructor() {
     this.audioManager = AudioManager.instance();
@@ -145,18 +157,17 @@ export default class ChromaPulseSynth {
       this.lfo2.type = 'triangle'; // Different shape for more interesting modulation
       this.lfo2.frequency.value = this.lfo2Rate;
 
-      const filterCenterFreq = 1200; // Centered ~1.2 kHz
       this.lfoGain = ctx.createGain();
       if (!this.lfoGain) {
         throw new Error('Failed to create LFO gain node');
       }
-      this.lfoGain.gain.value = filterCenterFreq * this.modulationDepth;
+      this.lfoGain.gain.value = this.filterCenterFreq * this.modulationDepth;
 
       this.lfo2Gain = ctx.createGain();
       if (!this.lfo2Gain) {
         throw new Error('Failed to create LFO2 gain node');
       }
-      this.lfo2Gain.gain.value = filterCenterFreq * this.modulationDepth * 0.5; // Subtle secondary modulation
+      this.lfo2Gain.gain.value = this.filterCenterFreq * this.modulationDepth * 0.5; // Subtle secondary modulation
 
       // Create filters (layered for richer texture)
       this.filter = ctx.createBiquadFilter();
@@ -164,8 +175,8 @@ export default class ChromaPulseSynth {
         throw new Error('Failed to create filter');
       }
       this.filter.type = 'bandpass';
-      this.filter.frequency.value = filterCenterFreq;
-      this.filter.Q.value = 1.2;
+      this.filter.frequency.value = this.filterCenterFreq;
+      this.filter.Q.value = this.filterQ;
 
       this.filter2 = ctx.createBiquadFilter();
       if (!this.filter2) {
@@ -180,19 +191,19 @@ export default class ChromaPulseSynth {
       if (!this.gain) {
         throw new Error('Failed to create gain node');
       }
-      this.gain.gain.value = 0.25; // Main oscillator volume
+      this.gain.gain.value = this.mainVolume; // Main oscillator volume
 
       this.gain2 = ctx.createGain();
       if (!this.gain2) {
         throw new Error('Failed to create gain2 node');
       }
-      this.gain2.gain.value = 0.15; // Detuned oscillator (quieter)
+      this.gain2.gain.value = this.detunedVolume; // Detuned oscillator (quieter)
 
       this.gain3 = ctx.createGain();
       if (!this.gain3) {
         throw new Error('Failed to create gain3 node');
       }
-      this.gain3.gain.value = 0.1; // Harmonic oscillator (subtle)
+      this.gain3.gain.value = this.harmonicVolume; // Harmonic oscillator (subtle)
 
       // Create delay/chorus effect with variation
       this.delay = ctx.createDelay(0.05);
@@ -211,7 +222,7 @@ export default class ChromaPulseSynth {
       if (!this.distortionGain) {
         throw new Error('Failed to create distortion gain node');
       }
-      this.distortionGain.gain.value = 0.8; // Pre-distortion gain
+      this.distortionGain.gain.value = this.distortionAmount; // Pre-distortion gain
 
       this.distortion = ctx.createWaveShaper();
       if (!this.distortion) {
@@ -240,7 +251,7 @@ export default class ChromaPulseSynth {
       if (!this.phaserGain) {
         throw new Error('Failed to create phaser gain');
       }
-      this.phaserGain.gain.value = 600; // Phaser depth
+      this.phaserGain.gain.value = this.phaserDepth; // Phaser depth
 
       for (let i = 0; i < 4; i++) {
         const allpass = ctx.createBiquadFilter();
@@ -255,7 +266,7 @@ export default class ChromaPulseSynth {
       if (!this.reverbGain) {
         throw new Error('Failed to create reverb gain');
       }
-      this.reverbGain.gain.value = 0.2;
+      this.reverbGain.gain.value = this.reverbAmount;
 
       // Simple reverb using delay network
       this.reverb = ctx.createConvolver();
@@ -347,6 +358,7 @@ export default class ChromaPulseSynth {
 
       this.isPlaying = true;
       this.updateFromChroma();
+      this.startUpdates();
     } catch (error) {
       console.error('ChromaPulseSynth: Error starting synth', error);
       // Clean up on error
@@ -360,6 +372,9 @@ export default class ChromaPulseSynth {
    */
   stop(): void {
     if (!this.isPlaying) return;
+
+    // Stop continuous updates
+    this.stopUpdates();
 
     try {
       // Stop oscillators safely
@@ -622,10 +637,66 @@ export default class ChromaPulseSynth {
   }
 
   /**
+   * Start continuous updates (call from game loop)
+   */
+  startUpdates(intervalMs: number = 100): void {
+    if (this.updateInterval) return;
+    
+    this.updateInterval = window.setInterval(() => {
+      this.updateFromChroma();
+    }, intervalMs);
+  }
+
+  /**
+   * Stop continuous updates
+   */
+  stopUpdates(): void {
+    if (this.updateInterval) {
+      clearInterval(this.updateInterval);
+      this.updateInterval = undefined;
+    }
+  }
+
+  /**
    * Check if playing
    */
   isActive(): boolean {
     return this.isPlaying;
+  }
+
+  /**
+   * Apply a music preset configuration
+   * This updates the synth parameters. If playing, it will restart with new settings.
+   */
+  async applyPreset(preset: MusicPreset): Promise<void> {
+    const wasPlaying = this.isPlaying;
+    
+    // Stop if playing to apply new parameters
+    if (wasPlaying) {
+      this.stop();
+    }
+
+    // Update all parameters from preset
+    this.baseFreq = preset.baseFreq;
+    this.modulationDepth = preset.modulationDepth;
+    this.lfoRate = preset.lfoRate;
+    this.lfo2Rate = preset.lfo2Rate;
+    this.detuneAmount = preset.detuneAmount;
+    this.harmonicRatio = preset.harmonicRatio;
+    this.randomVariation = preset.randomVariation;
+    this.filterCenterFreq = preset.filterCenterFreq;
+    this.filterQ = preset.filterQ;
+    this.mainVolume = preset.mainVolume;
+    this.detunedVolume = preset.detunedVolume;
+    this.harmonicVolume = preset.harmonicVolume;
+    this.distortionAmount = preset.distortionAmount;
+    this.phaserDepth = preset.phaserDepth;
+    this.reverbAmount = preset.reverbAmount;
+
+    // Restart if it was playing
+    if (wasPlaying) {
+      await this.start();
+    }
   }
 
   /**
@@ -634,6 +705,7 @@ export default class ChromaPulseSynth {
   dispose(): void {
     try {
       this.stop();
+      this.stopUpdates();
     } catch (error) {
       console.error('ChromaPulseSynth: Error during dispose', error);
     }

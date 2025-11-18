@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useGameApi } from '@/hooks/useGameApi';
 import { toast } from 'sonner';
 import { Loader2, Play, Square, Trash2, RefreshCw } from 'lucide-react';
+import { speakDialogue } from '@/audio';
 
 export function GameAPIExample() {
   const {
@@ -26,6 +27,7 @@ export function GameAPIExample() {
   } = useGameApi(true, 200); // Auto-poll every 200ms
 
   const handleCreateGame = async () => {
+    speakDialogue('Create Game').catch(() => {}); // Non-blocking TTS
     try {
       await createGame({
         mapWidth: 64,
@@ -40,6 +42,7 @@ export function GameAPIExample() {
   };
 
   const handleStartGame = async () => {
+    speakDialogue('Start Game').catch(() => {}); // Non-blocking TTS
     try {
       await startGame();
       toast.success('Game started!');

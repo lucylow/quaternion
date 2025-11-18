@@ -760,7 +760,7 @@ export function CosmeticShop() {
                   <p className="text-sm text-muted-foreground mb-2">Tags</p>
                   <div className="flex flex-wrap gap-2">
                     {selectedCosmetic.tags.map((tag, idx) => (
-                      <Badge key={idx} variant="outline">{tag}</Badge>
+                      <Badge key={`${selectedCosmetic.id}-tag-${idx}-${tag}`} variant="outline">{tag}</Badge>
                     ))}
                   </div>
                 </div>

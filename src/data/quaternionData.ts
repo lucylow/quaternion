@@ -359,3 +359,19 @@ export const WIN_CONDITIONS = [
     icon: '✨'
   }
 ];
+
+// Neural Frontier (Simple Game) Victory Conditions
+export const NEURAL_FRONTIER_WIN_CONDITIONS = [
+  {
+    id: 'domination',
+    name: 'Domination Victory',
+    description: 'Eliminate all enemy units and control the battlefield',
+    icon: '⚔️'
+  },
+  {
+    id: 'resource',
+    name: 'Resource Victory',
+    description: 'Accumulate 2000 total resources (Ore + Energy + Biomass + Data)',
+    icon: '💰'
+  }
+];

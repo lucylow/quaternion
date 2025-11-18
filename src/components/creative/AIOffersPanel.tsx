@@ -40,7 +40,7 @@ export function AIOffersPanel({ offers, onAccept, onDecline, onReject }: AIOffer
                   <p className="text-xs font-medium text-green-400 mb-1">Benefits:</p>
                   <ul className="text-xs text-muted-foreground space-y-0.5">
                     {offer.benefits.map((benefit, idx) => (
-                      <li key={idx}>• {benefit}</li>
+                      <li key={`${offer.id}-benefit-${idx}-${benefit}`}>• {benefit}</li>
                     ))}
                   </ul>
                 </div>
@@ -51,7 +51,7 @@ export function AIOffersPanel({ offers, onAccept, onDecline, onReject }: AIOffer
                   <p className="text-xs font-medium text-red-400 mb-1">Costs:</p>
                   <ul className="text-xs text-muted-foreground space-y-0.5">
                     {offer.costs.map((cost, idx) => (
-                      <li key={idx}>• {cost}</li>
+                      <li key={`${offer.id}-cost-${idx}-${cost}`}>• {cost}</li>
                     ))}
                   </ul>
                 </div>

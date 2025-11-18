@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/quaternion-hero.webp";
 import mapImage from "@/assets/game-maps.webp";
+import { speakDialogue } from "@/audio";
 
 // Helper function to encode image paths with special characters
 // Handles special characters like middle dot (·), apostrophes, colons, etc.
@@ -158,6 +159,7 @@ const Index = () => {
               </Button>
               <Button 
                 onClick={() => {
+                  speakDialogue('Play Now').catch(() => {}); // Non-blocking TTS
                   try {
                     navigate('/lobby');
                   } catch (error) {
@@ -293,7 +295,18 @@ const Index = () => {
           
           <div className="relative hidden md:block">
             <div className="relative w-80 h-80 mx-auto">
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-2 border-primary rounded-full animate-quaternion-rotate">
+              {/* Elemental Guardian Monster Image - Behind the spinning circle */}
+              <img 
+                src={encodeImagePath("/assets/monsters/DALL·E 2024-11-22 18.49.09 - Create an original and highly detailed sci-fi illustration of a colossal elemental monster formed from four floating islands, each representing a dist.webp")}
+                alt="Elemental Guardian Monster"
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 object-cover rounded-full opacity-60 blur-sm z-0"
+                loading="lazy"
+                onError={(e) => {
+                  console.error('Failed to load Elemental Guardian image:', e.currentTarget.src);
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-2 border-primary rounded-full animate-quaternion-rotate z-10">
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-primary rounded-full flex items-center justify-center">
                   <Box className="w-4 h-4 text-primary-foreground" />
                 </div>

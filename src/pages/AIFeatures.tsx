@@ -761,7 +761,7 @@ const resourceBalance = stealthAdapter.adjustResourceFlow(
                             <p className="text-xs font-semibold text-primary mb-2">Use Cases:</p>
                             <ul className="space-y-1">
                               {tool.useCases.map((useCase, idx) => (
-                                <li key={idx} className="text-xs text-muted-foreground flex items-start gap-2">
+                                <li key={`${tool.name}-${idx}-${useCase}`} className="text-xs text-muted-foreground flex items-start gap-2">
                                   <span className="text-secondary mt-0.5">•</span>
                                   <span>{useCase}</span>
                                 </li>
@@ -1049,7 +1049,7 @@ const bestAction = actions.reduce((best, action) =>
                     <div className="flex flex-wrap gap-1.5">
                       {offer.categories.map((category, catIndex) => (
                         <span
-                          key={catIndex}
+                          key={`${index}-${catIndex}-${category}`}
                           className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded border border-primary/20"
                         >
                           {category}

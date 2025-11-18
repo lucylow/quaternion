@@ -14,5 +14,5 @@ export { requestTtsAudio } from './ttsClient';
 export { dialogueLinesToWebVTT, type DialogueLine } from './subtitleGenerator';
 export { sendAudioTelemetry } from './telemetry';
 export { initializeAudio } from './audioInit';
-export { narrateModelDecision, playSfx } from './ttsHelpers';
+export { narrateModelDecision, playSfx, speakDialogue } from './ttsHelpers';
 

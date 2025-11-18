@@ -201,16 +201,29 @@ class MultiplayerGameServer extends EventEmitter {
 
   handleMessage(playerConnection, message) {
     try {
-      // Validate message structure
-      if (!message || typeof message !== 'object') return;
+      // Validate message structure - handle null, undefined, and non-objects
+      if (!message || typeof message !== 'object' || Array.isArray(message)) {
+        return;
+      }
       
-      const { type, payload } = message;
+      // Safely extract type and payload
+      let type, payload;
+      try {
+        type = message.type;
+        payload = message.payload;
+      } catch (e) {
+        // If we can't safely access properties, ignore the message
+        return;
+      }
       
       // Ignore messages without a valid type
-      if (!type || typeof type !== 'string') return;
+      if (!type || typeof type !== 'string') {
+        return;
+      }
 
       // Ignore iframe-pos and other non-game message types silently
       // These are window.postMessage events that shouldn't be sent via WebSocket
+      // No error logging for these - they're expected to be filtered out
       if (type === 'iframe-pos' || type === 'iframe-resize' || type === 'iframe-scroll') {
         return; // Silently ignore - these are DOM-level messages, not game messages
       }
@@ -226,7 +239,13 @@ class MultiplayerGameServer extends EventEmitter {
           this.processCommand(playerConnection, payload);
           break;
         case 'ping':
-          playerConnection.ws.send(JSON.stringify({ type: 'pong' }));
+          try {
+            if (playerConnection && playerConnection.ws && playerConnection.ws.readyState === 1) {
+              playerConnection.ws.send(JSON.stringify({ type: 'pong' }));
+            }
+          } catch (e) {
+            // Ignore send errors for ping/pong
+          }
           break;
         default:
           // Silently ignore unknown message types to avoid console spam
@@ -242,7 +261,11 @@ class MultiplayerGameServer extends EventEmitter {
           return;
       }
     } catch (err) {
-      console.error('[QUAT DEBUG] message handler error', err);
+      // Only log errors that aren't related to iframe-pos or benign message handling issues
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      if (!errorMsg.includes('iframe-pos') && !errorMsg.includes('Cannot read')) {
+        console.error('[QUAT DEBUG] message handler error', err);
+      }
     }
   }
 
