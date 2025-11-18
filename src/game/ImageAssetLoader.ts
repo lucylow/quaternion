@@ -61,8 +61,14 @@ export class ImageAssetLoader {
    * Encode URL path to handle special characters
    */
   private static encodePath(path: string): string {
+    // If path already starts with /, keep it; otherwise ensure it does
+    const normalizedPath = path.startsWith('/') ? path : '/' + path;
     // Split path and encode each segment separately to preserve slashes
-    return path.split('/').map(segment => encodeURIComponent(segment)).join('/');
+    const encoded = normalizedPath.split('/').map(segment => {
+      if (!segment) return segment; // Preserve empty segments (leading/trailing slashes)
+      return encodeURIComponent(segment);
+    }).join('/');
+    return encoded;
   }
 
   /**

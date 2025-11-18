@@ -4,9 +4,8 @@
  * Combines memory, reflection, planning, personality, emotions, and relationships
  */
 
-import { GenerativeNPC, GenerativeNPCConfig } from '../generative/GenerativeNPC';
+import { GenerativeNPC, GenerativeNPCConfig, OCEANPersonality } from '../generative';
 import { LLMIntegration } from '../integrations/LLMIntegration';
-import { OCEANPersonality } from '../generative/OCEANPersonality';
 
 export interface EnhancedTrader {
   id: string;

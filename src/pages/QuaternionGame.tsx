@@ -27,6 +27,7 @@ import { BlackMarketPanel } from '@/components/game/BlackMarketPanel';
 import { ResourceAdvisorPanel } from '@/components/game/ResourceAdvisorPanel';
 import { ResourceType } from '@/game/ResourceManager';
 import { initializeAudio } from '@/audio/audioInit';
+import { AXIS_DESIGNS, getAxisDesign, hexToPhaserColor, AI_THOUGHT_VISUALS, BIOME_THEMES } from '@/design/QuaternionDesignSystem';
 
 interface GameResources {
   ore: number;
@@ -198,24 +199,40 @@ const QuaternionGame = () => {
         setLoadingProgress(value * 100);
       });
 
+      // Initialize asset lists first
+      ImageAssetLoader.initializeAssets();
+
       // Load game images (maps, monsters, countries)
       ImageAssetLoader.loadAssets(this);
 
       // Wait for all assets to load
       this.load.once('complete', () => {
+        console.log('Assets loaded successfully');
+        console.log('Available textures:', Object.keys(this.textures.list));
         setTimeout(() => {
           setLoading(false);
           gameStateRef.current?.start();
         }, 500);
       });
 
+      // Log loading errors
+      this.load.on('filecomplete', (key: string, type: string, data: any) => {
+        console.log(`Loaded: ${key} (${type})`);
+      });
+
+      this.load.on('loaderror', (file: Phaser.Loader.File) => {
+        console.error(`Failed to load: ${file.key} from ${file.src}`);
+      });
+
       // Fallback timeout in case assets don't load
       setTimeout(() => {
         if (this.load.progress < 1) {
+          console.warn(`Assets not fully loaded. Progress: ${(this.load.progress * 100).toFixed(1)}%`);
+          console.log('Available textures:', Object.keys(this.textures.list));
           setLoading(false);
           gameStateRef.current?.start();
         }
-      }, 3000);
+      }, 5000);
     }
 
     // Create particle emitter for effects
@@ -355,27 +372,52 @@ const QuaternionGame = () => {
       // If no specific map found, try to find any available map
       if (!mapKey) {
         const mapKeys = ImageAssetLoader.getMapKeys();
+        console.log('No specific map selected, trying available maps:', mapKeys);
         // Try each map key until we find one that exists
         const shuffledKeys = [...mapKeys].sort(() => Math.random() - 0.5);
         for (const key of shuffledKeys) {
           if (this.textures.exists(key)) {
             mapKey = key;
+            console.log(`Found available map: ${key}`);
             break;
+          } else {
+            console.warn(`Map texture not found: ${key}`);
           }
         }
+      }
+      
+      if (!mapKey) {
+        console.warn('No map textures available. Available textures:', Object.keys(this.textures.list));
       }
 
       // Helper function to create map background
       const createMapBackground = (key: string): Phaser.GameObjects.Image | null => {
         if (!this.textures.exists(key)) {
+          console.warn(`Texture ${key} does not exist`);
           return null;
         }
         try {
-          const img = this.add.image(width, height, key);
-          img.setDisplaySize(width * 2, height * 2);
+          // Get texture dimensions
+          const texture = this.textures.get(key);
+          const textureWidth = texture.source[0].width;
+          const textureHeight = texture.source[0].height;
+          
+          // Create map image at origin (0,0) to cover the entire game world
+          const img = this.add.image(0, 0, key);
+          
+          // Scale to cover the entire game world (width * 2, height * 2)
+          // Maintain aspect ratio while covering the area
+          const scaleX = (width * 2) / textureWidth;
+          const scaleY = (height * 2) / textureHeight;
+          const scale = Math.max(scaleX, scaleY);
+          
+          img.setScale(scale);
+          img.setOrigin(0, 0); // Top-left origin for world positioning
           img.setAlpha(0.4); // Semi-transparent so game elements are visible
           img.setTint(0x001122); // Darken the map slightly
           img.setDepth(-1000); // Behind everything
+          
+          console.log(`Map background created: ${key} at scale ${scale.toFixed(2)}`);
           return img;
         } catch (error) {
           console.error(`Failed to create map image with key ${key}:`, error);
@@ -442,44 +484,135 @@ const QuaternionGame = () => {
         });
       }
 
-      // Create resource nodes with better visuals
+      // Create resource nodes with axis-specific enhanced visuals
       const nodeTypes = [
-        { color: 0x4a90e2, resource: 'ore', icon: 'O' },
-        { color: 0xffd700, resource: 'energy', icon: 'E' },
-        { color: 0x50c878, resource: 'biomass', icon: 'B' },
-        { color: 0x9d4edd, resource: 'data', icon: 'D' }
+        { resource: 'ore', axis: 'matter' as const },
+        { resource: 'energy', axis: 'energy' as const },
+        { resource: 'biomass', axis: 'life' as const },
+        { resource: 'data', axis: 'knowledge' as const }
       ];
 
       for (let i = 0; i < 12; i++) {
         const nodeType = nodeTypes[i % 4];
+        const design = AXIS_DESIGNS[nodeType.axis];
         const x = 200 + (i % 4) * 250;
         const y = 150 + Math.floor(i / 4) * 200;
+        const primaryColor = hexToPhaserColor(design.primary);
+        const glowColor = hexToPhaserColor(design.glow);
         
-        // Outer glow
-        const glow = this.add.circle(x, y, 35, nodeType.color, 0.15);
+        // Enhanced outer glow with axis-specific effects
+        const outerGlow = this.add.circle(x, y, 40, glowColor, 0.2);
         this.tweens.add({
-          targets: glow,
-          scale: { from: 1, to: 1.5 },
-          alpha: { from: 0.15, to: 0.05 },
+          targets: outerGlow,
+          scale: { from: 1, to: 1.6 },
+          alpha: { from: 0.2, to: 0.05 },
           duration: 2000,
           yoyo: true,
-          repeat: -1
+          repeat: -1,
+          ease: 'Sine.easeInOut'
         });
         
-        // Main node
-        const node = this.add.circle(x, y, 25, nodeType.color, 0.8);
-        node.setStrokeStyle(3, nodeType.color, 1);
+        // Middle glow ring
+        const middleGlow = this.add.circle(x, y, 30, glowColor, 0.15);
+        this.tweens.add({
+          targets: middleGlow,
+          scale: { from: 1, to: 1.3 },
+          alpha: { from: 0.15, to: 0.08 },
+          duration: 1500,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut'
+        });
+        
+        // Main node with axis-specific shape
+        let node: Phaser.GameObjects.GameObject;
+        if (design.shape === 'angular') {
+          // Matter: Angular geometric shape
+          const graphics = this.add.graphics();
+          graphics.fillStyle(primaryColor, 0.9);
+          graphics.fillRect(x - 20, y - 20, 40, 40);
+          graphics.lineStyle(3, glowColor, 1);
+          graphics.strokeRect(x - 20, y - 20, 40, 40);
+          // Add inner geometric pattern
+          graphics.lineStyle(2, glowColor, 0.6);
+          graphics.moveTo(x - 10, y - 10);
+          graphics.lineTo(x + 10, y + 10);
+          graphics.moveTo(x + 10, y - 10);
+          graphics.lineTo(x - 10, y + 10);
+          node = graphics;
+        } else if (design.shape === 'dynamic') {
+          // Energy: Dynamic particle-like shape
+          node = this.add.circle(x, y, 25, primaryColor, 0.9);
+          node.setStrokeStyle(3, glowColor, 1);
+          // Add pulsing energy effect
+          this.tweens.add({
+            targets: node,
+            scale: { from: 1, to: 1.15 },
+            duration: 800,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Power2'
+          });
+        } else if (design.shape === 'organic') {
+          // Life: Organic flowing shape
+          const graphics = this.add.graphics();
+          graphics.fillStyle(primaryColor, 0.9);
+          graphics.fillCircle(x, y, 25);
+          graphics.lineStyle(3, glowColor, 1);
+          graphics.strokeCircle(x, y, 25);
+          // Add organic pattern
+          graphics.lineStyle(2, glowColor, 0.5);
+          for (let j = 0; j < 8; j++) {
+            const angle = (j / 8) * Math.PI * 2;
+            graphics.moveTo(x, y);
+            graphics.lineTo(x + Math.cos(angle) * 20, y + Math.sin(angle) * 20);
+          }
+          node = graphics;
+        } else {
+          // Knowledge: Fractal pattern
+          const graphics = this.add.graphics();
+          graphics.fillStyle(primaryColor, 0.9);
+          graphics.fillCircle(x, y, 25);
+          graphics.lineStyle(3, glowColor, 1);
+          graphics.strokeCircle(x, y, 25);
+          // Add fractal circuitry pattern
+          graphics.lineStyle(1.5, glowColor, 0.7);
+          graphics.strokeCircle(x, y, 15);
+          graphics.strokeCircle(x, y, 10);
+          graphics.moveTo(x - 12, y);
+          graphics.lineTo(x + 12, y);
+          graphics.moveTo(x, y - 12);
+          graphics.lineTo(x, y + 12);
+          node = graphics;
+        }
+        
         node.setData('type', nodeType.resource);
         node.setData('amount', 1000);
+        node.setData('axis', nodeType.axis);
         node.setInteractive();
         
-        // Icon
-        const icon = this.add.text(x, y, nodeType.icon, {
-          fontSize: '16px',
+        // Enhanced icon with axis styling
+        const icon = this.add.text(x, y, nodeType.resource.charAt(0).toUpperCase(), {
+          fontSize: '18px',
           color: '#ffffff',
           fontFamily: 'Arial',
-          fontStyle: 'bold'
+          fontStyle: 'bold',
+          stroke: '#000000',
+          strokeThickness: 3
         }).setOrigin(0.5);
+        
+        // Add axis-specific particle emitter
+        const particleColor = hexToPhaserColor(design.particle);
+        const particles = this.add.particles(x, y, 'particle', {
+          speed: design.particleConfig.speed,
+          scale: design.particleConfig.scale,
+          tint: particleColor,
+          lifespan: design.particleConfig.lifespan,
+          frequency: 200,
+          quantity: design.particleConfig.quantity,
+          emitZone: { type: 'edge', source: new Phaser.Geom.Circle(0, 0, 25), quantity: design.particleConfig.quantity }
+        });
+        particles.setDepth(-1);
         
         resourceNodes.push(node as Phaser.GameObjects.Sprite);
       }

@@ -158,6 +158,12 @@ const AIFeatures = () => {
       delivery: "High-quality visuals (AI-generated, upscaled, polished). No bugs or glitches in demo. Smooth UI, responsive controls.",
       tools: "Magnific, Mago Studio, CapCut, Dreamina",
       evidence: "Professional-quality assets; bug-free 15-minute playable demo"
+    },
+    {
+      name: "Player Experience Modeling & Adaptive Difficulty",
+      delivery: "AI models player skill, emotional state, and engagement in real-time to dynamically adjust game difficulty. Maintains optimal flow state, reducing frustration and boredom through predictive adaptation.",
+      tools: "Google Gemini 2.5 Flash (RL agent), Custom TypeScript implementation (player modeling, emotion recognition, flow state optimization)",
+      evidence: "Real-time difficulty adjustment system with multi-dimensional player profiling, hardware-free emotion recognition, and RL-based adaptation that preserves game immersion"
     }
   ];
 
@@ -483,6 +489,230 @@ chokepoints 3, objective_locations 2.`}
                 </CardContent>
               </Card>
             </div>
+          </section>
+
+          {/* Player Experience Modeling & Adaptive Difficulty */}
+          <section className="mb-16">
+            <div className="text-center mb-8">
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <Brain className="w-8 h-8 text-primary" />
+                <h2 className="text-3xl font-bold text-primary">Player Experience Modeling & Adaptive Difficulty</h2>
+                <Sparkles className="w-8 h-8 text-secondary" />
+              </div>
+              <p className="text-muted-foreground max-w-3xl mx-auto">
+                Advanced AI system that models player skill, emotional state, and engagement in real-time to dynamically adjust game difficulty, maintaining optimal "flow" state and reducing frustration.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6 mb-8">
+              <Card className="bg-card/70 border-primary/30 hover:border-primary transition-colors">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Brain className="w-8 h-8 text-primary" />
+                    <h3 className="text-2xl font-bold text-primary">Multi-Dimensional Player Modeling</h3>
+                  </div>
+                  <p className="text-muted-foreground mb-4">
+                    Comprehensive player profiling that tracks multiple dimensions of player experience:
+                  </p>
+                  <ul className="space-y-2 text-sm text-muted-foreground ml-4">
+                    <li>• <strong>Skill Metrics:</strong> Accuracy, efficiency, adaptability, consistency</li>
+                    <li>• <strong>Behavioral Patterns:</strong> Play style, risk tolerance, decision speed, exploration</li>
+                    <li>• <strong>Emotional State:</strong> Frustration, engagement, confidence, enjoyment</li>
+                    <li>• <strong>Per-Mechanic Skills:</strong> Individual skill levels for combat, economy, puzzles</li>
+                    <li>• <strong>Physiological Data:</strong> Optional heart rate, GSR, pupil dilation (if hardware available)</li>
+                  </ul>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card/70 border-primary/30 hover:border-primary transition-colors">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Zap className="w-8 h-8 text-primary" />
+                    <h3 className="text-2xl font-bold text-primary">Flow State Optimization</h3>
+                  </div>
+                  <p className="text-muted-foreground mb-4">
+                    Implements Csikszentmihalyi's Flow Theory to maintain optimal challenge-skill balance:
+                  </p>
+                  <ul className="space-y-2 text-sm text-muted-foreground ml-4">
+                    <li>• <strong>Flow Channel:</strong> Dynamic range between boredom and anxiety</li>
+                    <li>• <strong>Real-Time Adjustment:</strong> Challenge level adapts to player skill</li>
+                    <li>• <strong>State Detection:</strong> Identifies flow, anxiety, or boredom states</li>
+                    <li>• <strong>Predictive Adaptation:</strong> Anticipates player needs, not just reactive</li>
+                    <li>• <strong>Skill Growth Support:</strong> Encourages improvement while maintaining engagement</li>
+                  </ul>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card/70 border-primary/30 hover:border-primary transition-colors">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Sparkles className="w-8 h-8 text-primary" />
+                    <h3 className="text-2xl font-bold text-primary">Affective Computing & Emotion Recognition</h3>
+                  </div>
+                  <p className="text-muted-foreground mb-4">
+                    Hardware-free emotion detection from gameplay behavior patterns:
+                  </p>
+                  <ul className="space-y-2 text-sm text-muted-foreground ml-4">
+                    <li>• <strong>Frustration Detection:</strong> Repeated failures, rapid restarts, button spamming</li>
+                    <li>• <strong>Engagement Analysis:</strong> Session duration, focus actions, exploration behavior</li>
+                    <li>• <strong>Confidence Estimation:</strong> Success rate combined with performance consistency</li>
+                    <li>• <strong>Behavioral Inference:</strong> Emotion recognition without specialized hardware</li>
+                    <li>• <strong>Physiological Support:</strong> Optional integration with HR, GSR sensors if available</li>
+                  </ul>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card/70 border-primary/30 hover:border-primary transition-colors">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Cpu className="w-8 h-8 text-primary" />
+                    <h3 className="text-2xl font-bold text-primary">Reinforcement Learning Agent</h3>
+                  </div>
+                  <p className="text-muted-foreground mb-4">
+                    RL-based difficulty adjustment system that learns optimal adaptation strategies:
+                  </p>
+                  <ul className="space-y-2 text-sm text-muted-foreground ml-4">
+                    <li>• <strong>Q-Learning:</strong> State-action value estimation for difficulty adjustments</li>
+                    <li>• <strong>Multi-Dimensional Actions:</strong> Enemy health, resources, puzzles, time pressure</li>
+                    <li>• <strong>Reward Function:</strong> Optimizes for flow state, engagement, and skill growth</li>
+                    <li>• <strong>Exploration-Exploitation:</strong> Balances trying new strategies vs. using known good ones</li>
+                    <li>• <strong>Online Learning:</strong> Continuously improves from player interactions</li>
+                  </ul>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card/70 border-primary/30 hover:border-primary transition-colors">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Network className="w-8 h-8 text-primary" />
+                    <h3 className="text-2xl font-bold text-primary">Stealth Adaptation Techniques</h3>
+                  </div>
+                  <p className="text-muted-foreground mb-4">
+                    Immersion-preserving adjustments that players don't notice:
+                  </p>
+                  <ul className="space-y-2 text-sm text-muted-foreground ml-4">
+                    <li>• <strong>Probabilistic Assistance:</strong> AI hesitation, larger hitboxes (invisible to player)</li>
+                    <li>• <strong>Resource Flow:</strong> Dynamic ammo, health, currency spawn rates</li>
+                    <li>• <strong>Enemy Behavior:</strong> AI reaction time, accuracy, tactical complexity modulation</li>
+                    <li>• <strong>Narrative Integration:</strong> Diegetic explanations for significant changes</li>
+                    <li>• <strong>Subtle Adjustments:</strong> Changes under 15% remain imperceptible</li>
+                  </ul>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-card/70 border-primary/30 hover:border-primary transition-colors">
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Trophy className="w-8 h-8 text-primary" />
+                    <h3 className="text-2xl font-bold text-primary">Research & Validation</h3>
+                  </div>
+                  <p className="text-muted-foreground mb-4">
+                    Evidence-based approach with comprehensive evaluation:
+                  </p>
+                  <ul className="space-y-2 text-sm text-muted-foreground ml-4">
+                    <li>• <strong>Flow State Metrics:</strong> Percentage of time in flow, recovery from negative states</li>
+                    <li>• <strong>Player Experience:</strong> Self-reported enjoyment, retention rates, session duration</li>
+                    <li>• <strong>Adaptation Quality:</strong> Transparency scores, skill-challenge correlation</li>
+                    <li>• <strong>A/B Testing:</strong> Compare static vs. reactive vs. predictive adaptation</li>
+                    <li>• <strong>Long-Term Studies:</strong> Player retention and skill development tracking</li>
+                  </ul>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Technical Implementation Example */}
+            <Card className="bg-card/70 border-primary/30 mb-6">
+              <CardContent className="p-6">
+                <h3 className="text-xl font-bold text-primary mb-4 flex items-center gap-2">
+                  <Code className="w-6 h-6" />
+                  Technical Implementation
+                </h3>
+                <div className="bg-muted/50 p-4 rounded border border-primary/20 mb-4">
+                  <code className="text-xs text-muted-foreground whitespace-pre-wrap">
+{`// Initialize player experience model
+import { PlayerExperienceModel, FlowStateCalculator, 
+         AdaptiveDifficultyAgent, StealthAdaptation } 
+  from './ai/player-modeling';
+
+const playerModel = new PlayerExperienceModel(playerId);
+const flowCalculator = new FlowStateCalculator();
+const difficultyAgent = new AdaptiveDifficultyAgent();
+const stealthAdapter = new StealthAdaptation();
+
+// Update model with gameplay data
+const gameplayData = {
+  successes: 15,
+  failures: 5,
+  rapidRestarts: 0,
+  pauseFrequency: 2,
+  complaintInputs: 3,
+  focusActions: 45,
+  explorationActions: 12,
+  skillProgression: 0.1,
+  // ... other metrics
+};
+
+playerModel.update(gameplayData);
+
+// Calculate flow state
+const flowChannel = flowCalculator.createFlowChannel(
+  playerModel.getOverallSkillLevel()
+);
+const flowState = flowCalculator.calculateFlowState(flowChannel);
+
+// Select difficulty action
+const adaptationState = difficultyAgent.createAdaptationState(
+  playerModel.getModel(),
+  flowState,
+  flowChannel.challengeLevel,
+  currentTick
+);
+const action = difficultyAgent.selectAction(adaptationState);
+
+// Apply stealth adjustments
+const stealthAdjustments = stealthAdapter.generateStealthAdjustments(
+  playerModel.getModel(),
+  action
+);
+const resourceBalance = stealthAdapter.adjustResourceFlow(
+  baseResources,
+  playerModel.getModel(),
+  action
+);`}
+                  </code>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Complete TypeScript implementation with multi-dimensional player modeling, flow state optimization, 
+                  emotion recognition, and RL-based adaptive difficulty. All systems work together to maintain optimal 
+                  player experience while preserving game immersion.
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* Research Contributions */}
+            <Card className="bg-card/70 border-primary/30">
+              <CardContent className="p-6">
+                <h3 className="text-xl font-bold text-primary mb-4">Research Contributions</h3>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <h4 className="font-semibold text-secondary mb-2">Technical Innovations</h4>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      <li>• <strong>Multi-dimensional player state estimation</strong> - More accurate than single-metric approaches</li>
+                      <li>• <strong>Hardware-free emotion recognition</strong> - Makes emotion-aware gaming accessible without special equipment</li>
+                      <li>• <strong>Safe RL for real-time human interaction</strong> - Enables AI that learns without frustrating players</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-secondary mb-2">Game Design Contributions</h4>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      <li>• <strong>Stealth adaptation preserving immersion</strong> - Players get appropriate challenge without breaking believability</li>
+                      <li>• <strong>Mathematically defined flow state</strong> - Reduces player frustration and increases engagement</li>
+                      <li>• <strong>Predictive adaptation</strong> - Anticipates player needs rather than just reacting to failures</li>
+                    </ul>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </section>
 
           {/* AI Tools Used */}

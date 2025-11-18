@@ -1,7 +1,12 @@
 /**
  * Campaign System for Quaternion
  * Manages narrative campaigns, choices, and story progression
+ * Enhanced with entertaining narrative features
  */
+
+import type { NarrativeManager } from '../narrative/NarrativeManager';
+import type { EmotionalBeatSystem } from '../narrative/EmotionalBeatSystem';
+import type { Character } from '../narrative/Character';
 
 export interface CampaignConfig {
   id: string;
@@ -71,8 +76,14 @@ export class CampaignSystem {
   private campaigns: Map<string, CampaignConfig> = new Map();
   private currentState: CampaignState | null = null;
   private narrativeEvents: NarrativeEvent[] = [];
+  
+  // Enhanced narrative systems (optional integration)
+  private narrativeManager: NarrativeManager | null = null;
+  private emotionalBeats: EmotionalBeatSystem | null = null;
 
-  constructor() {
+  constructor(narrativeManager?: NarrativeManager, emotionalBeats?: EmotionalBeatSystem) {
+    this.narrativeManager = narrativeManager || null;
+    this.emotionalBeats = emotionalBeats || null;
     this.initializeCampaigns();
   }
 
@@ -200,11 +211,13 @@ export class CampaignSystem {
   /**
    * Start a campaign
    */
-  startCampaign(campaignId: string, seed?: number): CampaignState {
+  async startCampaign(campaignId: string, seed?: number): Promise<CampaignState> {
     const campaign = this.campaigns.get(campaignId);
     if (!campaign) {
       throw new Error(`Campaign not found: ${campaignId}`);
     }
+
+    const finalSeed = seed || campaign.seed || Math.floor(Math.random() * 1000000);
 
     this.currentState = {
       campaignId,
@@ -216,11 +229,95 @@ export class CampaignSystem {
       bioSeedHealth: 85,
       playerReputation: 0.3,
       time: 0,
-      seed: seed || campaign.seed || Math.floor(Math.random() * 1000000)
+      seed: finalSeed
     };
 
     this.narrativeEvents = [];
+
+    // Initialize enhanced narrative features if available
+    if (this.narrativeManager) {
+      await this.initializeEnhancedNarrative(finalSeed, campaign);
+    }
+
+    // Generate emotional beats for campaign
+    if (this.emotionalBeats && campaign.acts.length > 0) {
+      this.generateCampaignEmotionalBeats(campaign);
+    }
+
     return this.currentState;
+  }
+
+  /**
+   * Initialize enhanced narrative features
+   */
+  private async initializeEnhancedNarrative(seed: number, campaign: CampaignConfig): Promise<void> {
+    if (!this.narrativeManager) return;
+
+    // Initialize narrative system with campaign context
+    await this.narrativeManager.initializeNarrative(seed, {
+      worldType: 'campaign',
+      currentEra: campaign.name
+    });
+
+    // Convert campaign characters to narrative characters
+    for (const campaignChar of campaign.characters) {
+      const character = this.createCharacterFromCampaign(campaignChar);
+      if (character) {
+        this.narrativeManager.addCharacter(character);
+      }
+    }
+  }
+
+  /**
+   * Create narrative character from campaign character
+   */
+  private createCharacterFromCampaign(campaignChar: CampaignCharacter): Character | null {
+    if (!this.narrativeManager) return null;
+
+    // Import Character class dynamically to avoid circular dependency
+    const { Character, CharacterRace, CharacterClass } = require('../narrative/Character');
+    
+    const character = new Character(
+      campaignChar.id,
+      campaignChar.name,
+      CharacterRace.HUMAN, // Default, could be enhanced
+      CharacterClass.OTHER // Default, could be enhanced
+    );
+
+    // Set personality based on campaign character personality string
+    // This is simplified - could parse personality string more intelligently
+    if (campaignChar.personality.includes('ethical') || campaignChar.personality.includes('pleading')) {
+      character.personality.agreeableness = 0.8;
+    }
+    if (campaignChar.personality.includes('pragmatic') || campaignChar.personality.includes('cold')) {
+      character.personality.agreeableness = 0.3;
+    }
+    if (campaignChar.personality.includes('humorous') || campaignChar.personality.includes('wry')) {
+      character.personality.extraversion = 0.7;
+    }
+
+    return character;
+  }
+
+  /**
+   * Generate emotional beats for campaign
+   */
+  private generateCampaignEmotionalBeats(campaign: CampaignConfig): void {
+    if (!this.emotionalBeats) return;
+
+    // Generate beats for each act
+    for (const act of campaign.acts) {
+      const arc = {
+        openingHook: `Act ${act.name} begins: ${act.objectives[0] || 'New challenges await'}`,
+        complications: act.beats
+          .filter(b => b.type === 'choice' || b.type === 'combat')
+          .map(b => b.id),
+        climax: act.beats[act.beats.length - 1]?.id || 'Act climax',
+        resolution: `Act ${act.name} concludes`
+      };
+
+      this.emotionalBeats.generateArcsForStory(arc);
+    }
   }
 
   /**
@@ -284,6 +381,32 @@ export class CampaignSystem {
         (this.currentState as any)[key] = value;
       }
     });
+
+    // Record choice in enhanced narrative system
+    if (this.narrativeManager) {
+      this.narrativeManager.recordPlayerChoice({
+        id: `choice_${Date.now()}`,
+        choiceId,
+        option: optionId,
+        timestamp: Date.now(),
+        consequences: []
+      });
+
+      // Update reputation based on choice
+      const moralAlignment = choice.narrativeTag === 'greed' ? 'evil' : 
+                            choice.narrativeTag === 'hope' ? 'good' : 'neutral';
+      
+      if (moralAlignment !== 'neutral' && this.currentState.playerReputation !== undefined) {
+        const reputationChange = moralAlignment === 'good' ? 5 : -5;
+        this.currentState.playerReputation = Math.max(0, Math.min(1, 
+          this.currentState.playerReputation + (reputationChange / 100)));
+      }
+    }
+
+    // Trigger emotional beat for significant choices
+    if (this.emotionalBeats && (choice.narrativeTag === 'greed' || choice.narrativeTag === 'hope')) {
+      this.emotionalBeats.triggerTensionBeat(`Player made a ${choice.narrativeTag} choice`);
+    }
   }
 
   /**
