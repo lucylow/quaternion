@@ -33,6 +33,8 @@ import { getAudioManager, updateGameAudio, playSFX, playUISound, playResourceSou
 import BackgroundMusic from '@/audio/BackgroundMusic';
 import ChromaPulseSynth from '@/audio/ChromaPulseSynth';
 import MapMusicManager from '@/audio/MapMusicManager';
+import audioManager from '@/utils/audioManager';
+import { generateAndPlayTTS } from '@/utils/ttsClient';
 import { AXIS_DESIGNS, getAxisDesign, hexToPhaserColor, AI_THOUGHT_VISUALS, BIOME_THEMES } from '@/design/QuaternionDesignSystem';
 import { AIStoryGenerator, NarrativeEvent, NarrativeContext } from '@/game/narrative/AIStoryGenerator';
 import { NarrativeDisplay } from '@/components/narrative/NarrativeDisplay';

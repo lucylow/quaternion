@@ -11,33 +11,7 @@ import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/quaternion-hero.webp";
 import mapImage from "@/assets/game-maps.webp";
 import { speakDialogue } from "@/audio";
-
-// Helper function to encode image paths with special characters
-// Handles special characters like middle dot (·), apostrophes, colons, etc.
-const encodeImagePath = (path: string): string => {
-  if (!path) return path;
-  
-  // Split path and encode each segment separately to preserve slashes
-  const normalizedPath = path.startsWith('/') ? path : '/' + path;
-  
-  try {
-    return normalizedPath.split('/').map(segment => {
-      if (!segment) return segment; // Preserve empty segments (leading/trailing slashes)
-      
-      // Encode each segment to handle special characters like:
-      // - Middle dot (·) 
-      // - Apostrophes (')
-      // - Colons (:)
-      // - Underscores (_)
-      // - Spaces and other special characters
-      return encodeURIComponent(segment);
-    }).join('/');
-  } catch (error) {
-    console.warn('Error encoding image path:', path, error);
-    // Fallback: return path as-is if encoding fails
-    return path;
-  }
-};
+import { encodeImagePath } from "@/utils/imagePathEncoder";
 
 const Index = () => {
   const navigate = useNavigate();

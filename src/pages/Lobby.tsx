@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { MapSelector } from '@/components/game/MapSelector';
 import { MapConfig } from '@/types/map';
 import { speakDialogue } from '@/audio';
+import { safeStringify } from '@/utils/safeJSON';
 
 interface GameConfig {
   mode: 'single' | 'multiplayer' | 'campaign' | 'puzzle' | 'theater';
@@ -261,7 +262,7 @@ const Lobby = () => {
       const response = await fetch('/api/rooms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: safeStringify({
           name: roomName.trim(),
           mapType: multiplayerConfig.mapType || 'crystalline_plains',
           mapWidth: multiplayerConfig.mapWidth || 40,
@@ -305,7 +306,7 @@ const Lobby = () => {
               mapHeight: data.room.mapHeight,
               difficulty: data.room.difficulty,
             };
-            localStorage.setItem('quaternion_roomData', JSON.stringify(roomData));
+            localStorage.setItem('quaternion_roomData', safeStringify(roomData));
           } catch (error) {
             console.warn('Failed to store room data:', error);
           }
@@ -363,7 +364,7 @@ const Lobby = () => {
       const response = await fetch(`/api/rooms/${roomId}/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+        body: safeStringify({
           commanderId: multiplayerConfig.commanderId || 'AUREN',
           quaternionAxis: multiplayerConfig.quaternionAxis,
           playerId: existingPlayerId // Include for reconnection
@@ -401,7 +402,7 @@ const Lobby = () => {
               mapHeight: data.room.mapHeight,
               difficulty: data.room.difficulty,
             };
-            localStorage.setItem('quaternion_roomData', JSON.stringify(roomData));
+            localStorage.setItem('quaternion_roomData', safeStringify(roomData));
           } catch (error) {
             console.warn('Failed to store room data:', error);
           }

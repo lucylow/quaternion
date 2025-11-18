@@ -110,6 +110,8 @@ All colors MUST be HSL.
   html {
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
+    height: auto;
+    overflow-y: scroll;
   }
 
   body {
@@ -117,11 +119,14 @@ All colors MUST be HSL.
     overflow-x: hidden;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    height: auto;
+    min-height: 100vh;
   }
 
   #root {
     width: 100%;
     min-height: 100vh;
+    position: relative;
   }
 
   /* Mobile responsive improvements */

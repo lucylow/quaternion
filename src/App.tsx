@@ -7,6 +7,7 @@ import { Suspense, Component, ReactNode, ErrorInfo } from "react";
 import Index from "./pages/Index";
 // Import QuaternionGame directly instead of lazy loading to fix Phaser initialization
 import QuaternionGame from "./pages/QuaternionGame";
+import { ErrorBoundary as GameErrorBoundary } from "@/components/ErrorBoundary";
 // PATCHED BY CURSOR - lovable integration
 import LovableDebug from "./components/LovableDebug";
 import {

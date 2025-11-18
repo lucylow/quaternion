@@ -1,0 +1,75 @@
+[
+  {
+    "id": "lian_archive_awaken",
+    "voiceId": "lian-voice",
+    "filename": "lian_archive_awaken.ogg",
+    "ssml": "<speak><voice name='Lian'><prosody rate='0.95' pitch='-2%'>The Archive is stirring. Something ancient is remembering us.</prosody></voice></speak>"
+  },
+  {
+    "id": "lian_scan_anomaly",
+    "voiceId": "lian-voice",
+    "filename": "lian_scan_anomaly.ogg",
+    "ssml": "<speak><voice name='Lian'><prosody rate='0.96'>Scanning... <break time='200ms'/> anomaly confirmed. It is rewriting the terrain in real time.</prosody></voice></speak>"
+  },
+  {
+    "id": "lian_threshold_breach",
+    "voiceId": "lian-voice",
+    "filename": "lian_threshold_breach.ogg",
+    "ssml": "<speak><voice name='Lian'><prosody rate='0.94'>Commander, the Archive has breached a threshold. We no longer control the pace of expansion.</prosody></voice></speak>"
+  },
+  {
+    "id": "mara_fear_shift",
+    "voiceId": "mara-voice",
+    "filename": "mara_fear_shift.ogg",
+    "ssml": "<speak><voice name='Mara'><prosody rate='1.03'>Do you hear that tone? <break time='180ms'/> It's fear. Even the machines remember fear.</prosody></voice></speak>"
+  },
+  {
+    "id": "mara_factions_moving",
+    "voiceId": "mara-voice",
+    "filename": "mara_factions_moving.ogg",
+    "ssml": "<speak><voice name='Mara'><prosody rate='1.02'>Multiple factions are converging on the Archive node. They want the power it hides.</prosody></voice></speak>"
+  },
+  {
+    "id": "mara_final_warning",
+    "voiceId": "mara-voice",
+    "filename": "mara_final_warning.ogg",
+    "ssml": "<speak><voice name='Mara'><prosody rate='1.00'>If it reaches the core vaults... <break time='220ms'/> we may lose more than the war.</prosody></voice></speak>"
+  },
+  {
+    "id": "patch_glitch_detect",
+    "voiceId": "patch-voice",
+    "filename": "patch_glitch_detect.ogg",
+    "ssml": "<speak><voice name='Patch'><prosody rate='0.92'>Glitch detected. The Archive is emitting... laughing? <break time='120ms'/> That seems bad.</prosody></voice></speak>"
+  },
+  {
+    "id": "patch_archive_quirk",
+    "voiceId": "patch-voice",
+    "filename": "patch_archive_quirk.ogg",
+    "ssml": "<speak><voice name='Patch'><prosody rate='0.88'>Fun fact: ancient superintelligences have terrible user interfaces. Zero out of ten.</prosody></voice></speak>"
+  },
+  {
+    "id": "patch_relay_noise",
+    "voiceId": "patch-voice",
+    "filename": "patch_relay_noise.ogg",
+    "ssml": "<speak><voice name='Patch'><prosody rate='0.90'>Relay static rising. The Archive is humming like it wants to wake the whole planet.</prosody></voice></speak>"
+  },
+  {
+    "id": "lian_archive_choice",
+    "voiceId": "lian-voice",
+    "filename": "lian_archive_choice.ogg",
+    "ssml": "<speak><voice name='Lian'><prosody rate='0.95'>The Archive has presented a choice. Accept its guidance... or shut it down forever.</prosody></voice></speak>"
+  },
+  {
+    "id": "mara_prepare_assault",
+    "voiceId": "mara-voice",
+    "filename": "mara_prepare_assault.ogg",
+    "ssml": "<speak><voice name='Mara'><prosody rate='1.05' pitch='+1%'>No more waiting. Prepare the assault team. We go in before it thinks again.</prosody></voice></speak>"
+  },
+  {
+    "id": "patch_final_note",
+    "voiceId": "patch-voice",
+    "filename": "patch_final_note.ogg",
+    "ssml": "<speak><voice name='Patch'><prosody rate='0.88'>Bookmark this moment, commander. <break time='150ms'/> The Archive definitely is.</prosody></voice></speak>"
+  }
+]
+
