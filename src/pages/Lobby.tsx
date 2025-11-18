@@ -917,6 +917,8 @@ const Lobby = () => {
                 </Button>
               </CardContent>
             </Card>
+              </>
+            )}
           </TabsContent>
 
           {/* Multiplayer Tab */}
