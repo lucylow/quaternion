@@ -695,8 +695,8 @@ const QuaternionGame = () => {
           
           img.setScale(scale);
           img.setOrigin(0, 0); // Top-left origin for world positioning
-          img.setAlpha(0.4); // Semi-transparent so game elements are visible
-          img.setTint(0x001122); // Darken the map slightly
+          img.setAlpha(0.75); // More visible map background
+          img.setTint(0xffffff); // No darkening - full color visibility
           img.setDepth(-1000); // Behind everything
           
           console.log(`[Background] Map background created successfully: ${key} at scale ${scale.toFixed(2)}`);

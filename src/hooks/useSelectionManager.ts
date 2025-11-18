@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react';
 import Phaser from 'phaser';
+import { InteractivityManager } from '@/game/InteractivityManager';
+import { InteractionAudio } from '@/audio/InteractionAudio';
 
 interface ControlGroup {
   id: number;
@@ -12,6 +14,8 @@ export const useSelectionManager = () => {
   const selectionGraphicsRef = useRef<Phaser.GameObjects.Graphics | null>(null);
   const isSelectingRef = useRef(false);
   const selectionStartRef = useRef({ x: 0, y: 0 });
+  const interactivityManagerRef = useRef<InteractivityManager | null>(null);
+  const interactionAudioRef = useRef<InteractionAudio | null>(null);
 
   const setupSelection = (
     scene: Phaser.Scene,
