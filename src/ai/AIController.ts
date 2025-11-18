@@ -7,6 +7,13 @@ import { SeededRandom } from '../lib/SeededRandom';
 export type AIDifficulty = 'easy' | 'medium' | 'hard';
 export type AIState = 'expansion' | 'tech' | 'aggression' | 'defense';
 
+// Export AIDifficulty as both type and const object for compatibility with JS files
+export const AIDifficulty = {
+  EASY: 'easy' as const,
+  MEDIUM: 'medium' as const,
+  HARD: 'hard' as const
+};
+
 export interface AIDecision {
   type: 'build' | 'research' | 'attack' | 'expand' | 'defend';
   target?: any;

@@ -5,6 +5,8 @@
 
 // Base classes and interfaces
 export * from './AgentBase';
+export type { AgentPersonality, GameStateSnapshot, AgentRecommendation, AgentAction, IAgent } from './AgentBase';
+export { AgentType, BaseAgent } from './AgentBase';
 
 // Specialized agents
 export { EconomicAgent } from './EconomicAgent';
