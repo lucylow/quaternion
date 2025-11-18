@@ -28,12 +28,14 @@ export * from './AdvisorDialogSystem';
 export * from './DialogEventManager';
 
 // TTS
-export * from './ttsClient';
+export { generateSpeech } from './ttsClient';
+export type { TtsOptions, ElevenLabsVoiceSettings } from './ttsClient';
 export * from './ttsHelpers';
 export * from './subtitleGenerator';
 
 // ElevenLabs comprehensive client
-export * from './elevenClient';
+export { elevenLabsClient } from './elevenClient';
+export type { DialogueLine } from './elevenClient';
 
 // Landing page audio
 export { getLandingPageAudio } from './LandingPageAudio';
