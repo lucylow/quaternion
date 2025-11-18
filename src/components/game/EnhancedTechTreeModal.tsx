@@ -87,7 +87,7 @@ export const EnhancedTechTreeModal = ({
         hasAir: false,
         hasHeavy: false,
         hasStealth: false,
-        unitCount: 0
+        unitCount: 0 as number
       }
     };
 
@@ -107,7 +107,7 @@ export const EnhancedTechTreeModal = ({
           hasAir: false,
           hasHeavy: false,
           hasStealth: false,
-          unitCount: 0
+          unitCount: 0 as number
         }
       };
 
