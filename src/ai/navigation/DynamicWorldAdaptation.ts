@@ -112,7 +112,7 @@ export class DynamicWorldAdaptation {
 
     // Check each waypoint against world changes
     for (const waypoint of waypoints) {
-      for (const change of this.worldChanges.values()) {
+      for (const change of Array.from(this.worldChanges.values())) {
         const distance = this.distance(waypoint, change.position);
         if (distance <= change.radius) {
           blockingChanges.push(change);
@@ -457,7 +457,7 @@ export class DynamicWorldAdaptation {
     const byMethod = new Map<RouteDiscoveryMethod, number>();
     let totalEfficiency = 0;
 
-    for (const discoveries of this.routeDiscoveries.values()) {
+    for (const discoveries of Array.from(this.routeDiscoveries.values())) {
       for (const discovery of discoveries) {
         total++;
         byMethod.set(

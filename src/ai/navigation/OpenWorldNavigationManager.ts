@@ -4,7 +4,7 @@
  */
 
 import { HierarchicalPathfinding } from './HierarchicalPathfinding';
-import { RLNavigationAgent } from './RLNavigationAgent';
+import { RLNavigationAgent, NavigationAction } from './RLNavigationAgent';
 import { ContextAwareNavigation, NavigationRequest, NavigationPlan } from './ContextAwareNavigation';
 import { HumanNavigationClustering } from './HumanNavigationClustering';
 import { MultiModalTransport } from './MultiModalTransport';
@@ -171,14 +171,14 @@ export class OpenWorldNavigationManager {
       );
 
       const availableActions = [
-        'FOLLOW_PATH',
-        'FIND_ALTERNATE_ROUTE',
-        'WAIT_FOR_CLEARANCE'
-      ] as any;
+        NavigationAction.FOLLOW_PATH,
+        NavigationAction.FIND_ALTERNATE_ROUTE,
+        NavigationAction.WAIT_FOR_CLEARANCE
+      ];
 
       const action = rlAgent.selectAction(stateVector, availableActions);
 
-      if (action === 'FIND_ALTERNATE_ROUTE') {
+      if (action === NavigationAction.FIND_ALTERNATE_ROUTE) {
         // Agent wants to find alternate route
         // Would generate alternative here
       }
@@ -415,7 +415,7 @@ export class OpenWorldNavigationManager {
     clusterStyles: number;
   } {
     let totalLearnedRoutes = 0;
-    for (const agent of this.rlAgents.values()) {
+    for (const agent of Array.from(this.rlAgents.values())) {
       totalLearnedRoutes += agent.getMemory().successfulRoutes.length;
     }
 

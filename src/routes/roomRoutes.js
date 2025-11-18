@@ -66,32 +66,56 @@ router.get('/', (req, res) => {
  */
 router.post('/', (req, res) => {
   try {
-    const { name, mapType, mapWidth, mapHeight, commanderId } = req.body;
+    const { 
+      name, 
+      mapType, 
+      mapWidth, 
+      mapHeight, 
+      commanderId,
+      cooperativeMode,
+      quaternionAxis,
+      seed,
+      difficulty
+    } = req.body;
 
     if (!name || !mapType) {
       return res.status(400).json({ error: 'Room name and map type are required' });
     }
 
+    // Validate cooperative mode requirements
+    if (cooperativeMode && !quaternionAxis) {
+      return res.status(400).json({ error: 'Quaternion axis is required for cooperative mode' });
+    }
+
     const roomId = generateRoomId();
     const playerId = generatePlayerId();
+    const gameSeed = seed || Math.floor(Math.random() * 1000000);
 
     const room = {
       id: roomId,
       name: name.trim(),
       host: playerId,
       players: 1,
-      maxPlayers: 4, // Support up to 4 players
+      maxPlayers: cooperativeMode ? 4 : 4, // Support up to 4 players
       status: 'waiting',
       mapType: mapType || 'crystalline_plains',
       mapWidth: mapWidth || 40,
       mapHeight: mapHeight || 30,
       commanderId: commanderId || 'AUREN',
+      cooperativeMode: cooperativeMode || false,
+      seed: gameSeed,
+      difficulty: difficulty || 'medium',
       createdAt: new Date().toISOString(),
       playersList: [{
         id: playerId,
         commanderId: commanderId || 'AUREN',
-        joinedAt: new Date().toISOString()
-      }]
+        quaternionAxis: quaternionAxis || null,
+        joinedAt: new Date().toISOString(),
+        isHost: true
+      }],
+      assignedAxes: cooperativeMode ? {
+        [quaternionAxis]: playerId
+      } : {}
     };
 
     rooms.set(roomId, room);
@@ -106,12 +130,19 @@ router.post('/', (req, res) => {
         players: room.players,
         maxPlayers: room.maxPlayers,
         status: room.status,
-        mapType: room.mapType
+        mapType: room.mapType,
+        mapWidth: room.mapWidth,
+        mapHeight: room.mapHeight,
+        cooperativeMode: room.cooperativeMode,
+        seed: room.seed,
+        difficulty: room.difficulty,
+        playersList: room.playersList,
+        assignedAxes: room.assignedAxes
       }
     });
   } catch (error) {
     console.error('Error creating room:', error);
-    res.status(500).json({ error: 'Failed to create room' });
+    res.status(500).json({ error: 'Failed to create room', details: error.message });
   }
 });
 
@@ -138,8 +169,12 @@ router.get('/:roomId', (req, res) => {
       mapType: room.mapType,
       mapWidth: room.mapWidth,
       mapHeight: room.mapHeight,
+      cooperativeMode: room.cooperativeMode || false,
+      seed: room.seed,
+      difficulty: room.difficulty || 'medium',
       createdAt: room.createdAt,
-      playersList: room.playersList || []
+      playersList: room.playersList || [],
+      assignedAxes: room.assignedAxes || {}
     });
   } catch (error) {
     console.error('Error fetching room:', error);
@@ -154,7 +189,7 @@ router.get('/:roomId', (req, res) => {
 router.post('/:roomId/join', (req, res) => {
   try {
     const { roomId } = req.params;
-    const { commanderId } = req.body;
+    const { commanderId, quaternionAxis, playerId: existingPlayerId } = req.body;
 
     const room = rooms.get(roomId);
 
@@ -170,29 +205,59 @@ router.post('/:roomId/join', (req, res) => {
       return res.status(400).json({ error: 'Room is full' });
     }
 
-    const playerId = generatePlayerId();
+    // Use existing playerId if provided (for reconnection), otherwise generate new one
+    const playerId = existingPlayerId || generatePlayerId();
     const players = roomPlayers.get(roomId) || new Set();
 
-    if (players.has(playerId)) {
-      return res.status(400).json({ error: 'Already in room' });
-    }
+    // Check if player is already in room (allow reconnection)
+    const isReconnecting = players.has(playerId);
+    
+    if (!isReconnecting) {
+      // Validate cooperative mode requirements
+      if (room.cooperativeMode) {
+        if (!quaternionAxis) {
+          return res.status(400).json({ error: 'Quaternion axis is required for cooperative mode' });
+        }
+        
+        // Check if axis is already assigned
+        if (room.assignedAxes && room.assignedAxes[quaternionAxis]) {
+          return res.status(400).json({ 
+            error: `Axis ${quaternionAxis} is already assigned to another player` 
+          });
+        }
+      }
 
-    players.add(playerId);
-    roomPlayers.set(roomId, players);
+      players.add(playerId);
+      roomPlayers.set(roomId, players);
 
-    room.players = players.size;
-    if (!room.playersList) {
-      room.playersList = [];
-    }
-    room.playersList.push({
-      id: playerId,
-      commanderId: commanderId || 'AUREN',
-      joinedAt: new Date().toISOString()
-    });
+      room.players = players.size;
+      if (!room.playersList) {
+        room.playersList = [];
+      }
+      
+      // Remove old entry if reconnecting
+      room.playersList = room.playersList.filter(p => p.id !== playerId);
+      
+      room.playersList.push({
+        id: playerId,
+        commanderId: commanderId || 'AUREN',
+        quaternionAxis: quaternionAxis || null,
+        joinedAt: new Date().toISOString(),
+        isHost: false
+      });
 
-    // Auto-start if room is full
-    if (room.players >= room.maxPlayers) {
-      room.status = 'starting';
+      // Assign axis in cooperative mode
+      if (room.cooperativeMode && quaternionAxis) {
+        if (!room.assignedAxes) {
+          room.assignedAxes = {};
+        }
+        room.assignedAxes[quaternionAxis] = playerId;
+      }
+
+      // Auto-start if room is full
+      if (room.players >= room.maxPlayers) {
+        room.status = 'starting';
+      }
     }
 
     res.json({
@@ -204,12 +269,19 @@ router.post('/:roomId/join', (req, res) => {
         players: room.players,
         maxPlayers: room.maxPlayers,
         status: room.status,
-        mapType: room.mapType
+        mapType: room.mapType,
+        mapWidth: room.mapWidth,
+        mapHeight: room.mapHeight,
+        cooperativeMode: room.cooperativeMode,
+        seed: room.seed,
+        difficulty: room.difficulty,
+        playersList: room.playersList,
+        assignedAxes: room.assignedAxes || {}
       }
     });
   } catch (error) {
     console.error('Error joining room:', error);
-    res.status(500).json({ error: 'Failed to join room' });
+    res.status(500).json({ error: 'Failed to join room', details: error.message });
   }
 });
 

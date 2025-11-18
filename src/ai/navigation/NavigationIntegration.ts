@@ -4,7 +4,9 @@
  */
 
 import { AIPathfinding, Path } from '../terrain/AIPathfinding';
-import { OpenWorldNavigationManager, NavigationRequest, NavigationPurpose, UrgencyLevel } from './OpenWorldNavigationManager';
+import { OpenWorldNavigationManager } from './OpenWorldNavigationManager';
+import { NavigationRequest, NavigationPurpose } from './ContextAwareNavigation';
+import { UrgencyLevel } from './RLNavigationAgent';
 import { GameState } from '../terrain/AITileEvaluator';
 import { TerrainAIAgent } from '../terrain/TerrainAIPersonality';
 import { ChunkManager } from '../../map/ChunkManager';

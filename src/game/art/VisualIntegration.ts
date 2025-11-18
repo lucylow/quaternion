@@ -6,6 +6,7 @@
 import { VisualEffects } from './VisualEffects';
 import { ProceduralFloraPlacer } from './ProceduralFlora';
 import { QuaternionArtPalette } from './ArtPalette';
+import type { Scene } from 'phaser';
 import type { QuaternionGameState } from '@/game/QuaternionGameState';
 
 export interface VisualState {
@@ -27,7 +28,7 @@ export class VisualIntegration {
   private currentPalette: ReturnType<typeof QuaternionArtPalette.getPalette>;
 
   constructor(
-    private scene: Phaser.Scene,
+    private scene: Scene,
     private gameState?: QuaternionGameState
   ) {
     this.visualEffects = new VisualEffects(scene);

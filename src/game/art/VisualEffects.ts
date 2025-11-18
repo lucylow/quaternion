@@ -4,6 +4,7 @@
  */
 
 import Phaser from 'phaser';
+import type { Scene } from 'phaser';
 import { QuaternionArtPalette } from './ArtPalette';
 
 export interface VeinEffectConfig {
@@ -27,7 +28,7 @@ export class VisualEffects {
   private overlays: Phaser.GameObjects.Graphics[] = [];
   private animationTweens: Phaser.Tweens.Tween[] = [];
 
-  constructor(scene: Phaser.Scene) {
+  constructor(scene: Scene) {
     this.scene = scene;
     this.veinGraphics = scene.add.graphics();
     this.veinGraphics.setDepth(10);

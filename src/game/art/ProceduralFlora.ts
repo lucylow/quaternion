@@ -4,6 +4,7 @@
  */
 
 import Phaser from 'phaser';
+import type { Scene } from 'phaser';
 import { QuaternionArtPalette } from './ArtPalette';
 
 export interface FloraConfig {
@@ -24,11 +25,11 @@ export interface FloraInstance {
 }
 
 export class ProceduralFloraPlacer {
-  private scene: Phaser.Scene;
+  private scene: Scene;
   private placedFlora: FloraInstance[] = [];
   private graphics: Phaser.GameObjects.Graphics;
 
-  constructor(scene: Phaser.Scene) {
+  constructor(scene: Scene) {
     this.scene = scene;
     this.graphics = scene.add.graphics();
     this.graphics.setDepth(3);

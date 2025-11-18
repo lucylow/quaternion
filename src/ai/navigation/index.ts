@@ -18,10 +18,9 @@ export type {
   NavigationState,
   DynamicObstacle,
   NavigationMemory,
-  NavigationAction,
   NavigationExperience
 } from './RLNavigationAgent';
-export { UrgencyLevel } from './RLNavigationAgent';
+export { UrgencyLevel, NavigationAction } from './RLNavigationAgent';
 
 export { ContextAwareNavigation } from './ContextAwareNavigation';
 export type {
@@ -66,4 +65,9 @@ export type {
   NavigationConfig,
   NavigationResult
 } from './OpenWorldNavigationManager';
+
+export { EnhancedAIPathfinding } from './NavigationIntegration';
+export type {
+  EnhancedPathfindingOptions
+} from './NavigationIntegration';
 
