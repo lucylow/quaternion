@@ -27,6 +27,7 @@ export async function exampleFullPlaytest() {
         seed,
         mapWidth: 64,
         mapHeight: 64,
+        mapType: 'crystalline_plains',
         aiDifficulty: 'medium',
         commanderId: 'AUREN'
       });
@@ -74,6 +75,7 @@ export async function exampleSpecificConfig() {
         seed,
         mapWidth: 40,
         mapHeight: 40,
+        mapType: 'crystalline_plains',
         aiDifficulty: 'hard',
         commanderId: 'VIREL'
       });
@@ -122,7 +124,9 @@ export function exampleIndividualAgent() {
     seed: 12345,
     mapWidth: 64,
     mapHeight: 64,
-    aiDifficulty: 'medium'
+    mapType: 'crystalline_plains',
+    aiDifficulty: 'medium',
+    commanderId: 'AUREN'
   });
 
   // Run for a few ticks
@@ -198,7 +202,9 @@ export async function exampleQuickBalanceCheck() {
       seed,
       mapWidth: 64,
       mapHeight: 64,
-      aiDifficulty: 'medium'
+      mapType: 'crystalline_plains',
+      aiDifficulty: 'medium',
+      commanderId: 'AUREN'
     }),
     {
       personas: [PersonaType.EFFICIENCY_EXPERT, PersonaType.AGGRESSIVE_RUSHER],

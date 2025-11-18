@@ -353,7 +353,7 @@ export class EmotionalModel {
    * Influence behavior based on mood
    */
   influenceBehavior<T extends Record<string, any>>(behavior: T): T {
-    const modified = { ...behavior };
+    const modified = { ...behavior } as any;
 
     // Mood affects decision-making
     if (this.currentMood.valence < -0.5) {
@@ -381,7 +381,7 @@ export class EmotionalModel {
       }
     }
 
-    return modified;
+    return modified as T;
   }
 
   /**
