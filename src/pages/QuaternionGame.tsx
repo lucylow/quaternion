@@ -344,29 +344,71 @@ const QuaternionGame = () => {
             }
           }
         }
-      }
-
-      // If no specific map found, use random map or fallback
-      if (!mapKey) {
-        const mapKeys = ImageAssetLoader.getMapKeys();
-        if (mapKeys.length > 0 && this.textures.exists(mapKeys[0])) {
-          mapKey = mapKeys[Math.floor(Math.random() * mapKeys.length)];
+        
+        // Verify the map key exists in textures
+        if (mapKey && !this.textures.exists(mapKey)) {
+          console.warn(`Map texture not found for key: ${mapKey}, trying fallback`);
+          mapKey = null;
         }
       }
 
-      if (mapKey && this.textures.exists(mapKey)) {
-        // Use selected or random map as background
-        backgroundImage = this.add.image(width, height, mapKey);
-        backgroundImage.setDisplaySize(width * 2, height * 2);
-        backgroundImage.setAlpha(0.4); // Semi-transparent so game elements are visible
-        backgroundImage.setTint(0x001122); // Darken the map slightly
-        backgroundImage.setDepth(-1000); // Behind everything
-      } else {
-        // Fallback to gradient background if images aren't loaded
+      // If no specific map found, try to find any available map
+      if (!mapKey) {
+        const mapKeys = ImageAssetLoader.getMapKeys();
+        // Try each map key until we find one that exists
+        const shuffledKeys = [...mapKeys].sort(() => Math.random() - 0.5);
+        for (const key of shuffledKeys) {
+          if (this.textures.exists(key)) {
+            mapKey = key;
+            break;
+          }
+        }
+      }
+
+      // Helper function to create map background
+      const createMapBackground = (key: string): Phaser.GameObjects.Image | null => {
+        if (!this.textures.exists(key)) {
+          return null;
+        }
+        try {
+          const img = this.add.image(width, height, key);
+          img.setDisplaySize(width * 2, height * 2);
+          img.setAlpha(0.4); // Semi-transparent so game elements are visible
+          img.setTint(0x001122); // Darken the map slightly
+          img.setDepth(-1000); // Behind everything
+          return img;
+        } catch (error) {
+          console.error(`Failed to create map image with key ${key}:`, error);
+          return null;
+        }
+      };
+
+      // Try to create the map image, with error handling
+      if (mapKey) {
+        backgroundImage = createMapBackground(mapKey);
+        
+        // If map creation failed, try to find another available map
+        if (!backgroundImage) {
+          const mapKeys = ImageAssetLoader.getMapKeys();
+          for (const key of mapKeys) {
+            if (key !== mapKey && this.textures.exists(key)) {
+              backgroundImage = createMapBackground(key);
+              if (backgroundImage) {
+                console.log(`Using fallback map: ${key}`);
+                break;
+              }
+            }
+          }
+        }
+      }
+      
+      // Fallback to gradient background if map image creation failed
+      if (!backgroundImage) {
         const bgGraphics = this.add.graphics();
         bgGraphics.fillGradientStyle(0x001122, 0x001122, 0x002244, 0x002244, 1);
         bgGraphics.fillRect(0, 0, width * 2, height * 2);
         backgroundImage = bgGraphics;
+        console.log('Using gradient fallback background');
       }
       
       // Add grid overlay on top of background

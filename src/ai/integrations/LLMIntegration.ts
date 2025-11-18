@@ -3,6 +3,9 @@
  * Supports Google AI Pro (Gemini), Saga AI, and other LLM providers
  */
 
+// Import CommanderPersonality from EnhancedCommanderPersonality to avoid duplicate definitions
+import type { CommanderPersonality } from '../EnhancedCommanderPersonality';
+
 export interface LLMConfig {
   provider: 'google' | 'saga' | 'openai';
   apiKey?: string;
@@ -25,24 +28,8 @@ export interface EventNarrative {
   impact: 'low' | 'medium' | 'high';
 }
 
-export interface CommanderPersonality {
-  name: string;
-  traits: {
-    strategicFocus: number; // 0-1
-    patience: number; // 0-1
-    riskTolerance: number; // 0-1
-    aggression: number; // 0-1
-  };
-  gameplayExpression: {
-    preferredStrategy: string;
-    unitComposition: string;
-    techPriority: string;
-  };
-  difficulty: {
-    defensive: 'low' | 'medium' | 'high';
-    rush: 'low' | 'medium' | 'high';
-  };
-}
+// Re-export CommanderPersonality for convenience
+export type { CommanderPersonality };
 
 export class LLMIntegration {
   private config: LLMConfig;
@@ -375,23 +362,28 @@ Generate a brief commander comment (max 15 words) that:
   }
 
   private getFallbackCommander(archetype: string): CommanderPersonality {
+    // Return a minimal CommanderPersonality that matches the EnhancedCommanderPersonality interface
     return {
+      id: `fallback_${archetype}_${Date.now()}`,
       name: `Commander ${archetype}`,
+      archetype: (archetype as any) || 'balanced', // Type assertion needed for compatibility with CommanderArchetype
       traits: {
-        strategicFocus: 0.6,
-        patience: 0.7,
+        aggression: 0.5,
+        adaptability: 0.5,
         riskTolerance: 0.5,
-        aggression: 0.5
+        strategicFocus: 'balanced',
+        patience: 0.7,
+        explorationDrive: 0.5,
+        innovationDrive: 0.5,
+        microFocus: 0.5
       },
-      gameplayExpression: {
-        preferredStrategy: 'balanced approach',
-        unitComposition: 'mixed forces',
-        techPriority: 'adaptive'
+      memory: {
+        playerStrategies: new Map(),
+        successfulCounterStrategies: new Map(),
+        battleOutcomes: [],
+        learnedPatterns: new Map()
       },
-      difficulty: {
-        defensive: 'medium',
-        rush: 'medium'
-      }
+      evolutionHistory: []
     };
   }
 

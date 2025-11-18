@@ -584,19 +584,23 @@ export class QuaternionGameState {
     for (const constraint of this.puzzleConstraints) {
       switch (constraint.type) {
         case 'resource_min':
-          const resourceValue = player.resources[constraint.resource as keyof Resources] || 0;
-          if (resourceValue < constraint.value) {
-            // Resource too low - fail puzzle
-            this.endGame(2, `Puzzle Failed: ${constraint.resource} dropped below ${constraint.value}`, undefined);
-            return false;
+          if (constraint.resource) {
+            const resourceValue = player.resources[constraint.resource as keyof Resources] || 0;
+            if (resourceValue < constraint.value) {
+              // Resource too low - fail puzzle
+              this.endGame(2, `Puzzle Failed: ${constraint.resource} dropped below ${constraint.value}`, undefined);
+              return false;
+            }
           }
           break;
         case 'resource_max':
-          const resourceValueMax = player.resources[constraint.resource as keyof Resources] || 0;
-          if (resourceValueMax > constraint.value) {
-            // Resource too high - fail puzzle
-            this.endGame(2, `Puzzle Failed: ${constraint.resource} exceeded ${constraint.value}`, undefined);
-            return false;
+          if (constraint.resource) {
+            const resourceValueMax = player.resources[constraint.resource as keyof Resources] || 0;
+            if (resourceValueMax > constraint.value) {
+              // Resource too high - fail puzzle
+              this.endGame(2, `Puzzle Failed: ${constraint.resource} exceeded ${constraint.value}`, undefined);
+              return false;
+            }
           }
           break;
         case 'time_limit':
