@@ -92,14 +92,22 @@ const Game = () => {
             gameStateRef.current.update(deltaTime);
             
             // Sync resources from game state
-            const playerState = gameStateRef.current.getPlayerState(0);
-            if (playerState && playerState.resources) {
+            const player = gameStateRef.current.players.get(1); // Player 1 is the human player
+            if (player && player.resources) {
               setResources(prev => ({
-                ore: playerState.resources.matter ?? prev.ore,
-                energy: playerState.resources.energy ?? prev.energy,
-                biomass: playerState.resources.life ?? prev.biomass,
-                data: playerState.resources.knowledge ?? prev.data
+                ore: player.resources.ore ?? prev.ore,
+                energy: player.resources.energy ?? prev.energy,
+                biomass: player.resources.biomass ?? prev.biomass,
+                data: player.resources.data ?? prev.data
               }));
+            }
+            
+            // Sync game time
+            setGameTime(Math.floor(gameStateRef.current.gameTime));
+            
+            // Sync population
+            if (player) {
+              setPopulation(player.population);
             }
           }
         },

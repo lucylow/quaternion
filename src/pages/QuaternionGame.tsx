@@ -2076,20 +2076,33 @@ const QuaternionGame = () => {
     }, 10000);
   };
 
+  // Resource name mapping: BUILDINGS/TECH_TREE use matter/life/knowledge, but game uses ore/biomass/data
+  const mapResourceName = (resourceName: string): keyof GameResources => {
+    switch (resourceName) {
+      case 'matter': return 'ore';
+      case 'life': return 'biomass';
+      case 'knowledge': return 'data';
+      case 'energy': return 'energy';
+      default: return resourceName as keyof GameResources;
+    }
+  };
+
   const handleBuildBuilding = (buildingId: string) => {
     const building = BUILDINGS[buildingId];
     if (!building) return;
 
-    // Check costs
+    // Check costs - map resource names
     const canAfford = Object.entries(building.cost).every(([resource, cost]) => {
-      return resources[resource as keyof GameResources] >= (cost || 0);
+      const mappedResource = mapResourceName(resource);
+      return resources[mappedResource] >= (cost || 0);
     });
 
     if (canAfford) {
-      // Deduct costs
+      // Deduct costs - map resource names
       const newResources = { ...resources };
       Object.entries(building.cost).forEach(([resource, cost]) => {
-        newResources[resource as keyof GameResources] -= (cost || 0);
+        const mappedResource = mapResourceName(resource);
+        newResources[mappedResource] -= (cost || 0);
       });
       setResources(newResources);
 
@@ -2147,16 +2160,18 @@ const QuaternionGame = () => {
       return;
     }
 
-    // Check costs
+    // Check costs - map resource names
     const canAfford = Object.entries(tech.cost).every(([resource, cost]) => {
-      return resources[resource as keyof GameResources] >= (cost || 0);
+      const mappedResource = mapResourceName(resource);
+      return resources[mappedResource] >= (cost || 0);
     });
 
     if (canAfford) {
-      // Deduct costs
+      // Deduct costs - map resource names
       const newResources = { ...resources };
       Object.entries(tech.cost).forEach(([resource, cost]) => {
-        newResources[resource as keyof GameResources] -= (cost || 0);
+        const mappedResource = mapResourceName(resource);
+        newResources[mappedResource] -= (cost || 0);
       });
       setResources(newResources);
 
@@ -2708,7 +2723,12 @@ const QuaternionGame = () => {
           {/* Build Menu */}
           {showBuildMenu && (
             <BuildMenu
-              resources={resources}
+              resources={{
+                matter: resources.ore,
+                energy: resources.energy,
+                life: resources.biomass,
+                knowledge: resources.data
+              }}
               onBuild={handleBuildBuilding}
               onClose={() => setShowBuildMenu(false)}
             />
@@ -2718,7 +2738,12 @@ const QuaternionGame = () => {
           {showTechTree && (
             <TechTreeModal
               researchedTechs={researchedTechs}
-              resources={resources}
+              resources={{
+                matter: resources.ore,
+                energy: resources.energy,
+                life: resources.biomass,
+                knowledge: resources.data
+              }}
               onResearch={handleResearchTech}
               onClose={() => setShowTechTree(false)}
             />
