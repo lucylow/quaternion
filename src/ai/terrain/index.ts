@@ -4,8 +4,8 @@
  * advanced pathfinding, tactical unit management, adaptation, and learning
  */
 
-export { AIPersonality, TerrainAIPersonalityManager, TerrainAIAgent } from './TerrainAIPersonality';
-export type { TerrainAIPersonalityConfig } from './TerrainAIPersonality';
+export { AIPersonality, TerrainAIPersonalityManager } from './TerrainAIPersonality';
+export type { TerrainAIAgent, TerrainAIPersonalityConfig } from './TerrainAIPersonality';
 export { AITileEvaluator } from './AITileEvaluator';
 export type { TileEvaluation, Tile, GameState } from './AITileEvaluator';
 export { AIPathfinding } from './AIPathfinding';
