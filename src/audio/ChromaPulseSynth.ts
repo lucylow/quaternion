@@ -282,9 +282,11 @@ export default class ChromaPulseSynth {
 
       // Connect phaser LFO
       this.phaserLfo.connect(this.phaserGain);
-      this.phaserGain.connect(this.phaser[0].frequency);
-      for (let i = 1; i < this.phaser.length; i++) {
-        this.phaserGain.connect(this.phaser[i].frequency);
+      if (this.phaser && this.phaser.length > 0) {
+        this.phaserGain.connect(this.phaser[0].frequency);
+        for (let i = 1; i < this.phaser.length; i++) {
+          this.phaserGain.connect(this.phaser[i].frequency);
+        }
       }
 
       // Connect oscillators through processing chain
@@ -304,11 +306,17 @@ export default class ChromaPulseSynth {
       
       // Continue main path: distortion -> phaser chain -> delay -> gain
       // All oscillators feed into the same distortion node, then through phaser
-      this.distortion.connect(this.phaser[0]);
-      let lastPhaser = this.phaser[0];
-      for (let i = 1; i < this.phaser.length; i++) {
-        lastPhaser.connect(this.phaser[i]);
-        lastPhaser = this.phaser[i];
+      let lastPhaser: AudioNode;
+      if (this.phaser && this.phaser.length > 0) {
+        this.distortion.connect(this.phaser[0]);
+        lastPhaser = this.phaser[0];
+        for (let i = 1; i < this.phaser.length; i++) {
+          lastPhaser.connect(this.phaser[i]);
+          lastPhaser = this.phaser[i];
+        }
+      } else {
+        // Fallback: connect distortion directly if phaser is not available
+        lastPhaser = this.distortion;
       }
       
       // Split to delay and direct
