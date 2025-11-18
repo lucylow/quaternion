@@ -27,11 +27,24 @@ import { BlackMarketPanel } from '@/components/game/BlackMarketPanel';
 import { ResourceAdvisorPanel } from '@/components/game/ResourceAdvisorPanel';
 import { ResourceType } from '@/game/ResourceManager';
 import { initializeAudio } from '@/audio/audioInit';
+import { getAudioManager, updateGameAudio, playSFX, playUISound, playResourceSound, playCombatSound, playCommanderDialogue } from '@/audio/AudioSystemIntegration';
 import { AXIS_DESIGNS, getAxisDesign, hexToPhaserColor, AI_THOUGHT_VISUALS, BIOME_THEMES } from '@/design/QuaternionDesignSystem';
 import { AIStoryGenerator, NarrativeEvent, NarrativeContext } from '@/game/narrative/AIStoryGenerator';
 import { NarrativeDisplay } from '@/components/narrative/NarrativeDisplay';
 import { ChronicleExporter } from '@/components/narrative/ChronicleExporter';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, Handshake, Sparkles } from 'lucide-react';
+import { AIOffersPanel } from '@/components/creative/AIOffersPanel';
+import { AlternativeVictoriesDisplay } from '@/components/creative/AlternativeVictoriesDisplay';
+import {
+  EmergentDiplomacyAI,
+  LivingWorldEvents,
+  ProceduralPuzzleGenerator,
+  AIDungeonMaster,
+  AlternativeVictoryConditions,
+  SymbioticGameplay,
+  AdaptiveLearningAI,
+  DynamicTechTree
+} from '@/ai/creative';
 
 interface GameResources {
   ore: number;
@@ -90,6 +103,31 @@ const QuaternionGame = () => {
   const [showChronicle, setShowChronicle] = useState(false);
   const [chronicleData, setChronicleData] = useState<any>(null);
   const [lastNarrativeUpdate, setLastNarrativeUpdate] = useState(0);
+  
+  // AI Creative Gameplay Systems
+  const diplomacyAIRef = useRef<EmergentDiplomacyAI | null>(null);
+  const worldEventsRef = useRef<LivingWorldEvents | null>(null);
+  const puzzleGeneratorRef = useRef<ProceduralPuzzleGenerator | null>(null);
+  const dungeonMasterRef = useRef<AIDungeonMaster | null>(null);
+  const victoryConditionsRef = useRef<AlternativeVictoryConditions | null>(null);
+  const symbioticGameplayRef = useRef<SymbioticGameplay | null>(null);
+  const adaptiveLearningRef = useRef<AdaptiveLearningAI | null>(null);
+  const dynamicTechTreeRef = useRef<DynamicTechTree | null>(null);
+  
+  // Creative gameplay state
+  const [activeAlliances, setActiveAlliances] = useState<any[]>([]);
+  const [worldEvents, setWorldEvents] = useState<any[]>([]);
+  const [aiOffers, setAiOffers] = useState<any[]>([]);
+  const [alternativeVictories, setAlternativeVictories] = useState<any[]>([]);
+  const [dynamicTiles, setDynamicTiles] = useState<any[]>([]);
+  const [heroicMoments, setHeroicMoments] = useState<any[]>([]);
+  const [lastDiplomacyCheck, setLastDiplomacyCheck] = useState(0);
+  const [lastWorldEventCheck, setLastWorldEventCheck] = useState(0);
+  const [lastDungeonMasterCheck, setLastDungeonMasterCheck] = useState(0);
+  const [lastVictoryCheck, setLastVictoryCheck] = useState(0);
+  const [lastSymbioticCheck, setLastSymbioticCheck] = useState(0);
+  const [lastLearningCheck, setLastLearningCheck] = useState(0);
+  const [lastTechTreeCheck, setLastTechTreeCheck] = useState(0);
   
   // Get game configuration from route state or use defaults
   const location = useLocation();
@@ -215,6 +253,21 @@ const QuaternionGame = () => {
       sendAIMessage('CORE', event.content);
     });
 
+    // Initialize AI Creative Gameplay Systems
+    const currentPlayerId = playerId || effectiveConfig?.playerId || 'player_' + Date.now();
+    
+    diplomacyAIRef.current = new EmergentDiplomacyAI(currentPlayerId);
+    worldEventsRef.current = new LivingWorldEvents();
+    puzzleGeneratorRef.current = new ProceduralPuzzleGenerator();
+    dungeonMasterRef.current = new AIDungeonMaster();
+    victoryConditionsRef.current = new AlternativeVictoryConditions();
+    symbioticGameplayRef.current = new SymbioticGameplay();
+    adaptiveLearningRef.current = new AdaptiveLearningAI();
+    dynamicTechTreeRef.current = new DynamicTechTree();
+    
+    // Initialize adaptive learning with player profile
+    adaptiveLearningRef.current.getOrCreateProfile(currentPlayerId);
+
     const playerUnits: Phaser.Physics.Arcade.Sprite[] = [];
     const aiUnits: Phaser.Physics.Arcade.Sprite[] = [];
     const selectedUnits: Phaser.Physics.Arcade.Sprite[] = [];
@@ -226,7 +279,7 @@ const QuaternionGame = () => {
     let playerBase: Phaser.GameObjects.Rectangle;
     let aiBase: Phaser.GameObjects.Rectangle;
     let lastAiSpawn = 0;
-    let lastResourceGather = 0;
+    const lastResourceGather = 0;
 
     const config: Phaser.Types.Core.GameConfig = {
       type: Phaser.AUTO,
@@ -1259,6 +1312,39 @@ const QuaternionGame = () => {
           setWinConditionProgress(progress);
         }
 
+        // Update Audio System - Adaptive Music
+        if (!gameOver) {
+          // Calculate intensity based on instability and combat state
+          const intensity = Math.min(1, instability / 200);
+          
+          // Calculate morality based on resource balance and ethical alignment
+          const resourceBalance = {
+            matter: resources.ore,
+            energy: resources.energy,
+            life: resources.biomass,
+            knowledge: resources.data
+          };
+          const mean = (resourceBalance.matter + resourceBalance.energy + resourceBalance.life + resourceBalance.knowledge) / 4;
+          const variance = (
+            Math.pow(resourceBalance.matter - mean, 2) +
+            Math.pow(resourceBalance.energy - mean, 2) +
+            Math.pow(resourceBalance.life - mean, 2) +
+            Math.pow(resourceBalance.knowledge - mean, 2)
+          ) / 4;
+          const balance = Math.sqrt(variance) / mean;
+          
+          // Morality: -1 (exploit) to +1 (conserve)
+          // Positive if life/biomass is high, negative if energy/exploitation is high
+          const morality = (resourceBalance.life - resourceBalance.energy) / (mean || 1);
+          const normalizedMorality = Math.max(-1, Math.min(1, morality + (state.players[0]?.moralAlignment || 0) / 100));
+          
+          updateGameAudio({
+            intensity,
+            morality: normalizedMorality,
+            instability
+          });
+        }
+
         // Update AI Storytelling System
         if (storyGeneratorRef.current && !gameOver) {
           const currentTime = Date.now();
@@ -1305,6 +1391,134 @@ const QuaternionGame = () => {
           
           // Update narrative log
           setNarrativeEvents(storyGeneratorRef.current.getNarrativeLog());
+        }
+
+        // Update AI Creative Gameplay Systems
+        if (!gameOver) {
+          const currentTime = Date.now();
+          const currentPlayerId = playerId || effectiveConfig?.playerId || 'player_' + Date.now();
+
+          // Emergent Diplomacy - generate alliances (every 60 seconds)
+          if (diplomacyAIRef.current && currentTime - lastDiplomacyCheck > 60000) {
+            const alliances = diplomacyAIRef.current.generateTerrainDrivenAlliances(state);
+            if (alliances.length > 0) {
+              setActiveAlliances(prev => [...prev, ...alliances]);
+              alliances.forEach(alliance => {
+                sendAIMessage('CORE', `New alliance formed: ${alliance.reason}`);
+              });
+            }
+            setLastDiplomacyCheck(currentTime);
+          }
+
+          // Living World Events (every 45 seconds)
+          if (worldEventsRef.current && currentTime - lastWorldEventCheck > 45000) {
+            const playerActions = {
+              deforest: 0, // Would track from game state
+              pollute: 0,
+              extract: 0
+            };
+            
+            const events = worldEventsRef.current.generateEcosystemEvents(state, playerActions);
+            if (events.length > 0) {
+              setWorldEvents(prev => [...prev, ...events]);
+              events.forEach(event => {
+                sendAIMessage('LIRA', event.description);
+                worldEventsRef.current?.applyEventEffects(event, state);
+              });
+            }
+            
+            worldEventsRef.current.updateEvents();
+            setLastWorldEventCheck(currentTime);
+          }
+
+          // AI Dungeon Master - orchestrate narrative (every 30 seconds)
+          if (dungeonMasterRef.current && currentTime - lastDungeonMasterCheck > 30000) {
+            const narrative = dungeonMasterRef.current.orchestrateGameNarrative(state);
+            
+            if (narrative.tiles.length > 0) {
+              setDynamicTiles(prev => [...prev, ...narrative.tiles]);
+              narrative.tiles.forEach(tile => {
+                sendAIMessage('CORE', `${tile.name} discovered: ${tile.description}`);
+              });
+            }
+            
+            if (narrative.moments.length > 0) {
+              setHeroicMoments(prev => [...prev, ...narrative.moments]);
+              narrative.moments.forEach(moment => {
+                sendAIMessage('AUREN', moment.setup);
+              });
+            }
+            
+            setLastDungeonMasterCheck(currentTime);
+          }
+
+          // Alternative Victory Conditions (every 60 seconds)
+          if (victoryConditionsRef.current && currentTime - lastVictoryCheck > 60000) {
+            const victories = victoryConditionsRef.current.enableCreativeWinConditions(state);
+            if (victories.length > 0) {
+              setAlternativeVictories(victories);
+              
+              // Check if any victory achieved
+              const achieved = victoryConditionsRef.current.checkVictories(state);
+              if (achieved) {
+                setGameOver({
+                  won: true,
+                  reason: `Victory: ${achieved.name}`,
+                  scenario: undefined
+                });
+              }
+            }
+            setLastVictoryCheck(currentTime);
+          }
+
+          // Symbiotic Gameplay - generate offers (every 90 seconds)
+          if (symbioticGameplayRef.current && currentTime - lastSymbioticCheck > 90000) {
+            const offers = symbioticGameplayRef.current.createPlayerAISymbiosis(
+              state,
+              currentPlayerId
+            );
+            if (offers.length > 0) {
+              setAiOffers(prev => [...prev, ...offers]);
+              offers.forEach(offer => {
+                sendAIMessage('CORE', `AI Offer: ${offer.terms}`);
+              });
+            }
+            setLastSymbioticCheck(currentTime);
+          }
+
+          // Adaptive Learning AI (every 2 minutes)
+          if (adaptiveLearningRef.current && currentTime - lastLearningCheck > 120000) {
+            const adaptation = adaptiveLearningRef.current.learnAndMirrorPlayer(state, currentPlayerId);
+            if (adaptation.signatureMove) {
+              sendAIMessage('KOR', `AI has learned your ${adaptation.signatureMove} tactic!`);
+            }
+            
+            const apprentices = adaptiveLearningRef.current.createAIApprentices(state, currentPlayerId);
+            if (apprentices.length > 0) {
+              apprentices.forEach(apprentice => {
+                sendAIMessage('VIREL', `AI faction is learning ${apprentice.learningFocus} from you`);
+              });
+            }
+            
+            setLastLearningCheck(currentTime);
+          }
+
+          // Dynamic Tech Tree (every 60 seconds)
+          if (dynamicTechTreeRef.current && currentTime - lastTechTreeCheck > 60000) {
+            const newTechs = dynamicTechTreeRef.current.generateTerrainInfluencedTech(
+              state,
+              currentPlayerId
+            );
+            if (newTechs.length > 0) {
+              newTechs.forEach(tech => {
+                sendAIMessage('VIREL', `New technology unlocked: ${tech.name} - ${tech.description}`);
+                toast.success(`Terrain Tech Unlocked: ${tech.name}`, {
+                  description: tech.effects
+                });
+              });
+            }
+            setLastTechTreeCheck(currentTime);
+          }
         }
 
         // Update Resource Puzzle Systems
@@ -2033,7 +2247,7 @@ const QuaternionGame = () => {
                 <ul className="list-disc list-inside space-y-1 text-sm ml-2">
                   <li><strong className="text-cyan-400">ElevenLabs:</strong> AI voice generation for commanders</li>
                   <li><strong className="text-cyan-400">OpenArt:</strong> AI-generated visual assets</li>
-                  <li><strong className="text-cyan-400">Google Gemini 2.5 Flash:</strong> Strategic AI decision-making</li>
+                  <li><strong className="text-cyan-400">Google AI:</strong> Strategic AI decision-making</li>
                   <li><strong className="text-cyan-400">Fuser:</strong> Adaptive music generation</li>
                   <li><strong className="text-cyan-400">Luma AI:</strong> 3D environment generation</li>
                 </ul>
@@ -2281,7 +2495,7 @@ const QuaternionGame = () => {
                 </div>
                 <div className="text-xs text-gray-400 flex items-center gap-2 bg-gray-800/50 px-2 py-1 rounded backdrop-blur-sm">
                   <Trophy className="w-3 h-3 text-yellow-400" />
-                  <span>Chroma Awards 2025 - Puzzle/Strategy | Tools: ElevenLabs, OpenArt, Gemini, Fuser, Luma AI</span>
+                  <span>Chroma Awards 2025 - Puzzle/Strategy | Tools: ElevenLabs, OpenArt, Google AI, Fuser, Luma AI</span>
                 </div>
               </div>
             </div>
@@ -2559,6 +2773,70 @@ const QuaternionGame = () => {
           <div className="absolute top-20 right-4 z-20 w-80 max-h-[500px]">
             <NarrativeDisplay events={narrativeEvents} maxHeight="400px" />
           </div>
+
+          {/* AI Offers Panel */}
+          {aiOffers.length > 0 && (
+            <div className="absolute bottom-24 left-4 z-20">
+              <AIOffersPanel
+                offers={aiOffers}
+                onAccept={(offerId) => {
+                  if (symbioticGameplayRef.current) {
+                    symbioticGameplayRef.current.acceptOffer(offerId);
+                    setAiOffers(prev => prev.filter(o => o.id !== offerId));
+                    toast.success('AI offer accepted!');
+                  }
+                }}
+                onReject={(offerId) => {
+                  if (symbioticGameplayRef.current) {
+                    symbioticGameplayRef.current.rejectOffer(offerId);
+                    setAiOffers(prev => prev.filter(o => o.id !== offerId));
+                  }
+                }}
+              />
+            </div>
+          )}
+
+          {/* Alternative Victories Display */}
+          {alternativeVictories.length > 0 && (
+            <div className="absolute top-80 left-4 z-20 w-80">
+              <AlternativeVictoriesDisplay victories={alternativeVictories} />
+            </div>
+          )}
+
+          {/* Dynamic Tiles Indicator */}
+          {dynamicTiles.length > 0 && (
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-30">
+              {dynamicTiles.map(tile => (
+                <div
+                  key={tile.id}
+                  className="bg-gray-800/90 border-2 border-yellow-400 rounded-lg p-4 mb-2 animate-in zoom-in shadow-2xl"
+                  style={{
+                    boxShadow: '0 0 20px rgba(255, 255, 0, 0.5)'
+                  }}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className="w-5 h-5 text-yellow-400" />
+                    <h3 className="text-lg font-bold text-yellow-400">{tile.name}</h3>
+                  </div>
+                  <p className="text-sm text-gray-300 mb-3">{tile.description}</p>
+                  <p className="text-xs text-yellow-400">{tile.benefit}</p>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (dungeonMasterRef.current) {
+                        dungeonMasterRef.current.activateDynamicTile(tile.id);
+                        setDynamicTiles(prev => prev.filter(t => t.id !== tile.id));
+                        toast.success(`${tile.name} activated!`);
+                      }
+                    }}
+                    className="mt-3 w-full bg-yellow-600 hover:bg-yellow-700"
+                  >
+                    Activate
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Chronicle Exporter (shown after game ends) */}
           {gameOver && chronicleData && showChronicle && (

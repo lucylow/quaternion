@@ -83,3 +83,27 @@ export type {
   PlayerPhilosophy,
   ChronicleExport
 } from './AIStoryGenerator';
+
+// Enhanced Narrative Systems for Chroma Awards
+export { WorldBuilder } from './WorldBuilder';
+export type {
+  WorldBackstory,
+  FactionLore,
+  LocationLore,
+  ArtifactLore,
+  TimelineEvent
+} from './WorldBuilder';
+
+export { EnvironmentalStorytelling } from './EnvironmentalStorytelling';
+export type {
+  EnvironmentalDetail,
+  TerrainStory
+} from './EnvironmentalStorytelling';
+
+export { EnhancedNarrativeSystem } from './EnhancedNarrativeSystem';
+export type {
+  NarrativeEvent as EnhancedNarrativeEvent,
+  NarrativeChoice,
+  NarrativeConsequence,
+  FactionDialogue
+} from './EnhancedNarrativeSystem';

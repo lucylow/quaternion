@@ -80,10 +80,12 @@ export class CampaignSystem {
   // Enhanced narrative systems (optional integration)
   private narrativeManager: NarrativeManager | null = null;
   private emotionalBeats: EmotionalBeatSystem | null = null;
+  private storytellingIntegration: any = null; // CampaignStorytellingIntegration
 
-  constructor(narrativeManager?: NarrativeManager, emotionalBeats?: EmotionalBeatSystem) {
+  constructor(narrativeManager?: NarrativeManager, emotionalBeats?: EmotionalBeatSystem, storytellingIntegration?: any) {
     this.narrativeManager = narrativeManager || null;
     this.emotionalBeats = emotionalBeats || null;
+    this.storytellingIntegration = storytellingIntegration || null;
     this.initializeCampaigns();
   }
 
@@ -409,13 +411,26 @@ export class CampaignSystem {
   /**
    * Trigger a narrative event
    */
-  triggerEvent(triggerId: string): NarrativeEvent | null {
+  async triggerEvent(triggerId: string): Promise<NarrativeEvent | null> {
     if (!this.currentState) return null;
 
     const beat = this.getCurrentBeat();
     if (!beat || beat.trigger !== triggerId) return null;
 
-    // This will be populated by LLM integration
+    // Use Gemini storytelling if available
+    if (this.storytellingIntegration) {
+      try {
+        const generatedEvent = await this.storytellingIntegration.generateEventForCurrentBeat();
+        if (generatedEvent) {
+          this.narrativeEvents.push(generatedEvent);
+          return generatedEvent;
+        }
+      } catch (error) {
+        console.warn('Storytelling integration failed, using fallback', error);
+      }
+    }
+
+    // Fallback to basic event
     const event: NarrativeEvent = {
       event: beat.id,
       trigger: triggerId,

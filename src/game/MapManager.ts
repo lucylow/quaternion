@@ -67,7 +67,7 @@ export class MapManager {
    */
   public generateMap(seed: number): void {
     // Simple seeded random for deterministic generation
-    let rng = this.seededRandom(seed);
+    const rng = this.seededRandom(seed);
 
     // Demo Scenario: Create specific layout (from spec)
     // MapSeed: 74219, Size: 9×9 tiles

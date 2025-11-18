@@ -5,10 +5,15 @@
  */
 
 import AudioManager from './AudioManager';
-import { requestTtsAudio } from './ttsClient';
+import { requestTtsAudio, ElevenLabsVoiceSettings } from './ttsClient';
 import AdvisorVoiceFilter from './AdvisorVoiceFilter';
 
 export type AdvisorName = 'Auren' | 'Virel' | 'Lira' | 'Kor' | 'Core';
+
+export interface AdvisorVoiceConfig {
+  voiceId: string;
+  voiceSettings: ElevenLabsVoiceSettings;
+}
 
 export type DialogEvent =
   | 'game_start'
@@ -54,6 +59,9 @@ export class AdvisorDialogSystem {
   private recentLines: string[] = []; // Avoid repeats
   private config: DialogConfig;
   private currentPlayback: { id: string; stop: () => void } | null = null;
+  
+  // ElevenLabs voice configuration for each advisor
+  private advisorVoices: Map<AdvisorName, AdvisorVoiceConfig> = new Map();
 
   constructor(config: Partial<DialogConfig> = {}) {
     this.audioManager = AudioManager.instance();
@@ -65,11 +73,77 @@ export class AdvisorDialogSystem {
       cacheAudio: true,
       ...config
     };
+    this.initializeAdvisorVoices();
     this.initializeDialogLines();
     
     // Initialize voice filter
     this.voiceFilter.init().catch(err => {
       console.warn('Failed to initialize voice filter:', err);
+    });
+  }
+
+  /**
+   * Initialize ElevenLabs voice configurations for each advisor
+   */
+  private initializeAdvisorVoices(): void {
+    // AUREN - The Architect (Matter) - Deep baritone, mechanical cadence
+    // Using Arnold or similar deep male voice
+    this.advisorVoices.set('Auren', {
+      voiceId: import.meta.env.VITE_ELEVENLABS_VOICE_AUREN || 'VR6AewLTigWG4xSOukaG', // Arnold
+      voiceSettings: {
+        stability: 0.7,
+        similarity_boost: 0.8,
+        style: 0.3, // Lower style for more mechanical tone
+        use_speaker_boost: false
+      }
+    });
+
+    // VIREL - The Keeper (Energy) - Expressive, passionate, emotional modulation
+    // Using Rachel or similar energetic female voice
+    this.advisorVoices.set('Virel', {
+      voiceId: import.meta.env.VITE_ELEVENLABS_VOICE_VIREL || '21m00Tcm4TlvDq8ikWAM', // Rachel
+      voiceSettings: {
+        stability: 0.5, // Lower stability for more variation
+        similarity_boost: 0.7,
+        style: 0.8, // High style for emotional expression
+        use_speaker_boost: true
+      }
+    });
+
+    // LIRA - The Voice (Life) - Soft contralto, warm organic tone
+    // Using Bella or similar warm female voice
+    this.advisorVoices.set('Lira', {
+      voiceId: import.meta.env.VITE_ELEVENLABS_VOICE_LIRA || 'EXAVITQu4vr4xnSDxMaL', // Bella
+      voiceSettings: {
+        stability: 0.6,
+        similarity_boost: 0.75,
+        style: 0.5,
+        use_speaker_boost: true
+      }
+    });
+
+    // KOR - The Seer (Knowledge) - Digitally flattened tenor, synthetic overtone
+    // Using Dorothy or similar analytical voice
+    this.advisorVoices.set('Kor', {
+      voiceId: import.meta.env.VITE_ELEVENLABS_VOICE_KOR || 'ThT5KcBeYPX3keUQqHPh', // Dorothy
+      voiceSettings: {
+        stability: 0.9, // Very stable for mechanical tone
+        similarity_boost: 0.9,
+        style: 0.2, // Very low style for flat, synthetic tone
+        use_speaker_boost: false
+      }
+    });
+
+    // CORE - The Meta-AI - Blended ensemble, shifting background tone
+    // Using Arnold (same as Auren) but with different settings for layered effect
+    this.advisorVoices.set('Core', {
+      voiceId: import.meta.env.VITE_ELEVENLABS_VOICE_CORE || 'VR6AewLTigWG4xSOukaG', // Arnold
+      voiceSettings: {
+        stability: 0.7,
+        similarity_boost: 0.8,
+        style: 0.6, // Moderate style for philosophical tone
+        use_speaker_boost: true
+      }
     });
   }
 
@@ -432,11 +506,28 @@ export class AdvisorDialogSystem {
       } else {
         // Generate TTS
         if (this.config.enableTTS) {
-          const voiceId = this.getVoiceIdForAdvisor(line.advisor);
+          const voiceConfig = this.advisorVoices.get(line.advisor);
+          if (!voiceConfig) {
+            console.warn(`No voice config found for advisor: ${line.advisor}`);
+            return;
+          }
+
+          // Adjust style based on emotion if present
+          const voiceSettings = { ...voiceConfig.voiceSettings };
+          if (line.emotion !== undefined) {
+            // Map emotion (-1 to +1) to style (0 to 1)
+            // Negative emotions (concerned, worried) -> lower style
+            // Positive emotions (excited, pleased) -> higher style
+            voiceSettings.style = Math.max(0, Math.min(1, 
+              voiceConfig.voiceSettings.style! + (line.emotion * 0.3)
+            ));
+          }
+
           audioBuffer = await requestTtsAudio({
             text: line.text,
-            voice: voiceId,
-            ssml: false // Use plain text for TTS, SSML is for reference
+            voice: voiceConfig.voiceId,
+            ssml: false, // Use plain text for TTS, SSML is for reference
+            voice_settings: voiceSettings
           });
 
           // Cache if enabled
@@ -482,17 +573,11 @@ export class AdvisorDialogSystem {
   }
 
   /**
-   * Get voice ID for advisor
+   * Get voice ID for advisor (deprecated - use advisorVoices map instead)
    */
   private getVoiceIdForAdvisor(advisor: AdvisorName): string {
-    const voiceMap: Record<AdvisorName, string> = {
-      'Auren': 'VR6AewLTigWG4xSOukaG', // Arnold - authoritative, metallic
-      'Virel': '21m00Tcm4TlvDq8ikWAM', // Rachel - energetic, passionate
-      'Lira': 'EXAVITQu4vr4xnSDxMaL', // Bella - warm, empathetic
-      'Kor': 'ThT5KcBeYPX3keUQqHPh', // Dorothy - analytical, robotic
-      'Core': 'VR6AewLTigWG4xSOukaG' // Blended - will be processed
-    };
-    return voiceMap[advisor] || voiceMap['Auren'];
+    const voiceConfig = this.advisorVoices.get(advisor);
+    return voiceConfig?.voiceId || '21m00Tcm4TlvDq8ikWAM'; // Default: Rachel
   }
 
   /**
@@ -522,16 +607,50 @@ export class AdvisorDialogSystem {
     const lines = Array.from(this.dialogLines.values());
     for (const line of lines) {
       try {
-        const voiceId = this.getVoiceIdForAdvisor(line.advisor);
+        const voiceConfig = this.advisorVoices.get(line.advisor);
+        if (!voiceConfig) {
+          console.warn(`No voice config for advisor: ${line.advisor}`);
+          continue;
+        }
+
+        // Adjust style based on emotion if present
+        const voiceSettings = { ...voiceConfig.voiceSettings };
+        if (line.emotion !== undefined) {
+          voiceSettings.style = Math.max(0, Math.min(1, 
+            voiceConfig.voiceSettings.style! + (line.emotion * 0.3)
+          ));
+        }
+
         const audioBuffer = await requestTtsAudio({
           text: line.text,
-          voice: voiceId,
-          ssml: false
+          voice: voiceConfig.voiceId,
+          ssml: false,
+          voice_settings: voiceSettings
         });
         this.audioCache.set(line.id, audioBuffer);
       } catch (error) {
         console.warn(`Failed to pre-generate ${line.id}:`, error);
       }
+    }
+  }
+
+  /**
+   * Get voice configuration for an advisor
+   */
+  getAdvisorVoiceConfig(advisor: AdvisorName): AdvisorVoiceConfig | undefined {
+    return this.advisorVoices.get(advisor);
+  }
+
+  /**
+   * Update voice settings for an advisor dynamically
+   */
+  updateAdvisorVoiceSettings(
+    advisor: AdvisorName, 
+    settings: Partial<ElevenLabsVoiceSettings>
+  ): void {
+    const config = this.advisorVoices.get(advisor);
+    if (config) {
+      config.voiceSettings = { ...config.voiceSettings, ...settings };
     }
   }
 

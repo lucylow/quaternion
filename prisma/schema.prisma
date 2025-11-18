@@ -1,0 +1,112 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email       String    @unique
+  username    String?
+  createdAt   DateTime  @default(now())
+  entitlements Entitlement[]
+  purchases   Purchase[]
+  subscriptions Subscription[]
+}
+
+model Creator {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String
+  paymentAddr   String?   // Stripe account or wallet id
+  createdAt     DateTime  @default(now())
+  codes         CreatorCode[]
+  revenueRecords RevenueRecord[]
+}
+
+model CreatorCode {
+  code        String   @id
+  creatorId   String   @db.Uuid
+  pctShare    Float    @default(0.30)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  creator     Creator  @relation(fields: [creatorId], references: [id])
+}
+
+model Item {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sku          String   @unique
+  name         String
+  priceCents   Int
+  currency     String   @default("usd")
+  type         String   // 'cosmetic' | 'battlepass' | 'currency'
+  metadata     Json?
+  createdAt    DateTime @default(now())
+  entitlements Entitlement[]
+  purchases    Purchase[]
+}
+
+model Purchase {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId             String   @db.Uuid
+  itemId             String   @db.Uuid
+  amountCents        Int
+  currency           String
+  stripeSessionId    String?
+  creatorCode        String?
+  creatorShareCents  Int     @default(0)
+  platformFeeCents   Int     @default(0)
+  netRevenueCents    Int     @default(0)
+  purchasedAt        DateTime @default(now())
+
+  user   User @relation(fields: [userId], references: [id])
+  item   Item @relation(fields: [itemId], references: [id])
+}
+
+model Entitlement {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @db.Uuid
+  itemId    String   @db.Uuid
+  source    String   // 'purchase'|'battlepass'|'promo'
+  grantedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+  item Item @relation(fields: [itemId], references: [id])
+}
+
+model BattlepassProgress {
+  userId      String   @id @db.Uuid
+  xp          Int      @default(0)
+  level       Int      @default(0)
+  lastUpdated DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model RevenueRecord {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  purchaseId   String?  @db.Uuid
+  creatorId    String?  @db.Uuid
+  grossCents   Int
+  creatorCents Int
+  platformCents Int
+  studioCents  Int
+  recordAt     DateTime @default(now())
+  creator      Creator? @relation(fields: [creatorId], references: [id])
+}
+
+model Subscription {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @db.Uuid
+  status    String   // 'active' | 'canceled' | 'past_due'
+  planId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+

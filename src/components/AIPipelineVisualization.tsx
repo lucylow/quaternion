@@ -47,14 +47,14 @@ const AIPipelineVisualization = () => {
     {
       id: 'ai-evaluation',
       label: 'AI Evaluation',
-      subtitle: 'Google Gemini 2.5',
+      subtitle: 'Google AI',
       icon: Brain,
       color: '#21808d',
       bgColor: '#e8f4f5',
       position: { x: 50, y: 40 },
       connections: ['proc-gen', 'cmd-npc', 'narrative', 'audio'],
       description: 'Central AI coordinator analyzes game state and orchestrates responses across all AI systems',
-      tools: ['Google Gemini 2.5 Flash']
+      tools: ['Google AI']
     },
     {
       id: 'proc-gen',
@@ -77,8 +77,8 @@ const AIPipelineVisualization = () => {
       bgColor: '#f0f8f9',
       position: { x: 35, y: 60 },
       connections: ['output'],
-      description: 'Strategic commander AI and NPC behaviors powered by Google Gemini for high-level decisions and ML models for tactical behavior',
-      tools: ['Google Gemini 2.5', 'ML Models']
+      description: 'Strategic commander AI and NPC behaviors powered by Google AI for high-level decisions and ML models for tactical behavior',
+      tools: ['Google AI', 'ML Models']
     },
     {
       id: 'narrative',

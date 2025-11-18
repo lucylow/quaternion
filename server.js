@@ -19,9 +19,19 @@ const PORT = process.env.PORT || 3000;
 
 // Initialize multiplayer server (optional, only if ws is available)
 let multiplayerServer = null;
+let authoritativeMultiplayerServer = null;
+
+// Check if we should use the new authoritative multiplayer server
+const useAuthoritativeMP = process.env.USE_AUTHORITATIVE_MP === 'true' || process.env.USE_AUTHORITATIVE_MP === '1';
 
 // Use async IIFE to handle ES module imports
+// Only initialize old multiplayer server if authoritative MP is not enabled
 (async () => {
+  if (useAuthoritativeMP) {
+    console.log('[MP-SRV] Using authoritative multiplayer server (skipping legacy server)');
+    return;
+  }
+
   try {
     // Import ws module
     const { WebSocketServer } = await import('ws');
@@ -48,6 +58,28 @@ let multiplayerServer = null;
     }
   }
 })();
+
+// Initialize authoritative multiplayer server (new implementation)
+// This provides deterministic, authoritative tick-based multiplayer
+if (useAuthoritativeMP) {
+  try {
+    const { makeMultiplayerServer } = require('./src/server/multiplayer');
+    const engine = require('./src/engine/simulation');
+    
+    // Initialize engine with a game state instance
+    // Note: You'll need to create/initialize your game state here
+    // For now, we'll initialize with a placeholder that can be set later
+    // engine.initializeEngine(gameStateInstance);
+    
+    authoritativeMultiplayerServer = makeMultiplayerServer(server, engine);
+    console.log('[MP-SRV] Authoritative multiplayer server initialized on /ws');
+  } catch (error) {
+    console.warn('[MP-SRV] Authoritative multiplayer server not available:', error.message);
+    if (error.message.includes('Cannot find module')) {
+      console.warn('[MP-SRV] Make sure seedrandom is installed: npm install seedrandom');
+    }
+  }
+}
 
 // Determine which directory to serve (prefer dist for built React app)
 const DIST_DIR = path.join(__dirname, 'dist');
@@ -103,6 +135,27 @@ app.post('/api/ai/tts', async (req, res) => {
   }
 });
 
+// ElevenLabs comprehensive API routes (for local development - production uses edge function)
+app.all('/api/ai/elevenlabs/*', async (req, res) => {
+  try {
+    // Import the ElevenLabs handler
+    const elevenHandler = require('./api/ai/elevenlabs.js');
+    await elevenHandler.default(req, res);
+  } catch (error) {
+    console.error('ElevenLabs route error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Art Generation API routes
+try {
+  const artGenerationRoutes = require('./src/routes/artGenerationRoutes.js');
+  app.use('/api/art', artGenerationRoutes);
+  console.log('Art generation API routes loaded');
+} catch (err) {
+  console.warn('Failed to load art generation routes:', err.message);
+}
+
 // Serve static files from the appropriate directory
 app.use(express.static(serveDir, {
   extensions: ['html', 'js', 'css', 'json', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ico']
@@ -129,5 +182,8 @@ server.listen(PORT, () => {
   // Multiplayer server is already initialized and attached to this server
   if (multiplayerServer) {
     console.log('Multiplayer WebSocket server enabled at /ws');
+  }
+  if (authoritativeMultiplayerServer) {
+    console.log('[MP-SRV] Authoritative multiplayer WebSocket server enabled at /ws');
   }
 });

@@ -8,11 +8,18 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "build:itch": "vite build && echo 'Build complete! Ready for Itch.io upload. See ITCH_IO_DEPLOYMENT.md for instructions.'",
+    "build:report": "node scripts/generate-build-report.js",
+    "build:production": "vite build && npm run build:report",
     "lint": "eslint .",
     "preview": "vite preview",
     "start": "node server.js",
     "seed": "node scripts/seed-database.js",
-    "seed:minimal": "node scripts/seed-minimal.js"
+    "seed:minimal": "node scripts/seed-minimal.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "tsx prisma/seed.ts",
+    "prisma:studio": "prisma studio",
+    "worker:embeddings": "tsx src/worker/trainEmbeddings.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
@@ -70,6 +77,7 @@
     "react-resizable-panels": "^2.1.9",
     "react-router-dom": "^6.30.1",
     "recharts": "^2.15.4",
+    "seedrandom": "^4.0.0",
     "sonner": "^1.7.4",
     "stripe": "^14.21.0",
     "tailwind-merge": "^2.6.0",
@@ -79,7 +87,8 @@
     "vaul": "^0.9.9",
     "vitest": "^4.0.9",
     "ws": "^8.18.3",
-    "zod": "^3.25.76"
+    "zod": "^3.25.76",
+    "@prisma/client": "^5.20.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
@@ -99,6 +108,8 @@
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",
-    "vite": "^5.4.19"
+    "vite": "^5.4.19",
+    "prisma": "^5.20.0",
+    "tsx": "^4.19.2"
   }
 }

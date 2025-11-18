@@ -8,6 +8,7 @@ import { MapConfig } from '@/types/map';
 import { mapLoader } from '@/services/MapLoader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 
 interface MapSelectorProps {
   onMapSelect: (mapConfig: MapConfig) => void;
@@ -19,24 +20,10 @@ export const MapSelector: React.FC<MapSelectorProps> = ({
   selectedMapId
 }) => {
   const [maps, setMaps] = useState<MapConfig[]>([]);
-  const [previewImages, setPreviewImages] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     const availableMaps = mapLoader.getAvailableMaps();
     setMaps(availableMaps);
-
-    // Preload preview images
-    availableMaps.forEach(map => {
-      const img = new Image();
-      img.onload = () => {
-        setPreviewImages(prev => new Map(prev).set(map.id, map.imagePath));
-      };
-      img.onerror = () => {
-        // If image fails to load, still show the card but without preview
-        console.warn(`Failed to load preview for map: ${map.id}`);
-      };
-      img.src = map.imagePath;
-    });
   }, []);
 
   const getDifficultyColor = (difficulty: string) => {
@@ -76,18 +63,16 @@ export const MapSelector: React.FC<MapSelectorProps> = ({
           onClick={() => onMapSelect(map)}
         >
           <CardHeader className="p-0">
-            {previewImages.has(map.id) ? (
-              <img
-                src={previewImages.get(map.id)}
-                alt={map.name}
-                className="w-full h-48 object-cover rounded-t-lg"
+            <div className="w-full h-48 overflow-hidden rounded-t-lg">
+              <OptimizedImage
+                src={map.imagePath}
+                alt={`${map.name} - ${map.description}`}
+                className="w-full h-full"
                 loading="lazy"
+                objectFit="cover"
+                fallbackSrc="/placeholder.svg"
               />
-            ) : (
-              <div className="w-full h-48 bg-gradient-to-br from-gray-800 to-gray-900 rounded-t-lg flex items-center justify-center">
-                <span className="text-gray-500 text-sm">Loading preview...</span>
-              </div>
-            )}
+            </div>
           </CardHeader>
           <CardContent className="p-4">
             <CardTitle className="text-lg mb-2">{map.name}</CardTitle>

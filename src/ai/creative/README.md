@@ -114,7 +114,7 @@ const comment = await commander.getTacticalComment({
 import { AIVoiceController, VoiceTone } from './ai/creative';
 
 const voice = new AIVoiceController({
-  apiKey: process.env.ELEVENLABS_API_KEY
+  apiKey: process.env.ElevenLabs_API_key
 });
 
 // Set tone based on game state

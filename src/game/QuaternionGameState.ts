@@ -624,7 +624,7 @@ export class QuaternionGameState {
     const winCond = this.puzzleConfig.winCondition;
     
     switch (winCond.type) {
-      case 'equilibrium':
+      case 'equilibrium': {
         // Check if resources are balanced
         const { ore, energy, biomass, data } = player.resources;
         const avg = (ore + energy + biomass + data) / 4;
@@ -660,6 +660,7 @@ export class QuaternionGameState {
           this.winConditions.set(winCondKey, { type: 'equilibrium', achieved: false, progress: 0 });
           return { won: false, progress: 0, max: (winCond.duration || 15) * 60 };
         }
+      }
         
       case 'technological':
         if (player.researchedTechs.has(winCond.techId || 'quantum_ascendancy')) {
@@ -667,22 +668,24 @@ export class QuaternionGameState {
         }
         return { won: false, progress: 0, max: 1 };
         
-      case 'resource_target':
+      case 'resource_target': {
         const targetResource = player.resources[(winCond.target as any) || 'ore'] || 0;
         const targetValue = winCond.target || 0;
         if (targetResource >= targetValue) {
           return { won: true, progress: targetValue, max: targetValue };
         }
         return { won: false, progress: targetResource, max: targetValue };
+      }
         
-      case 'survival':
+      case 'survival': {
         const survivalTime = (winCond.duration || 420) * 60; // Convert to ticks
         if (this.gameTime >= survivalTime) {
           return { won: true, progress: survivalTime, max: survivalTime };
         }
         return { won: false, progress: this.gameTime * 60, max: survivalTime };
+      }
         
-      case 'territorial':
+      case 'territorial': {
         const centralNodeControlled = this.mapManager.isCentralNodeControlledByPlayer();
         if (centralNodeControlled) {
           const durationRequired = (winCond.duration || 30) * 60;
@@ -700,6 +703,7 @@ export class QuaternionGameState {
           this.winConditions.set(winCondKey, { type: 'territorial', achieved: false, progress: 0 });
           return { won: false, progress: 0, max: (winCond.duration || 30) * 60 };
         }
+      }
         
       default:
         return { won: false, progress: 0, max: 0 };

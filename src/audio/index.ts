@@ -1,24 +1,36 @@
-// src/audio/index.ts
-// Central export for audio system
+/**
+ * Audio System Exports
+ * Central export for all audio functionality
+ */
 
-export { default as AudioManager } from './AudioManager';
-export { default as MusicManager } from './MusicManager';
-export { default as SFXManager, SFX_CUES, type SFXCue } from './SFXManager';
-export { default as AdaptiveEffects, type AdaptiveEffectParams } from './AdaptiveEffects';
-export { default as TerrainAudio, type BiomeType, type TerrainAudioConfig } from './TerrainAudio';
-export { default as CombatAudio, type CombatEvent } from './CombatAudio';
-export { default as AdvisorVoiceFilter, type EmotionType } from './AdvisorVoiceFilter';
-export { AdvisorDialogSystem } from './AdvisorDialogSystem';
-export type { AdvisorName, DialogEvent, DialogLine } from './AdvisorDialogSystem';
-export { AdaptiveMusicSystem } from './AdaptiveMusicSystem';
-export type { MusicState } from './AdaptiveMusicSystem';
-export { DialogEventManager } from './DialogEventManager';
-export type { GameEvent } from './DialogEventManager';
-export { default as CinematicAudio, type CinematicEventType } from './CinematicAudio';
-export { default as ChromaPulseSynth } from './ChromaPulseSynth';
-export { requestTtsAudio } from './ttsClient';
-export { dialogueLinesToWebVTT, type DialogueLine } from './subtitleGenerator';
-export { sendAudioTelemetry } from './telemetry';
-export { initializeAudio } from './audioInit';
-export { narrateModelDecision, playSfx } from './ttsHelpers';
+// Core audio systems
+export * from './AudioManager';
+export * from './AudioEngine';
+export * from './MusicManager';
+export * from './SFXManager';
 
+// ElevenLabs integration
+export { ElevenLabsAudioIntegration } from './ElevenLabsAudioIntegration';
+export type { VoiceEvent, VoiceQueueItem } from './ElevenLabsAudioIntegration';
+
+export { GameAudioIntegration } from './GameAudioIntegration';
+export type { GameAudioEvent } from './GameAudioIntegration';
+
+// Audio systems
+export * from './AdaptiveMusicSystem';
+export * from './CombatAudio';
+export * from './TerrainAudio';
+export * from './CinematicAudio';
+export * from './AdaptiveEffects';
+
+// Dialogue systems
+export * from './AdvisorDialogSystem';
+export * from './DialogEventManager';
+
+// TTS
+export * from './ttsClient';
+export * from './ttsHelpers';
+export * from './subtitleGenerator';
+
+// ElevenLabs comprehensive client
+export * from './elevenClient';

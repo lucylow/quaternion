@@ -366,10 +366,13 @@ export function createDefaultAIManager(): AIIntegrationManager {
   return new AIIntegrationManager({
     llm: {
       provider: (process.env.LLM_PROVIDER as any) || 'google',
-      apiKey: process.env.GOOGLE_AI_API_KEY || process.env.SAGA_AI_API_KEY
+      apiKey: (import.meta?.env?.VITE_Gemini_AI_API_key) ||
+              (import.meta?.env?.VITE_GOOGLE_AI_API_KEY) ||
+              process.env.GOOGLE_AI_API_KEY || 
+              process.env.SAGA_AI_API_KEY
     },
     elevenLabs: {
-      apiKey: process.env.ELEVENLABS_API_KEY
+      apiKey: process.env.ElevenLabs_API_key
     },
     music: {
       provider: 'fuser',

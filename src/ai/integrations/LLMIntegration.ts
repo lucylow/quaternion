@@ -1,6 +1,6 @@
 /**
  * LLM Integration for AI-powered content generation
- * Supports Google AI Pro (Gemini), Saga AI, and other LLM providers
+ * Supports Google AI, Saga AI, and other LLM providers
  */
 
 // Import CommanderPersonality from EnhancedCommanderPersonality to avoid duplicate definitions
@@ -12,6 +12,8 @@ export interface LLMConfig {
   model?: string;
   temperature?: number;
   maxTokens?: number;
+  projectNumber?: string;
+  projectName?: string;
 }
 
 export interface MapTheme {
@@ -237,11 +239,23 @@ Generate a brief commander comment (max 15 words) that:
   }
 
   private async callGoogleAI(prompt: string): Promise<string> {
-    // Google AI Pro / Gemini integration
-    const apiKey = this.config.apiKey || process.env.GOOGLE_AI_API_KEY;
+    // Google AI integration
+    // Project: quaternion (831495637358)
+    const apiKey = this.config.apiKey || 
+                   import.meta.env.VITE_Gemini_AI_API_key || 
+                   import.meta.env.VITE_GOOGLE_AI_API_KEY ||
+                   process.env.GOOGLE_AI_API_KEY;
     if (!apiKey) {
       throw new Error('Google AI API key not configured');
     }
+
+    // Project configuration
+    const projectNumber = this.config.projectNumber || 
+                         import.meta.env.VITE_GOOGLE_AI_PROJECT_NUMBER || 
+                         '831495637358';
+    const projectName = this.config.projectName || 
+                       import.meta.env.VITE_GOOGLE_AI_PROJECT_NAME || 
+                       'quaternion';
 
     const model = this.config.model || 'gemini-2.0-flash-exp';
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
@@ -261,7 +275,8 @@ Generate a brief commander comment (max 15 words) that:
     });
 
     if (!response.ok) {
-      throw new Error(`Google AI API error: ${response.statusText}`);
+      const errorText = await response.text().catch(() => '');
+      throw new Error(`Google AI API error (Project: ${projectName}): ${response.statusText}${errorText ? ` - ${errorText}` : ''}`);
     }
 
     const data = await response.json();

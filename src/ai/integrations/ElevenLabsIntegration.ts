@@ -58,7 +58,7 @@ export class ElevenLabsIntegration {
       return this.cache.get(cacheKey)!;
     }
 
-    const apiKey = options?.apiKey || this.config.apiKey || process.env.ELEVENLABS_API_KEY;
+    const apiKey = options?.apiKey || this.config.apiKey || process.env.ElevenLabs_API_key;
     if (!apiKey) {
       throw new Error('ElevenLabs API key not configured');
     }

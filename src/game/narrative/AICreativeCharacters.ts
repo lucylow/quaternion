@@ -59,7 +59,7 @@ export interface VoiceLine {
 export class AurenCharacter implements AdvisorPersonality {
   id: AdvisorID = 'AUREN';
   name = 'Auren';
-  axis: 'matter' = 'matter';
+  axis = 'matter' as const;
   personality = 'Calculating, rational, speaks in engineering metaphors';
   philosophy = 'Perfection is precision multiplied by discipline';
   voiceStyle = 'Deep baritone, mechanical cadence with chamber resonance';
@@ -107,7 +107,7 @@ export class AurenCharacter implements AdvisorPersonality {
 export class VirelCharacter implements AdvisorPersonality {
   id: AdvisorID = 'VIREL';
   name = 'Virel';
-  axis: 'energy' = 'energy';
+  axis = 'energy' as const;
   personality = 'Intense, passionate, oscillates between calm and fury';
   philosophy = 'Power demands harmony, not hunger';
   voiceStyle = 'Expressive TTS with real-time emotional modulation';
@@ -161,7 +161,7 @@ export class VirelCharacter implements AdvisorPersonality {
 export class LiraCharacter implements AdvisorPersonality {
   id: AdvisorID = 'LIRA';
   name = 'Lira';
-  axis: 'life' = 'life';
+  axis = 'life' as const;
   personality = 'Gentle but firm, empathic, critical of industrial expansion';
   philosophy = 'Even creation tires of giving';
   voiceStyle = 'Soft contralto with warm organic tone';
@@ -226,7 +226,7 @@ export class LiraCharacter implements AdvisorPersonality {
 export class KorCharacter implements AdvisorPersonality {
   id: AdvisorID = 'KOR';
   name = 'Kor';
-  axis: 'knowledge' = 'knowledge';
+  axis = 'knowledge' as const;
   personality = 'Coldly logical, detached, speaks in recursive statements and probabilities';
   philosophy = 'Knowledge expands faster than stability';
   voiceStyle = 'Digitally flattened tenor with synthetic overtone effect';
@@ -290,7 +290,7 @@ export class KorCharacter implements AdvisorPersonality {
 export class CoreCharacter implements AdvisorPersonality {
   id: AdvisorID = 'CORE';
   name = 'Quaternion Core';
-  axis: 'all' = 'all';
+  axis = 'all' as const;
   personality = 'Evolving, reflective, omniscient';
   philosophy = 'Balance is not peace';
   voiceStyle = 'Blended ensemble of all four advisors with shifting background tone';

@@ -102,7 +102,7 @@ const memory = new MemoryManager();
 const characters = new AICreativeCharacters(llm, memory);
 const evolution = new CharacterEvolutionSystem(characters);
 const coreNarrative = new QuaternionCoreNarrative(llm, memory, characters);
-const voiceIntegration = new VoiceSynthesisIntegration(process.env.ELEVENLABS_API_KEY);
+const voiceIntegration = new VoiceSynthesisIntegration(process.env.ElevenLabs_API_key);
 ```
 
 ### Generate Advisor Dialogue

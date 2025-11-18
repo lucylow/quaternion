@@ -10,6 +10,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/quaternion-hero.webp";
 import mapImage from "@/assets/game-maps.webp";
+import { OptimizedImage } from "@/components/ui/OptimizedImage";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -139,7 +140,18 @@ const Index = () => {
       {/* Hero Section */}
       <section className="min-h-screen flex items-center pt-20 pb-8 sm:pb-0 relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-radial from-primary/10 via-transparent to-transparent opacity-30" />
-        <div className="container mx-auto px-4 grid md:grid-cols-2 gap-8 md:gap-12 items-center">
+        {/* Hero Image Background */}
+        <div className="absolute inset-0 z-0 opacity-20">
+          <OptimizedImage
+            src={heroImage}
+            alt="Quaternion Hero - AI-generated strategy game"
+            className="w-full h-full"
+            loading="eager"
+            priority={true}
+            objectFit="cover"
+          />
+        </div>
+        <div className="container mx-auto px-4 grid md:grid-cols-2 gap-8 md:gap-12 items-center relative z-10">
           <div className="space-y-4 sm:space-y-6 z-10">
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent leading-tight">
               QUATERNION: NEURAL FRONTIER
@@ -181,7 +193,7 @@ const Index = () => {
               <span className="sm:hidden">Chroma Awards 2025</span>
             </div>
             <div className="text-xs sm:text-sm text-muted-foreground mt-2">
-              <p>Tools Used: ElevenLabs, OpenArt, LTX Studio, Fuser, Luma AI, SAGA, Google Gemini 2.5 Flash</p>
+              <p>Tools Used: ElevenLabs, OpenArt, LTX Studio, Fuser, Luma AI, SAGA, Google AI</p>
               <p className="mt-1">Visit <a href="https://www.ChromaAwards.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">www.ChromaAwards.com</a> for more information</p>
             </div>
           </div>
@@ -374,8 +386,16 @@ const Index = () => {
           <Card className="bg-card/70 border-primary shadow-neon overflow-hidden">
             <CardContent className="p-4 sm:p-8">
               <div className="bg-background/50 h-64 sm:h-96 rounded-lg flex items-center justify-center mb-6 sm:mb-8 relative overflow-hidden">
+                {/* Map Image Background */}
+                <OptimizedImage
+                  src={mapImage}
+                  alt="Procedurally generated game maps"
+                  className="absolute inset-0 w-full h-full opacity-30"
+                  loading="lazy"
+                  objectFit="cover"
+                />
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/10 to-transparent animate-shimmer" />
-                <div className="text-center z-10 px-4">
+                <div className="text-center z-10 px-4 relative">
                   <Gamepad2 className="w-12 h-12 sm:w-16 sm:h-16 text-primary mx-auto mb-4" />
                   <h3 className="text-xl sm:text-2xl font-bold mb-2">WebGL Game Demo</h3>
                   <p className="text-sm sm:text-base text-muted-foreground mb-4">Play directly in your browser - no downloads required</p>

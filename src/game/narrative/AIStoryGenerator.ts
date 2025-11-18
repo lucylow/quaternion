@@ -77,17 +77,26 @@ export interface ChronicleExport {
   };
 }
 
+import { playerService, sessionService, chronicleService } from '@/lib/supabase/database';
+
 export class AIStoryGenerator {
   private playerPhilosophy: Map<string, PlayerPhilosophy> = new Map();
   private narrativeLog: NarrativeEvent[] = [];
   private currentContext: NarrativeContext | null = null;
   private sagaApiKey: string | null = null;
   private googleApiKey: string | null = null;
+  private currentSessionId: string | null = null;
+  private useDatabase: boolean = true;
 
   constructor() {
     // Initialize API keys from environment or config
     this.sagaApiKey = import.meta.env.VITE_SAGA_AI_KEY || null;
-    this.googleApiKey = import.meta.env.VITE_GOOGLE_AI_KEY || null;
+    this.googleApiKey = import.meta.env.VITE_Gemini_AI_API_key || 
+                        import.meta.env.VITE_GOOGLE_AI_KEY || 
+                        null;
+    
+    // Check if Supabase is configured
+    this.useDatabase = !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
   }
 
   /**
@@ -419,12 +428,12 @@ export class AIStoryGenerator {
   /**
    * Update player philosophy based on session
    */
-  updatePlayerPhilosophy(
+  async updatePlayerPhilosophy(
     playerId: string,
     context: NarrativeContext,
     timeline: NarrativeTimeline,
     ending: string
-  ): void {
+  ): Promise<void> {
     let philosophy = this.playerPhilosophy.get(playerId);
     
     if (!philosophy) {
@@ -460,6 +469,24 @@ export class AIStoryGenerator {
     }
 
     this.playerPhilosophy.set(playerId, philosophy);
+
+    // Save to database if available
+    if (this.useDatabase) {
+      try {
+        await playerService.updatePhilosophy(playerId, philosophy);
+        await playerService.addPlayHistory(playerId, {
+          timeline,
+          ending,
+          context: {
+            biome: context.biome,
+            instability: context.instability,
+            ethicalAlignment: context.ethicalAlignment
+          }
+        });
+      } catch (error) {
+        console.warn('Failed to save player philosophy to database:', error);
+      }
+    }
   }
 
   /**
@@ -569,7 +596,7 @@ export class AIStoryGenerator {
       description: `Adaptive soundtrack matching the ${timeline} timeline, composed by Fuser AI.`
     };
 
-    return {
+    const chronicle: ChronicleExport = {
       title: `The ${timeline.charAt(0).toUpperCase() + timeline.slice(1)} Timeline`,
       seed: context.gameTime,
       timeline,
@@ -580,6 +607,56 @@ export class AIStoryGenerator {
       visualScenes,
       soundtrack
     };
+
+    // Save to database if available
+    if (this.useDatabase && this.currentSessionId) {
+      try {
+        await chronicleService.saveChronicle({
+          sessionId: this.currentSessionId,
+          playerId,
+          title: chronicle.title,
+          content: chronicle,
+          timeline: chronicle.timeline,
+          exportedFormat: null
+        });
+      } catch (error) {
+        console.warn('Failed to save chronicle to database:', error);
+      }
+    }
+
+    return chronicle;
+  }
+
+  /**
+   * Initialize session for database tracking
+   */
+  async initializeSession(playerId: string, sessionId: string, gameConfig: any): Promise<void> {
+    this.currentSessionId = sessionId;
+    
+    if (this.useDatabase) {
+      try {
+        // Get or create player
+        await playerService.getOrCreatePlayer(playerId);
+        
+        // Create session
+        await sessionService.createSession(playerId, sessionId, gameConfig);
+      } catch (error) {
+        console.warn('Failed to initialize session in database:', error);
+      }
+    }
+  }
+
+  /**
+   * Add narrative event to database
+   */
+  async addNarrativeEventToDatabase(event: NarrativeEvent): Promise<void> {
+    if (this.useDatabase && this.currentSessionId) {
+      try {
+        await sessionService.addNarrativeEvent(this.currentSessionId, event);
+      } catch (error) {
+        console.warn('Failed to save narrative event to database:', error);
+      }
+    }
   }
 
   /**

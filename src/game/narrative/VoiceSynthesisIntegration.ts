@@ -36,7 +36,7 @@ export class VoiceSynthesisIntegration {
   private baseUrl = 'https://api.elevenlabs.io/v1';
 
   constructor(apiKey?: string) {
-    this.apiKey = apiKey || process.env.ELEVENLABS_API_KEY;
+    this.apiKey = apiKey || process.env.ElevenLabs_API_key;
     this.voiceConfigs = new Map();
     this.initializeVoiceConfigs();
   }

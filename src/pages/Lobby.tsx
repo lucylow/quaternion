@@ -18,6 +18,7 @@ import { PUZZLES, getAvailablePuzzles, getPuzzle, type Puzzle } from '@/data/puz
 import { toast } from 'sonner';
 import { MapSelector } from '@/components/game/MapSelector';
 import { MapConfig } from '@/types/map';
+import { OptimizedImage } from '@/components/ui/OptimizedImage';
 
 interface GameConfig {
   mode: 'single' | 'multiplayer' | 'campaign' | 'puzzle' | 'theater';
@@ -774,10 +775,12 @@ const Lobby = () => {
                     <div className="p-4 bg-background/50 rounded-lg border border-primary/20">
                       <div className="flex items-center gap-4">
                         {selectedMap.imagePath && (
-                          <img
+                          <OptimizedImage
                             src={selectedMap.imagePath}
-                            alt={selectedMap.name}
-                            className="w-32 h-32 object-cover rounded-lg"
+                            alt={`${selectedMap.name} - ${selectedMap.description}`}
+                            className="w-32 h-32 rounded-lg"
+                            objectFit="cover"
+                            fallbackSrc="/placeholder.svg"
                           />
                         )}
                         <div className="flex-1">

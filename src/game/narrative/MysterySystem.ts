@@ -25,9 +25,9 @@ export interface Mystery {
   description: string;
   difficulty: MysteryDifficulty;
   requiredClues: number;
-  discoveredClues: MysteryClue[] = [];
+  discoveredClues: MysteryClue[];
   reward: MysteryReward;
-  affectedFactions: string[] = [];
+  affectedFactions: string[];
   resolutionImpact?: any;
 }
 
