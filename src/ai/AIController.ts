@@ -95,8 +95,8 @@ export class AIController {
     }
 
     // Calculate resource advantage
-    const aiResources = Object.values(aiPlayer.resources).reduce((a: number, b: any) => a + (typeof b === 'number' ? b : 0), 0);
-    const humanResources = Object.values(humanPlayer.resources).reduce((a: number, b: any) => a + (typeof b === 'number' ? b : 0), 0);
+    const aiResources = Object.values(aiPlayer.resources).reduce((a: number, b: any) => a + (typeof b === 'number' ? b : 0), 0) as number;
+    const humanResources = Object.values(humanPlayer.resources).reduce((a: number, b: any) => a + (typeof b === 'number' ? b : 0), 0) as number;
     const resourceAdvantage = (aiResources - humanResources) / Math.max(aiResources, humanResources, 1);
 
     // Calculate military advantage (simplified)

@@ -162,7 +162,7 @@ export class OCEANPersonalitySystem {
     behavior: T,
     ocean: OCEANPersonality
   ): T {
-    const modified = { ...behavior };
+    const modified = { ...behavior } as any;
 
     // Example: influence risk tolerance
     if ('riskTolerance' in modified) {
@@ -182,7 +182,7 @@ export class OCEANPersonalitySystem {
       modified.cooperation = ocean.agreeableness;
     }
 
-    return modified;
+    return modified as T;
   }
 
   /**

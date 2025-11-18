@@ -177,7 +177,7 @@ export class BalanceDetector {
    */
   private identifyStrategy(result: PlaytestResult): string {
     // Use persona type as base strategy
-    let strategy = result.personaType;
+    let strategy: string = result.personaType;
 
     // Refine based on actions
     const actionTypes = result.actions.map(a => a.action.type);
@@ -187,12 +187,12 @@ export class BalanceDetector {
     const hasTech = actionTypes.some(a => a === 'research');
     const hasExpand = actionTypes.some(a => a === 'build_building' && a.action.buildingType === 'BASE');
 
-    if (hasRush) strategy += '_rush';
-    if (hasTurtle) strategy += '_turtle';
-    if (hasTech) strategy += '_tech';
-    if (hasExpand) strategy += '_expand';
+    if (hasRush) strategy = (strategy + '_rush') as PersonaType;
+    if (hasTurtle) strategy = (strategy + '_turtle') as PersonaType;
+    if (hasTech) strategy = (strategy + '_tech') as PersonaType;
+    if (hasExpand) strategy = (strategy + '_expand') as PersonaType;
 
-    return strategy;
+    return strategy as PersonaType;
   }
 
   /**
