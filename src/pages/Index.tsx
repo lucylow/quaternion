@@ -12,14 +12,30 @@ import heroImage from "@/assets/quaternion-hero.webp";
 import mapImage from "@/assets/game-maps.webp";
 
 // Helper function to encode image paths with special characters
+// Handles special characters like middle dot (·), apostrophes, colons, etc.
 const encodeImagePath = (path: string): string => {
   if (!path) return path;
+  
   // Split path and encode each segment separately to preserve slashes
   const normalizedPath = path.startsWith('/') ? path : '/' + path;
-  return normalizedPath.split('/').map(segment => {
-    if (!segment) return segment; // Preserve empty segments (leading/trailing slashes)
-    return encodeURIComponent(segment);
-  }).join('/');
+  
+  try {
+    return normalizedPath.split('/').map(segment => {
+      if (!segment) return segment; // Preserve empty segments (leading/trailing slashes)
+      
+      // Encode each segment to handle special characters like:
+      // - Middle dot (·) 
+      // - Apostrophes (')
+      // - Colons (:)
+      // - Underscores (_)
+      // - Spaces and other special characters
+      return encodeURIComponent(segment);
+    }).join('/');
+  } catch (error) {
+    console.warn('Error encoding image path:', path, error);
+    // Fallback: return path as-is if encoding fails
+    return path;
+  }
 };
 
 const Index = () => {
@@ -224,9 +240,13 @@ const Index = () => {
                 src={encodeImagePath("/assets/monsters/DALL·E 2024-11-22 18.35.00 - Design a cinematic, ultra-high-quality sci-fi movie poster for 'Quaternion.' The composition features a massive, glowing monster emanating the four po.webp")}
                 alt="Quaternion Game"
                 className="w-full h-auto object-cover"
+                loading="lazy"
                 onError={(e) => {
                   console.error('Failed to load hero image:', e.currentTarget.src);
                   e.currentTarget.style.display = 'none';
+                }}
+                onLoad={(e) => {
+                  console.log('Hero image loaded:', e.currentTarget.src);
                 }}
               />
             </div>
@@ -501,13 +521,20 @@ const Index = () => {
           
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 max-w-5xl mx-auto">
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group">
-              <div className="aspect-[4/3] relative overflow-hidden">
+              <div className="aspect-[4/3] relative overflow-hidden bg-muted/20">
                 <img 
                   src={encodeImagePath("/assets/monsters/DALL·E 2024-11-22 19.02.15 - Create a visually striking and highly original sci-fi illustration for 'Quaternion_ Defend the Dimensions.' Center the image on a colossal monster for.webp")}
                   alt="Colossal Monster"
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  loading="lazy"
                   onError={(e) => {
                     console.error('Failed to load monster image:', e.currentTarget.src);
+                    // Set a placeholder or hide the image
+                    e.currentTarget.style.display = 'none';
+                  }}
+                  onLoad={(e) => {
+                    // Image loaded successfully
+                    console.log('Monster image loaded:', e.currentTarget.src);
                   }}
                 />
               </div>
@@ -518,13 +545,20 @@ const Index = () => {
             </Card>
 
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '100ms' }}>
-              <div className="aspect-[4/3] relative overflow-hidden">
+              <div className="aspect-[4/3] relative overflow-hidden bg-muted/20">
                 <img 
                   src={encodeImagePath("/assets/monsters/DALL·E 2024-11-22 18.44.15 - Design an enhanced sci-fi movie poster for 'Quaternion,' focusing on the battle between a colossal monster and three futuristic starships. The monster.webp")}
                   alt="Battle Scene Monster"
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  loading="lazy"
                   onError={(e) => {
                     console.error('Failed to load monster image:', e.currentTarget.src);
+                    // Set a placeholder or hide the image
+                    e.currentTarget.style.display = 'none';
+                  }}
+                  onLoad={(e) => {
+                    // Image loaded successfully
+                    console.log('Monster image loaded:', e.currentTarget.src);
                   }}
                 />
               </div>
@@ -535,13 +569,20 @@ const Index = () => {
             </Card>
 
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '200ms' }}>
-              <div className="aspect-[4/3] relative overflow-hidden">
+              <div className="aspect-[4/3] relative overflow-hidden bg-muted/20">
                 <img 
                   src={encodeImagePath("/assets/monsters/DALL·E 2024-11-20 16.27.15 - Create an AI-generated image of a Celestial Monster character from a celestial-themed game. The monster is chaotic and otherworldly, with glowing cosm.webp")}
                   alt="Celestial Monster"
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  loading="lazy"
                   onError={(e) => {
                     console.error('Failed to load monster image:', e.currentTarget.src);
+                    // Set a placeholder or hide the image
+                    e.currentTarget.style.display = 'none';
+                  }}
+                  onLoad={(e) => {
+                    // Image loaded successfully
+                    console.log('Monster image loaded:', e.currentTarget.src);
                   }}
                 />
               </div>
