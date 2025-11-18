@@ -83,3 +83,4 @@ If Lovable still doesn't show individual pages:
 
 The routes are now properly organized and should be discoverable in Lovable's interface!
 
+

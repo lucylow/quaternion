@@ -189,3 +189,4 @@ export class QuaternionArtPalette {
 // Export for use in Phaser scenes
 export default QuaternionArtPalette;
 
+

@@ -202,3 +202,4 @@ CREATE TABLE IF NOT EXISTS player_boosters (
 CREATE INDEX IF NOT EXISTS idx_player_boosters_player_id ON player_boosters(player_id);
 CREATE INDEX IF NOT EXISTS idx_player_boosters_expires ON player_boosters(expires_at);
 
+

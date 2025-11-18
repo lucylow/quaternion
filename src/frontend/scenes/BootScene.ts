@@ -29,3 +29,4 @@ export const gameConfig: Phaser.Types.Core.GameConfig = {
   scene: [BootScene, MapScene]
 };
 
+

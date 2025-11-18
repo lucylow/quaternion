@@ -319,3 +319,4 @@ Respond with ONLY the insight text, no quotes or formatting.`;
   }
 }
 
+

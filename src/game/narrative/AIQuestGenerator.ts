@@ -388,3 +388,4 @@ ${availableCharacters.map(char => `- ${char.characterId}: ${char.personality.get
   }
 }
 
+

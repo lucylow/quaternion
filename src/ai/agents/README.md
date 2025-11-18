@@ -266,3 +266,4 @@ expect(decision.actions.length).toBeGreaterThan(0);
 - Resource costs are validated before execution
 - Fallback systems ensure AI always has valid decisions
 
+

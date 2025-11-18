@@ -294,3 +294,4 @@ describe('Tech Puzzle System', () => {
 - Demo Puzzles: See `TechPuzzleGenerator` for examples
 - UI Components: `EnhancedTechTreeModal` for visual integration
 
+

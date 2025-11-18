@@ -22,3 +22,4 @@ function msToVtt(ms: number) {
 function pad(n: number) { return n.toString().padStart(2, '0'); }
 function padMs(n: number) { return n.toString().padStart(3, '0'); }
 
+

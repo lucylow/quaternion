@@ -240,3 +240,4 @@ Potential future improvements:
 - [Vite Build Optimization](https://vitejs.dev/guide/build.html)
 - [Service Worker Best Practices](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps)
 
+

@@ -58,3 +58,4 @@ This structure helps Lovable:
 - Make them easily editable
 - Understand the routing structure
 
+

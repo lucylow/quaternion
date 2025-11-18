@@ -92,3 +92,4 @@ export class MapLoader {
 // Singleton instance
 export const mapLoader = new MapLoader();
 
+
