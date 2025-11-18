@@ -35,6 +35,45 @@ window.addEventListener('unhandledrejection', (ev) => {
   console.error('[QUAT DEBUG] unhandled rejection', ev.reason);
 });
 
+// Handle window.postMessage events (e.g., from iframes)
+// Filter unknown message types to avoid console spam
+let _lastMsgWarn = 0;
+window.addEventListener('message', (ev) => {
+  try {
+    const data = ev.data;
+    
+    // Ignore non-object data
+    if (!data || typeof data !== 'object') return;
+    
+    // If using structured messages, require a type field
+    if (!data.type || typeof data.type !== 'string') return;
+
+    switch (data.type) {
+      case 'iframe-pos':
+        // Handle iframe position updates if needed
+        // You can add specific handling here
+        break;
+      
+      // Add other supported message types here as needed
+      
+      default:
+        // Silently ignore unknown message types to avoid console spam
+        // Only warn in development mode, throttled
+        if (import.meta.env.DEV) {
+          const now = Date.now();
+          if (now - _lastMsgWarn > 5000) {
+            console.warn('[QUAT DEBUG] Unknown message type:', data.type);
+            _lastMsgWarn = now;
+          }
+        }
+        return;
+    }
+  } catch (err) {
+    // Log meaningful info, but avoid spamming
+    console.error('[QUAT DEBUG] message handler error', err);
+  }
+});
+
 console.log('[QUAT DEBUG] main.tsx loaded');
 
 // Hide initial loading screen once React mounts

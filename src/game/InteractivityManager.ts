@@ -5,6 +5,7 @@
  */
 
 import Phaser from 'phaser';
+import { safeSetInteractive, debugInteractive } from '../utils/inputSafe';
 
 export interface InteractionConfig {
   enableHoverEffects?: boolean;
@@ -63,8 +64,13 @@ export class InteractivityManager {
       clickColor = 0xffffff
     } = options;
 
-    // Make object interactive
-    (obj as any).setInteractive({ useHandCursor: true });
+    // Make object interactive using safe wrapper
+    safeSetInteractive(obj, { useHandCursor: true });
+    
+    // Debug in development mode
+    if (process.env.NODE_ENV === 'development') {
+      debugInteractive(obj, 'InteractivityManager.makeInteractive');
+    }
 
     // Hover effects
     if (this.config.enableHoverEffects) {
@@ -338,7 +344,7 @@ export class InteractivityManager {
 
     container.add([bg, label]);
     container.setSize(width, height);
-    container.setInteractive({ useHandCursor: true });
+    safeSetInteractive(container, { useHandCursor: true });
 
     // Hover effects
     container.on('pointerover', () => {

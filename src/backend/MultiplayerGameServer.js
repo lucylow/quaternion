@@ -200,23 +200,43 @@ class MultiplayerGameServer extends EventEmitter {
   }
 
   handleMessage(playerConnection, message) {
-    const { type, payload } = message;
+    try {
+      // Validate message structure
+      if (!message || typeof message !== 'object') return;
+      
+      const { type, payload } = message;
+      
+      // Ignore messages without a valid type
+      if (!type || typeof type !== 'string') return;
 
-    switch (type) {
-      case 'auth':
-        this.authenticatePlayer(playerConnection, payload);
-        break;
-      case 'join_game':
-        this.joinGame(playerConnection, payload);
-        break;
-      case 'command':
-        this.processCommand(playerConnection, payload);
-        break;
-      case 'ping':
-        playerConnection.ws.send(JSON.stringify({ type: 'pong' }));
-        break;
-      default:
-        console.warn(`Unknown message type: ${type}`);
+      switch (type) {
+        case 'auth':
+          this.authenticatePlayer(playerConnection, payload);
+          break;
+        case 'join_game':
+          this.joinGame(playerConnection, payload);
+          break;
+        case 'command':
+          this.processCommand(playerConnection, payload);
+          break;
+        case 'ping':
+          playerConnection.ws.send(JSON.stringify({ type: 'pong' }));
+          break;
+        default:
+          // Silently ignore unknown message types to avoid console spam
+          // Only log in development mode if needed
+          if (process.env.NODE_ENV === 'development') {
+            // Throttle warnings to at most once per 5 seconds
+            const now = Date.now();
+            if (!this._lastMsgWarn || now - this._lastMsgWarn > 5000) {
+              console.warn(`[QUAT DEBUG] Unknown message type: ${type}`);
+              this._lastMsgWarn = now;
+            }
+          }
+          return;
+      }
+    } catch (err) {
+      console.error('[QUAT DEBUG] message handler error', err);
     }
   }
 

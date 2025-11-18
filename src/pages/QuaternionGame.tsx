@@ -38,6 +38,7 @@ import { AIOffersPanel } from '@/components/creative/AIOffersPanel';
 import { AlternativeVictoriesDisplay } from '@/components/creative/AlternativeVictoriesDisplay';
 import DebugOverlay from '@/components/DebugOverlay';
 import { loadDevSampleIfNoEntities } from '@/utils/dev_fallback_renderer';
+import { safeSetInteractive } from '@/utils/inputSafe';
 import {
   EmergentDiplomacyAI,
   LivingWorldEvents,
@@ -1086,7 +1087,7 @@ const QuaternionGame = () => {
         node.setData('type', nodeType.resource);
         node.setData('amount', 1000);
         node.setData('axis', nodeType.axis);
-        node.setInteractive({ useHandCursor: true });
+        safeSetInteractive(node, { useHandCursor: true });
         node.on('pointerdown', () => {
           console.log('[Scene] Resource node clicked:', nodeType.resource, 'at', node.x, node.y);
         });
