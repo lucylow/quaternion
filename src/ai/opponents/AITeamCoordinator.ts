@@ -143,11 +143,11 @@ export class AITeamCoordinator {
 
     return {
       strategy: 'aggressive',
-      roles: new Map(this.commanders.map(m => [m.commander.name, m.role])),
+      roles: new Map(this.commanders.map(m => [m.commander.archetype, m.role])),
       coordination: {
         attackPlan: {
-          attackers: attackers.map(a => a.commander.name),
-          support: techSpecialists.map(s => s.commander.name),
+          attackers: attackers.map(a => a.commander.archetype),
+          support: techSpecialists.map(s => s.commander.archetype),
           timing: Date.now() + 5000 // 5 seconds
         }
       }
