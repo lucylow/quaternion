@@ -46,6 +46,7 @@ export interface GameConfig {
   commanderId: string;
   mode?: 'single' | 'multiplayer';
   roomId?: string;
+  puzzleId?: string;
 }
 
 export interface WinCondition {
@@ -99,6 +100,19 @@ export class QuaternionGameState {
   public victoryDefeatSystem: VictoryDefeatSystem;
   public strategicDecisionEngine: StrategicDecisionEngine;
   
+  // Fun experience systems
+  public arenaSeedManager: ArenaSeedManager;
+  public advisorTensionSystem: AdvisorTensionSystem;
+  public moralVerdictSystem: MoralVerdictSystem;
+  public kaijuEventSystem: KaijuEventSystem;
+  public unitQuirkSystem: UnitQuirkSystem;
+  public cinematicCameraSystem: CinematicCameraSystem;
+  
+  // Puzzle system
+  public puzzleConfig: any | null = null;
+  public puzzleConstraints: PuzzleConstraint[] = [];
+  public puzzleStartTime: number = 0;
+  
   constructor(config: GameConfig) {
     this.id = this.generateId();
     this.tick = 0;
@@ -131,6 +145,15 @@ export class QuaternionGameState {
     this.kaijuEventSystem = new KaijuEventSystem();
     this.unitQuirkSystem = new UnitQuirkSystem();
     this.cinematicCameraSystem = new CinematicCameraSystem();
+    
+    // Initialize puzzle config if puzzleId is provided
+    if (config.puzzleId) {
+      const puzzle = getPuzzle(config.puzzleId);
+      if (puzzle) {
+        this.puzzleConfig = puzzle;
+        this.puzzleConstraints = puzzle.constraints || [];
+      }
+    }
     
     // Generate map
     this.mapManager.generateMap(config.seed);
@@ -172,17 +195,17 @@ export class QuaternionGameState {
       const player = this.players.get(1);
       if (player) {
         switch (type) {
-          case ResourceType.MATTER:
-            player.resources.matter = amount;
+          case ResourceType.ORE:
+            player.resources.ore = amount;
             break;
           case ResourceType.ENERGY:
             player.resources.energy = amount;
             break;
-          case ResourceType.LIFE:
-            player.resources.life = amount;
+          case ResourceType.BIOMASS:
+            player.resources.biomass = amount;
             break;
-          case ResourceType.KNOWLEDGE:
-            player.resources.knowledge = amount;
+          case ResourceType.DATA:
+            player.resources.data = amount;
             break;
         }
       }
@@ -731,13 +754,13 @@ export class QuaternionGameState {
     researchedTechs: Set<string>,
     gameTime: number
   ): EndgameScenario | null {
-    const { matter, energy, life, knowledge } = resources;
-    const avg = (matter + energy + life + knowledge) / 4;
+    const { ore, energy, biomass, data } = resources;
+    const avg = (ore + energy + biomass + data) / 4;
     const maxDeviation = Math.max(
-      Math.abs(matter - avg),
+      Math.abs(ore - avg),
       Math.abs(energy - avg),
-      Math.abs(life - avg),
-      Math.abs(knowledge - avg)
+      Math.abs(biomass - avg),
+      Math.abs(data - avg)
     );
     
     // Check for perfect balance (Ultimate Balance - Fifth Ending)
@@ -752,21 +775,21 @@ export class QuaternionGameState {
       return 'harmony';
     }
     
-    // Check for Ascendancy (Knowledge/Technology victory)
+    // Check for Ascendancy (Data/Technology victory)
     if (researchedTechs.has('quantum_ascendancy') || 
-        knowledge > avg * 1.5 && knowledge > 500) {
+        data > avg * 1.5 && data > 500) {
       return 'ascendancy';
     }
     
-    // Check for Reclamation (Life focus)
-    if (life > avg * 1.5 && life > 500 && 
-        life > matter * 1.3 && life > energy * 1.3 && life > knowledge * 1.3) {
+    // Check for Reclamation (Biomass focus)
+    if (biomass > avg * 1.5 && biomass > 500 && 
+        biomass > ore * 1.3 && biomass > energy * 1.3 && biomass > data * 1.3) {
       return 'reclamation';
     }
     
     // Check for Overclock (Energy maximized)
     if (energy > avg * 1.5 && energy > 500 &&
-        energy > matter * 1.3 && energy > life * 1.3 && energy > knowledge * 1.3) {
+        energy > ore * 1.3 && energy > biomass * 1.3 && energy > data * 1.3) {
       return 'overclock';
     }
     

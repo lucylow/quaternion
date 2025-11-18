@@ -151,18 +151,44 @@ export function useReplayGenerator() {
         replayData = await response.json();
       } else {
         // In production, use Supabase edge function
-        const { data, error } = await supabase.functions.invoke('replay-handler/generate', {
-          method: 'POST',
-          body: params,
-        });
+        try {
+          const { data, error } = await supabase.functions.invoke('replay-handler/generate', {
+            method: 'POST',
+            body: params,
+          });
 
-        clearTimeout(timeoutId);
+          clearTimeout(timeoutId);
 
-        if (error) {
-          throw new Error(error.message || 'Failed to generate replay');
+          if (error) {
+            console.error('Supabase function error:', error);
+            // Fallback to mock API
+            console.warn('Falling back to mock replay API - Supabase functions not available');
+            const mockResponse = await fetch('/api/replay/generate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(params),
+            });
+            if (!mockResponse.ok) throw new Error('Mock API also failed');
+            replayData = await mockResponse.json();
+          } else {
+            replayData = data;
+          }
+        } catch (err) {
+          clearTimeout(timeoutId);
+          console.error('Failed to generate replay, trying mock API:', err);
+          // Fallback to mock API
+          try {
+            const mockResponse = await fetch('/api/replay/generate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(params),
+            });
+            if (!mockResponse.ok) throw new Error('Mock API also failed');
+            replayData = await mockResponse.json();
+          } catch (mockErr) {
+            throw err; // Throw original error if mock also fails
+          }
         }
-
-        replayData = data;
       }
       
       // Save to cache
@@ -216,15 +242,32 @@ export function useReplayGenerator() {
         if (!response.ok) throw new Error('Failed to fetch replay');
         data = await response.json();
       } else {
-        const { data: supabaseData, error } = await supabase.functions.invoke(`replay-handler/${replayId}`, {
-          method: 'GET',
-        });
+        try {
+          const { data: supabaseData, error } = await supabase.functions.invoke(`replay-handler/${replayId}`, {
+            method: 'GET',
+          });
 
-        if (error) {
-          throw new Error(error.message || 'Failed to fetch replay');
+          if (error) {
+            console.error('Supabase function error:', error);
+            // Fallback to mock API
+            console.warn('Falling back to mock replay API - Supabase functions not available');
+            const mockResponse = await fetch(`/api/replay/${replayId}`);
+            if (!mockResponse.ok) throw new Error('Mock API also failed');
+            data = await mockResponse.json();
+          } else {
+            data = supabaseData;
+          }
+        } catch (err) {
+          console.error('Failed to fetch replay, trying mock API:', err);
+          // Fallback to mock API
+          try {
+            const mockResponse = await fetch(`/api/replay/${replayId}`);
+            if (!mockResponse.ok) throw new Error('Mock API also failed');
+            data = await mockResponse.json();
+          } catch (mockErr) {
+            throw err; // Throw original error if mock also fails
+          }
         }
-
-        data = supabaseData;
       }
 
       setMetadata(data);
