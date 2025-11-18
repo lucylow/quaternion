@@ -64,10 +64,21 @@ export const AIGameUIPanel: React.FC = () => {
   });
 
   // Connect to real AI game hook
-  const { gameState, aiAnalytics, isGameActive } = useAIGame({
+  const { gameState, aiAnalytics, isGameActive, initializeGame } = useAIGame({
     baseURL: process.env.REACT_APP_API_URL || 'http://localhost:3000',
     pollInterval: 100,
+    analyticsPollInterval: 2000,
   });
+
+  // Update commander profile from analytics
+  useEffect(() => {
+    if (aiAnalytics?.commanderProfile) {
+      setAiState(prev => ({
+        ...prev,
+        commanderProfile: aiAnalytics.commanderProfile,
+      }));
+    }
+  }, [aiAnalytics]);
 
   const [aiState, setAiState] = useState<AIState>({
     status: 'idle',

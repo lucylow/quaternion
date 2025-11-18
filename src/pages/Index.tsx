@@ -109,6 +109,13 @@ const Index = () => {
     };
   }, [mobileMenuOpen]);
 
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      audio.stopBackgroundMusic();
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
       {/* Header */}
@@ -121,22 +128,30 @@ const Index = () => {
               <span className="sm:hidden">Q<span className="text-secondary">:</span>NF</span>
             </a>
             <div className="hidden md:flex items-center gap-6">
-              <a href="#overview" onClick={(e) => { e.preventDefault(); scrollToSection('overview'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">Overview</a>
-              <a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection('features'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">Features</a>
-              <a href="/about" onClick={(e) => { e.preventDefault(); navigate('/about'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">About</a>
-              <a href="/commanders" onClick={(e) => { e.preventDefault(); navigate('/commanders'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">Commanders</a>
-              <a href="/how-to-play" onClick={(e) => { e.preventDefault(); navigate('/how-to-play'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">How to Play</a>
-              <a href="/ai-features" onClick={(e) => { e.preventDefault(); navigate('/ai-features'); }} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">AI Features</a>
+              <a href="#overview" onClick={(e) => { e.preventDefault(); scrollToSection('overview'); }} onMouseEnter={() => audio.playHover()} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">Overview</a>
+              <a href="#features" onClick={(e) => { e.preventDefault(); scrollToSection('features'); }} onMouseEnter={() => audio.playHover()} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">Features</a>
+              <a href="/about" onClick={(e) => { e.preventDefault(); audio.playClick(); navigate('/about'); }} onMouseEnter={() => audio.playHover()} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">About</a>
+              <a href="/commanders" onClick={(e) => { e.preventDefault(); audio.playClick(); navigate('/commanders'); }} onMouseEnter={() => audio.playHover()} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">Commanders</a>
+              <a href="/how-to-play" onClick={(e) => { e.preventDefault(); audio.playClick(); navigate('/how-to-play'); }} onMouseEnter={() => audio.playHover()} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">How to Play</a>
+              <a href="/ai-features" onClick={(e) => { e.preventDefault(); audio.playClick(); navigate('/ai-features'); }} onMouseEnter={() => audio.playHover()} className="hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-background rounded text-sm">AI Features</a>
             </div>
             <div className="flex items-center gap-2">
               <Button 
-                onClick={() => navigate('/lobby')}
+                onClick={() => {
+                  audio.playClick();
+                  initializeAudioOnInteraction();
+                  navigate('/lobby');
+                }}
+                onMouseEnter={() => audio.playHover()}
                 className="hidden sm:flex bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:shadow-neon focus:ring-2 focus:ring-primary focus:ring-offset-2 text-sm px-3 py-1.5"
               >
                 Play Now
               </Button>
               <Button 
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                onClick={() => {
+                  audio.playClick();
+                  setMobileMenuOpen(!mobileMenuOpen);
+                }}
                 variant="ghost"
                 size="icon"
                 className="md:hidden text-primary"
@@ -193,12 +208,23 @@ const Index = () => {
             <div className="flex flex-wrap gap-3 sm:gap-4">
               <Button 
                 size="lg" 
-                onClick={() => navigate('/lobby')}
+                onClick={() => {
+                  audio.playClick();
+                  initializeAudioOnInteraction();
+                  navigate('/lobby');
+                }}
+                onMouseEnter={() => audio.playHover()}
                 className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:shadow-neon focus:ring-2 focus:ring-primary focus:ring-offset-2 text-sm sm:text-base"
               >
                 Play Free Demo
               </Button>
-              <Button size="lg" variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground focus:ring-2 focus:ring-primary focus:ring-offset-2 text-sm sm:text-base">
+              <Button 
+                size="lg" 
+                variant="outline" 
+                onClick={() => audio.playClick()}
+                onMouseEnter={() => audio.playHover()}
+                className="border-primary text-primary hover:bg-primary hover:text-primary-foreground focus:ring-2 focus:ring-primary focus:ring-offset-2 text-sm sm:text-base"
+              >
                 Watch Gameplay
               </Button>
             </div>
@@ -250,6 +276,7 @@ const Index = () => {
         </div>
         <button 
           onClick={() => scrollToSection('overview')} 
+          onMouseEnter={() => audio.playHover()}
           className="absolute bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 animate-bounce z-10"
           aria-label="Scroll to overview"
         >
@@ -431,7 +458,12 @@ const Index = () => {
                   <h3 className="text-xl sm:text-2xl font-bold mb-2">WebGL Game Demo</h3>
                   <p className="text-sm sm:text-base text-muted-foreground mb-4">Play directly in your browser - no downloads required</p>
                   <Button 
-                    onClick={() => navigate('/lobby')}
+                    onClick={() => {
+                      audio.playClick();
+                      initializeAudioOnInteraction();
+                      navigate('/lobby');
+                    }}
+                    onMouseEnter={() => audio.playHover()}
                     className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:shadow-neon text-sm sm:text-base"
                   >
                     Launch Game

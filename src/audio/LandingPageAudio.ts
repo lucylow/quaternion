@@ -207,7 +207,7 @@ class LandingPageAudio {
           gain.gain.linearRampToValueAtTime(this.musicVolume, this.ctx.currentTime + 2);
           
           this.musicSource = source;
-          this.musicGain = gain;
+          // Note: We keep the original musicGain, just connect through the new gain node
           return;
         }
       } catch (e) {

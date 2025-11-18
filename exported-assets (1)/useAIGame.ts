@@ -1,11 +1,13 @@
 // hooks/useAIGame.ts
 import { useState, useEffect, useCallback, useRef } from 'react';
-import AIGameService, { GameState, AIAnalytics, Unit, Building } from '@/services/aiGameService';
+import AIGameService, { GameState, AIAnalytics, Unit, Building } from './aiGameService';
+import type { CommanderArchetype } from '@/ai/opponents/AICommanderArchetypes';
 
 export interface UseAIGameConfig {
   baseURL?: string;
   pollInterval?: number;
   autoStart?: boolean;
+  analyticsPollInterval?: number;
 }
 
 export interface UseAIGameReturn {
@@ -17,7 +19,7 @@ export interface UseAIGameReturn {
   isGameActive: boolean;
 
   // Game controls
-  initializeGame: (width?: number, height?: number, difficulty?: 'easy' | 'medium' | 'hard') => Promise<void>;
+  initializeGame: (width?: number, height?: number, difficulty?: 'easy' | 'medium' | 'hard', commanderArchetype?: CommanderArchetype) => Promise<void>;
   startGame: () => Promise<void>;
   stopGame: () => Promise<void>;
 
@@ -34,7 +36,12 @@ export interface UseAIGameReturn {
 }
 
 export const useAIGame = (config: UseAIGameConfig = {}): UseAIGameReturn => {
-  const { baseURL = 'http://localhost:3000', pollInterval = 100, autoStart = false } = config;
+  const { 
+    baseURL = 'http://localhost:3000', 
+    pollInterval = 100, 
+    autoStart = false,
+    analyticsPollInterval = 1000 
+  } = config;
 
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [aiAnalytics, setAiAnalytics] = useState<AIAnalytics | null>(null);
@@ -43,6 +50,7 @@ export const useAIGame = (config: UseAIGameConfig = {}): UseAIGameReturn => {
   const [isGameActive, setIsGameActive] = useState(false);
 
   const serviceRef = useRef<AIGameService | null>(null);
+  const analyticsIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize service
   useEffect(() => {
@@ -54,6 +62,9 @@ export const useAIGame = (config: UseAIGameConfig = {}): UseAIGameReturn => {
       if (serviceRef.current) {
         serviceRef.current.stopPolling();
       }
+      if (analyticsIntervalRef.current) {
+        clearInterval(analyticsIntervalRef.current);
+      }
     };
   }, [baseURL]);
 
@@ -61,15 +72,50 @@ export const useAIGame = (config: UseAIGameConfig = {}): UseAIGameReturn => {
     setGameState(newState);
   }, []);
 
+  // Poll for AI analytics periodically
+  const pollAnalytics = useCallback(async () => {
+    if (!serviceRef.current || !isGameActive) return;
+    
+    try {
+      const analytics = await serviceRef.current.getAIAnalytics();
+      setAiAnalytics(analytics);
+    } catch (err) {
+      // Silently fail analytics polling to avoid spam
+      console.warn('Failed to poll AI analytics:', err);
+    }
+  }, [isGameActive]);
+
+  // Set up analytics polling when game is active
+  useEffect(() => {
+    if (isGameActive) {
+      // Poll immediately
+      pollAnalytics();
+      
+      // Then poll periodically
+      analyticsIntervalRef.current = setInterval(pollAnalytics, analyticsPollInterval);
+    } else {
+      if (analyticsIntervalRef.current) {
+        clearInterval(analyticsIntervalRef.current);
+        analyticsIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (analyticsIntervalRef.current) {
+        clearInterval(analyticsIntervalRef.current);
+      }
+    };
+  }, [isGameActive, pollAnalytics, analyticsPollInterval]);
+
   const initializeGame = useCallback(
-    async (width = 64, height = 64, difficulty: 'easy' | 'medium' | 'hard' = 'medium') => {
+    async (width = 64, height = 64, difficulty: 'easy' | 'medium' | 'hard' = 'medium', commanderArchetype?: CommanderArchetype) => {
       if (!serviceRef.current) return;
 
       setIsLoading(true);
       setError(null);
 
       try {
-        const { gameId, state } = await serviceRef.current.createGame(width, height, difficulty);
+        const { gameId, state } = await serviceRef.current.createGame(width, height, difficulty, commanderArchetype);
         setGameState(state);
         setIsGameActive(true);
 

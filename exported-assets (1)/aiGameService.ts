@@ -330,32 +330,133 @@ export class AIGameService {
   }
 
   /**
-   * Get AI analytics for current game state
+   * Get AI analytics for current game state, including commander profile and decisions
    */
   async getAIAnalytics(): Promise<AIAnalytics> {
     if (!this.gameId) throw new Error('No active game');
 
     try {
+      // Try to get enhanced analytics from backend
+      try {
+        const response = await this.client.get(`/api/game/${this.gameId}/ai/analytics`);
+        return response.data;
+      } catch (apiError) {
+        // Fallback to calculated analytics if endpoint doesn't exist
+        console.warn('Enhanced AI analytics endpoint not available, using fallback');
+      }
+
       const state = await this.getGameState();
       const playerState = state.players[1]; // AI is player 2
 
       // Calculate threat level based on AI military units
       const aiUnits = state.units.filter(u => u.playerId === 2);
       const aiBuildings = state.buildings.filter(b => b.playerId === 2);
+      const playerUnits = state.units.filter(u => u.playerId === 1);
+      const playerBuildings = state.buildings.filter(b => b.playerId === 1);
 
       const militaryUnits = aiUnits.filter(u => u.type !== 'worker').length;
-      const threatLevel = Math.min(100, (militaryUnits / 20) * 100);
+      const playerMilitaryUnits = playerUnits.filter(u => u.type !== 'worker').length;
+      
+      // More accurate threat calculation
+      const unitRatio = playerMilitaryUnits > 0 ? militaryUnits / playerMilitaryUnits : militaryUnits;
+      const buildingRatio = playerBuildings.length > 0 ? aiBuildings.length / playerBuildings.length : aiBuildings.length;
+      const threatLevel = Math.min(1, (unitRatio * 0.7 + buildingRatio * 0.3));
+
+      // Try to get AI decisions from backend
+      let decisions: AIDecision[] = [];
+      try {
+        const decisionsResponse = await this.client.get(`/api/game/${this.gameId}/ai/decisions`);
+        decisions = decisionsResponse.data.decisions || [];
+      } catch (decisionsError) {
+        // Fallback: create mock decisions based on game state
+        decisions = this.generateMockDecisions(state, aiUnits);
+      }
+
+      // Try to get commander profile
+      let commanderProfile: CommanderProfile | undefined;
+      try {
+        const profileResponse = await this.client.get(`/api/game/${this.gameId}/ai/commander`);
+        commanderProfile = profileResponse.data;
+      } catch (profileError) {
+        // Profile not available, will be undefined
+      }
 
       return {
-        decisions: [],
+        decisions,
         threatLevel,
         strategyPhase: this.getStrategyPhase(state.tick),
         resourceEfficiency: (playerState.minerals + playerState.gas) / Math.max(1, state.tick),
         militaryStrength: (militaryUnits / Math.max(1, aiUnits.length)) * 100,
+        commanderProfile,
       };
     } catch (error) {
       console.error('Failed to get AI analytics:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Generate mock decisions based on game state (fallback)
+   */
+  private generateMockDecisions(state: GameState, aiUnits: Unit[]): AIDecision[] {
+    const decisions: AIDecision[] = [];
+    
+    // Analyze AI behavior and create decisions
+    const militaryUnits = aiUnits.filter(u => u.type !== 'worker');
+    const workers = aiUnits.filter(u => u.type === 'worker');
+
+    if (militaryUnits.length > 0) {
+      decisions.push({
+        type: 'attack',
+        action: `Deploy ${militaryUnits.length} military units`,
+        confidence: 0.75,
+        reasoning: 'Military units ready for engagement',
+        unitIds: militaryUnits.map(u => u.id),
+      });
+    }
+
+    if (workers.length > 0) {
+      decisions.push({
+        type: 'gather',
+        action: `Assign ${workers.length} workers to resource gathering`,
+        confidence: 0.85,
+        reasoning: 'Optimizing resource collection',
+        unitIds: workers.map(u => u.id),
+      });
+    }
+
+    return decisions;
+  }
+
+  /**
+   * Get AI commander profile
+   */
+  async getCommanderProfile(): Promise<CommanderProfile | null> {
+    if (!this.gameId) throw new Error('No active game');
+
+    try {
+      const response = await this.client.get(`/api/game/${this.gameId}/ai/commander`);
+      return response.data;
+    } catch (error) {
+      console.warn('Failed to get commander profile:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get recent AI decisions
+   */
+  async getAIDecisions(limit: number = 10): Promise<AIDecision[]> {
+    if (!this.gameId) throw new Error('No active game');
+
+    try {
+      const response = await this.client.get(`/api/game/${this.gameId}/ai/decisions`, {
+        params: { limit },
+      });
+      return response.data.decisions || [];
+    } catch (error) {
+      console.warn('Failed to get AI decisions:', error);
+      return [];
     }
   }
 
