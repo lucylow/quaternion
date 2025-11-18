@@ -48,6 +48,7 @@ export default class ChromaPulseSynth {
    */
   start(): void {
     if (this.isPlaying) return;
+    if (!this.audioContext) throw new Error('ChromaPulseSynth not initialized. Call init() first.');
 
     const ctx = this.audioContext;
 
@@ -137,6 +138,7 @@ export default class ChromaPulseSynth {
    */
   updateFromChroma(): void {
     if (!this.isPlaying || !this.oscillator || !this.filter) return;
+    if (!this.audioContext) return;
 
     const adaptiveEffects = AdaptiveEffects.instance();
     const chromaLevel = adaptiveEffects.getChromaLevel();
@@ -168,7 +170,8 @@ export default class ChromaPulseSynth {
    * Set volume
    */
   setVolume(volume: number): void {
-    if (this.gain && this.audioContext) {
+    if (!this.audioContext) return;
+    if (this.gain) {
       const now = this.audioContext.currentTime;
       this.gain.gain.cancelScheduledValues(now);
       this.gain.gain.setValueAtTime(volume, now);

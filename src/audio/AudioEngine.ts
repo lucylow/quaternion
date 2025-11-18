@@ -130,6 +130,7 @@ export default class AudioEngine {
    * Generate fallback ambient music
    */
   private generateFallbackMusic(stemId: string): AudioBuffer {
+    if (!this.ctx) throw new Error('Audio context not initialized');
     const sampleRate = this.ctx.sampleRate;
     const duration = 8; // 8 second loop
     const frameCount = sampleRate * duration;
@@ -301,6 +302,7 @@ export default class AudioEngine {
    * Generate fallback sound for missing SFX
    */
   private generateFallbackSFX(key: string): AudioBuffer {
+    if (!this.ctx) throw new Error('Audio context not initialized');
     const sampleRate = this.ctx.sampleRate;
     let duration = 0.1;
     let frequency = 440;
