@@ -3,6 +3,8 @@
  * Manages pre-baked seeds for judge demos and campaign replays
  */
 
+import { safeStringify } from '@/utils/safeJSON';
+
 export interface CampaignSeed {
   id: string;
   map: string;

@@ -5,6 +5,7 @@
 
 import { ResourceType, ResourceCost } from '../ResourceManager';
 import { LLMIntegration } from '@/ai/integrations/LLMIntegration';
+import { safeStringify, extractResourceSnapshot } from '@/utils/safeJSON';
 
 export interface MarketOffer {
   offerId: string;
@@ -229,7 +230,7 @@ export class BlackMarketSystem {
     try {
       const prompt = `Generate black market offer for RTS game.
 
-PLAYER RESOURCES: ${JSON.stringify(playerResources)}
+PLAYER RESOURCES: ${safeStringify(extractResourceSnapshot(playerResources))}
 TRADER PERSONALITY: ${offer.traderPersonality}
 OFFER TYPE: ${offer.description}
 

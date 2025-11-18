@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { MapSelector } from '@/components/game/MapSelector';
 import { MapConfig } from '@/types/map';
 import { speakDialogue } from '@/audio';
+import { encodeImagePath } from '@/utils/imagePathEncoder';
 import { safeStringify } from '@/utils/safeJSON';
 
 interface GameConfig {
@@ -808,9 +809,16 @@ const Lobby = () => {
                       <div className="flex items-center gap-4">
                         {selectedMap.imagePath && (
                           <img
-                            src={selectedMap.imagePath}
+                            src={encodeImagePath(selectedMap.imagePath)}
                             alt={selectedMap.name}
                             className="w-32 h-32 object-cover rounded-lg"
+                            onError={(e) => {
+                              console.error('Failed to load map preview image:', e.currentTarget.src);
+                              // Try original path as fallback
+                              if (e.currentTarget.src !== selectedMap.imagePath) {
+                                e.currentTarget.src = selectedMap.imagePath;
+                              }
+                            }}
                           />
                         )}
                         <div className="flex-1">

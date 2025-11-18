@@ -1,0 +1,39 @@
+[
+  {
+    "id": "monster_01_deep_roar",
+    "voiceId": "sfx-voice",
+    "filename": "monster_01_deep_roar.ogg",
+    "ssml": "<speak><prosody rate='0.85' pitch='-10%'><audio src=''>Grrr…</audio></prosody></speak>"
+  },
+  {
+    "id": "monster_02_chitter",
+    "voiceId": "sfx-voice",
+    "filename": "monster_02_chitter.ogg",
+    "ssml": "<speak><prosody rate='1.10'><break time='50ms'/>Cch-ck! Cch-ck!</prosody></speak>"
+  },
+  {
+    "id": "monster_03_howl",
+    "voiceId": "sfx-voice",
+    "filename": "monster_03_howl.ogg",
+    "ssml": "<speak><prosody rate='0.9' pitch='-4%'>Aaaaah-ooooh...</prosody></speak>"
+  },
+  {
+    "id": "monster_04_rattle",
+    "voiceId": "sfx-voice",
+    "filename": "monster_04_rattle.ogg",
+    "ssml": "<speak><prosody rate='1.05'>Clack-clack—clack.</prosody></speak>"
+  },
+  {
+    "id": "monster_05_screech",
+    "voiceId": "sfx-voice",
+    "filename": "monster_05_screech.ogg",
+    "ssml": "<speak><prosody rate='1.15' pitch='+4%'>Screeee—</prosody></speak>"
+  },
+  {
+    "id": "monster_06_ambient_breath",
+    "voiceId": "sfx-voice",
+    "filename": "monster_06_ambient_breath.ogg",
+    "ssml": "<speak><prosody rate='0.9'><break time='200ms'/>...<break time='200ms'/>...</prosody></speak>"
+  }
+]
+

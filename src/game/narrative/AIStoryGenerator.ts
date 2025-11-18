@@ -4,6 +4,8 @@
  * Integrates with Saga AI, Google AI Pro, and other narrative tools
  */
 
+import { safeStringify } from '@/utils/safeJSON';
+
 export type NarrativeAxis = 'matter' | 'energy' | 'life' | 'knowledge';
 export type NarrativeTimeline = 'collapse' | 'harmony' | 'ascendancy' | 'reclamation' | 'overclock' | 'balance';
 
@@ -115,7 +117,7 @@ export class AIStoryGenerator {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${this.sagaApiKey}`
           },
-          body: JSON.stringify({
+          body: safeStringify({
             prompt: `Generate atmospheric lore for a ${biome} biome in a sci-fi strategy game. 
             Seed: ${seed}. Context: Resources balanced at ${context.resourceBalance.matter}/${context.resourceBalance.energy}/${context.resourceBalance.life}/${context.resourceBalance.knowledge}.
             Write a poetic, mysterious description (2-3 sentences).`,
@@ -202,7 +204,7 @@ export class AIStoryGenerator {
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
+          body: safeStringify({
             contents: [{
               parts: [{
                 text: `You are ${character.name}, an AI advisor in a strategy game. 

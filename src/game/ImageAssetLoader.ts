@@ -3,6 +3,8 @@
  * Manages loading and organizing game images (maps, monsters, countries, etc.)
  */
 
+import { encodeImagePath } from '../utils/imagePathEncoder';
+
 export interface ImageAsset {
   key: string;
   path: string;
@@ -64,26 +66,10 @@ export class ImageAssetLoader {
 
   /**
    * Encode URL path to handle special characters robustly
-   * Handles Unicode characters, spaces, special symbols, and edge cases
+   * Uses shared utility function for consistency across the app
    */
   private static encodePath(path: string): string {
-    // If path already starts with /, keep it; otherwise ensure it does
-    const normalizedPath = path.startsWith('/') ? path : '/' + path;
-    
-    // Split path and encode each segment separately to preserve slashes
-    // This ensures proper encoding of special characters like · (middle dot), spaces, colons, etc.
-    const encoded = normalizedPath.split('/').map(segment => {
-      if (!segment) return segment; // Preserve empty segments (leading/trailing slashes)
-      
-      // Use encodeURIComponent which properly handles:
-      // - Unicode characters (like · middle dot)
-      // - Spaces (encoded as %20)
-      // - Special characters (colons, periods, apostrophes, etc.)
-      // - All non-ASCII characters
-      return encodeURIComponent(segment);
-    }).join('/');
-    
-    return encoded;
+    return encodeImagePath(path);
   }
   
   /**

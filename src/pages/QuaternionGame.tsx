@@ -266,6 +266,21 @@ const QuaternionGame = () => {
         }
       }).catch(err => console.warn('Audio init deferred:', err));
 
+      // Initialize Howler-based audio manager
+      audioManager.init();
+      audioManager.preloadSFX({
+        click: '/audio/sfx/click.ogg',
+        select: '/audio/sfx/ui_select.ogg',
+        confirm: '/audio/sfx/confirm.ogg'
+      });
+
+      // Start background music (loop) - fallback if main audio system fails
+      try {
+        audioManager.playBackground('/audio/music/bg_loop.ogg', { volume: 0.5 });
+      } catch (err) {
+        console.warn('[Howler Audio] Background music not available:', err);
+      }
+
       // Store functions in variables accessible to the scene
       const showToast = toast;
       const sendAIMessage = (commander: string, message: string) => {
@@ -2619,6 +2634,8 @@ const QuaternionGame = () => {
 
     return () => {
       console.log('Destroying Phaser game...');
+      // Cleanup audio
+      audioManager.stopBackground();
       // Cleanup: stop game loop first, then cleanup game state, then Phaser
       if (gameLoopRef.current) {
         gameLoopRef.current.cleanup().then(() => {

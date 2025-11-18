@@ -103,6 +103,9 @@ app.post('/api/ai/tts', async (req, res) => {
   }
 });
 
+// ElevenLabs TTS proxy route
+app.use('/api/ai/elevenlabs-proxy', require('./api/ai/elevenlabs-proxy.js'));
+
 // Serve static files from the appropriate directory
 app.use(express.static(serveDir, {
   extensions: ['html', 'js', 'css', 'json', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'ico']

@@ -5,6 +5,7 @@
 
 // Import CommanderPersonality from EnhancedCommanderPersonality to avoid duplicate definitions
 import type { CommanderPersonality } from '../EnhancedCommanderPersonality';
+import { safeStringify, extractResourceSnapshot, extractSerializableGameState } from '@/utils/safeJSON';
 
 export interface LLMConfig {
   provider: 'google' | 'saga' | 'openai';
@@ -100,7 +101,7 @@ Format as JSON:
   ): Promise<EventNarrative> {
     const prompt = `Given a battlefield themed as "${mapTheme}",
 at game time ${gameTime}s,
-with player having ${JSON.stringify(playerState.resources)} resources,
+with player having ${safeStringify(extractResourceSnapshot(playerState.resources))} resources,
 ${playerState.units} units, and ${playerState.buildings} buildings.
 
 Generate 1 terrain event (50 words max) that:
@@ -191,8 +192,8 @@ Make it dramatic and immersive.`;
       recentAction: string;
     }
   ): Promise<string> {
-    const prompt = `Commander "${commanderName}" with personality ${JSON.stringify(personality.traits)}
-Current state: ${JSON.stringify(gameState)}
+    const prompt = `Commander "${commanderName}" with personality ${safeStringify(personality.traits)}
+Current state: ${safeStringify(extractSerializableGameState(gameState))}
 
 Generate a brief commander comment (max 15 words) that:
 - Matches their personality
@@ -249,7 +250,7 @@ Generate a brief commander comment (max 15 words) that:
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+      body: safeStringify({
         contents: [{
           parts: [{ text: prompt }]
         }],
@@ -281,7 +282,7 @@ Generate a brief commander comment (max 15 words) that:
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`
       },
-      body: JSON.stringify({
+      body: safeStringify({
         prompt,
         temperature: this.config.temperature,
         max_tokens: this.config.maxTokens,
@@ -309,7 +310,7 @@ Generate a brief commander comment (max 15 words) that:
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${apiKey}`
       },
-      body: JSON.stringify({
+      body: safeStringify({
         model: this.config.model || 'gpt-4o-mini',
         messages: [{ role: 'user', content: prompt }],
         temperature: this.config.temperature,

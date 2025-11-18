@@ -328,10 +328,32 @@ All colors MUST be HSL.
   button {
     pointer-events: auto !important;
     cursor: pointer;
+    touch-action: manipulation;
   }
 
   button:disabled {
     pointer-events: none;
     cursor: not-allowed;
+  }
+
+  /* Ensure interactive elements are touch-friendly (only for buttons and button-like elements) */
+  button, [role="button"], .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Links should maintain their natural display but be touch-friendly */
+  a {
+    touch-action: manipulation;
+  }
+
+  /* Improve scrolling on all devices */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Ensure smooth scrolling */
+  html {
+    scroll-padding-top: 80px; /* Account for fixed header */
   }
 }

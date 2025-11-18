@@ -16,11 +16,38 @@ import { encodeImagePath } from "@/utils/imagePathEncoder";
 const Index = () => {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
+  
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Account for fixed header
+      const headerOffset = 80;
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
       setMobileMenuOpen(false);
+    }
+  };
+
+  const handleImageError = (src: string, e: React.SyntheticEvent<HTMLImageElement>) => {
+    console.error('Failed to load image:', src);
+    setImageErrors(prev => new Set(prev).add(src));
+    const target = e.currentTarget;
+    // Show placeholder instead of hiding
+    target.style.display = 'none';
+    // Create placeholder div if it doesn't exist
+    if (!target.parentElement && !target.parentElement?.querySelector('.image-placeholder')) {
+      const placeholder = document.createElement('div');
+      placeholder.className = 'image-placeholder bg-muted/20 flex items-center justify-center text-muted-foreground text-sm';
+      placeholder.style.width = target.style.width || '100%';
+      placeholder.style.height = target.style.height || '200px';
+      placeholder.textContent = 'Image loading...';
+      target.parentElement?.appendChild(placeholder);
     }
   };
 
@@ -211,25 +238,29 @@ const Index = () => {
             <p className="text-base sm:text-lg text-muted-foreground">
               An AI-generated strategy game where every decision rotates the four dimensions of reality. Command procedurally generated armies, exploit dynamic terrain, and balance the Quaternion to achieve victory.
             </p>
-            <div className="relative mt-6 rounded-lg overflow-hidden border border-primary/30 shadow-neon">
-              <img 
-                src={encodeImagePath("/assets/monsters/DALL·E 2024-11-22 18.35.00 - Design a cinematic, ultra-high-quality sci-fi movie poster for 'Quaternion.' The composition features a massive, glowing monster emanating the four po.webp")}
-                alt="Quaternion Game"
-                className="w-full h-auto object-cover"
-                loading="lazy"
-                onError={(e) => {
-                  console.error('Failed to load hero image:', e.currentTarget.src);
-                  e.currentTarget.style.display = 'none';
-                }}
-                onLoad={(e) => {
-                  console.log('Hero image loaded:', e.currentTarget.src);
-                }}
-              />
+            <div className="relative mt-6 rounded-lg overflow-hidden border border-primary/30 shadow-neon min-h-[200px] bg-muted/20">
+              {!imageErrors.has(encodeImagePath("/assets/monsters/DALL·E 2024-11-22 18.35.00 - Design a cinematic, ultra-high-quality sci-fi movie poster for 'Quaternion.' The composition features a massive, glowing monster emanating the four po.webp")) ? (
+                <img 
+                  src={encodeImagePath("/assets/monsters/DALL·E 2024-11-22 18.35.00 - Design a cinematic, ultra-high-quality sci-fi movie poster for 'Quaternion.' The composition features a massive, glowing monster emanating the four po.webp")}
+                  alt="Quaternion Game"
+                  className="w-full h-auto object-cover"
+                  loading="lazy"
+                  onError={(e) => handleImageError(e.currentTarget.src, e)}
+                  onLoad={(e) => {
+                    console.log('Hero image loaded:', e.currentTarget.src);
+                  }}
+                />
+              ) : (
+                <div className="w-full h-64 flex items-center justify-center text-muted-foreground">
+                  <p>Game Preview</p>
+                </div>
+              )}
             </div>
             <div className="flex flex-wrap gap-3 sm:gap-4">
               <Button 
                 size="lg" 
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault();
                   try {
                     navigate('/lobby');
                   } catch (error) {
@@ -238,11 +269,21 @@ const Index = () => {
                     window.location.href = '/lobby';
                   }
                 }}
-                className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:shadow-neon focus:ring-2 focus:ring-primary focus:ring-offset-2 text-sm sm:text-base"
+                className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:shadow-neon focus:ring-2 focus:ring-primary focus:ring-offset-2 text-sm sm:text-base cursor-pointer touch-manipulation min-h-[44px]"
+                aria-label="Play Free Demo"
               >
                 Play Free Demo
               </Button>
-              <Button size="lg" variant="outline" className="border-primary text-primary hover:bg-primary hover:text-primary-foreground focus:ring-2 focus:ring-primary focus:ring-offset-2 text-sm sm:text-base">
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="border-primary text-primary hover:bg-primary hover:text-primary-foreground focus:ring-2 focus:ring-primary focus:ring-offset-2 text-sm sm:text-base cursor-pointer touch-manipulation min-h-[44px]"
+                aria-label="Watch Gameplay"
+                onClick={(e) => {
+                  e.preventDefault();
+                  scrollToSection('demo');
+                }}
+              >
                 Watch Gameplay
               </Button>
             </div>
@@ -270,16 +311,15 @@ const Index = () => {
           <div className="relative hidden md:block">
             <div className="relative w-80 h-80 mx-auto">
               {/* Elemental Guardian Monster Image - Behind the spinning circle */}
-              <img 
-                src={encodeImagePath("/assets/monsters/DALL·E 2024-11-22 18.49.09 - Create an original and highly detailed sci-fi illustration of a colossal elemental monster formed from four floating islands, each representing a dist.webp")}
-                alt="Elemental Guardian Monster"
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 object-cover rounded-full opacity-60 blur-sm z-0"
-                loading="lazy"
-                onError={(e) => {
-                  console.error('Failed to load Elemental Guardian image:', e.currentTarget.src);
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
+              {!imageErrors.has(encodeImagePath("/assets/monsters/DALL·E 2024-11-22 18.49.09 - Create an original and highly detailed sci-fi illustration of a colossal elemental monster formed from four floating islands, each representing a dist.webp")) ? (
+                <img 
+                  src={encodeImagePath("/assets/monsters/DALL·E 2024-11-22 18.49.09 - Create an original and highly detailed sci-fi illustration of a colossal elemental monster formed from four floating islands, each representing a dist.webp")}
+                  alt="Elemental Guardian Monster"
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 object-cover rounded-full opacity-60 blur-sm z-0"
+                  loading="lazy"
+                  onError={(e) => handleImageError(e.currentTarget.src, e)}
+                />
+              ) : null}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-2 border-primary rounded-full animate-quaternion-rotate z-10">
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-primary rounded-full flex items-center justify-center">
                   <Box className="w-4 h-4 text-primary-foreground" />
@@ -298,9 +338,13 @@ const Index = () => {
           </div>
         </div>
         <button 
-          onClick={() => scrollToSection('overview')} 
-          className="absolute bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 animate-bounce z-10"
+          onClick={(e) => {
+            e.preventDefault();
+            scrollToSection('overview');
+          }} 
+          className="absolute bottom-4 sm:bottom-8 left-1/2 -translate-x-1/2 animate-bounce z-10 bg-background/50 backdrop-blur-sm rounded-full p-2 hover:bg-background/80 transition-colors cursor-pointer touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center"
           aria-label="Scroll to overview"
+          type="button"
         >
           <ChevronDown className="w-6 h-6 sm:w-8 sm:h-8 text-primary" />
         </button>
@@ -370,15 +414,20 @@ const Index = () => {
           
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group">
-              <div className="aspect-video relative overflow-hidden">
-                <img 
-                  src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.41 - Create a unique 2D and 3D map design for a volcanic terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowing.webp")}
-                  alt="Volcanic Terrain Map"
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  onError={(e) => {
-                    console.error('Failed to load map image:', e.currentTarget.src);
-                  }}
-                />
+              <div className="aspect-video relative overflow-hidden bg-muted/20">
+                {!imageErrors.has(encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.41 - Create a unique 2D and 3D map design for a volcanic terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowing.webp")) ? (
+                  <img 
+                    src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.41 - Create a unique 2D and 3D map design for a volcanic terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowing.webp")}
+                    alt="Volcanic Terrain Map"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    loading="lazy"
+                    onError={(e) => handleImageError(e.currentTarget.src, e)}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+                    Volcanic Terrain
+                  </div>
+                )}
               </div>
               <CardContent className="p-4">
                 <h3 className="font-bold text-primary">Volcanic Terrain</h3>
@@ -386,15 +435,20 @@ const Index = () => {
             </Card>
 
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '100ms' }}>
-              <div className="aspect-video relative overflow-hidden">
-                <img 
-                  src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.45 - Create a unique 2D and 3D map design for a lush alien jungle for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowin.webp")}
-                  alt="Alien Jungle Map"
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  onError={(e) => {
-                    console.error('Failed to load map image:', e.currentTarget.src);
-                  }}
-                />
+              <div className="aspect-video relative overflow-hidden bg-muted/20">
+                {!imageErrors.has(encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.45 - Create a unique 2D and 3D map design for a lush alien jungle for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowin.webp")) ? (
+                  <img 
+                    src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.45 - Create a unique 2D and 3D map design for a lush alien jungle for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowin.webp")}
+                    alt="Alien Jungle Map"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    loading="lazy"
+                    onError={(e) => handleImageError(e.currentTarget.src, e)}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+                    Alien Jungle
+                  </div>
+                )}
               </div>
               <CardContent className="p-4">
                 <h3 className="font-bold text-primary">Alien Jungle</h3>
@@ -402,15 +456,20 @@ const Index = () => {
             </Card>
 
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '200ms' }}>
-              <div className="aspect-video relative overflow-hidden">
-                <img 
-                  src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.38 - Create a unique 2D and 3D map design for an icy wasteland for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature slippery .webp")}
-                  alt="Icy Wasteland Map"
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  onError={(e) => {
-                    console.error('Failed to load map image:', e.currentTarget.src);
-                  }}
-                />
+              <div className="aspect-video relative overflow-hidden bg-muted/20">
+                {!imageErrors.has(encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.38 - Create a unique 2D and 3D map design for an icy wasteland for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature slippery .webp")) ? (
+                  <img 
+                    src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.38 - Create a unique 2D and 3D map design for an icy wasteland for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature slippery .webp")}
+                    alt="Icy Wasteland Map"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    loading="lazy"
+                    onError={(e) => handleImageError(e.currentTarget.src, e)}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+                    Icy Wasteland
+                  </div>
+                )}
               </div>
               <CardContent className="p-4">
                 <h3 className="font-bold text-primary">Icy Wasteland</h3>
@@ -418,15 +477,20 @@ const Index = () => {
             </Card>
 
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '300ms' }}>
-              <div className="aspect-video relative overflow-hidden">
-                <img 
-                  src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.35 - Create a unique 2D and 3D map design for a desert terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature shifting .webp")}
-                  alt="Desert Terrain Map"
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  onError={(e) => {
-                    console.error('Failed to load map image:', e.currentTarget.src);
-                  }}
-                />
+              <div className="aspect-video relative overflow-hidden bg-muted/20">
+                {!imageErrors.has(encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.35 - Create a unique 2D and 3D map design for a desert terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature shifting .webp")) ? (
+                  <img 
+                    src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.35 - Create a unique 2D and 3D map design for a desert terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature shifting .webp")}
+                    alt="Desert Terrain Map"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    loading="lazy"
+                    onError={(e) => handleImageError(e.currentTarget.src, e)}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+                    Desert Terrain
+                  </div>
+                )}
               </div>
               <CardContent className="p-4">
                 <h3 className="font-bold text-primary">Desert Terrain</h3>
@@ -434,15 +498,20 @@ const Index = () => {
             </Card>
 
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group">
-              <div className="aspect-video relative overflow-hidden">
-                <img 
-                  src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.32 - Create a unique 2D and 3D map design for a mountainous terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature laye.webp")}
-                  alt="Mountainous Terrain Map"
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  onError={(e) => {
-                    console.error('Failed to load map image:', e.currentTarget.src);
-                  }}
-                />
+              <div className="aspect-video relative overflow-hidden bg-muted/20">
+                {!imageErrors.has(encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.32 - Create a unique 2D and 3D map design for a mountainous terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature laye.webp")) ? (
+                  <img 
+                    src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.32 - Create a unique 2D and 3D map design for a mountainous terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature laye.webp")}
+                    alt="Mountainous Terrain Map"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    loading="lazy"
+                    onError={(e) => handleImageError(e.currentTarget.src, e)}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+                    Mountainous
+                  </div>
+                )}
               </div>
               <CardContent className="p-4">
                 <h3 className="font-bold text-primary">Mountainous</h3>
@@ -450,15 +519,20 @@ const Index = () => {
             </Card>
 
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '100ms' }}>
-              <div className="aspect-video relative overflow-hidden">
-                <img 
-                  src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.24 - Create a unique 2D and 3D map design for an urban battlefield for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature dense.webp")}
-                  alt="Urban Battlefield Map"
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  onError={(e) => {
-                    console.error('Failed to load map image:', e.currentTarget.src);
-                  }}
-                />
+              <div className="aspect-video relative overflow-hidden bg-muted/20">
+                {!imageErrors.has(encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.24 - Create a unique 2D and 3D map design for an urban battlefield for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature dense.webp")) ? (
+                  <img 
+                    src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.24 - Create a unique 2D and 3D map design for an urban battlefield for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature dense.webp")}
+                    alt="Urban Battlefield Map"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    loading="lazy"
+                    onError={(e) => handleImageError(e.currentTarget.src, e)}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+                    Urban Battlefield
+                  </div>
+                )}
               </div>
               <CardContent className="p-4">
                 <h3 className="font-bold text-primary">Urban Battlefield</h3>
@@ -466,15 +540,20 @@ const Index = () => {
             </Card>
 
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '200ms' }}>
-              <div className="aspect-video relative overflow-hidden">
-                <img 
-                  src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.21 - Create a unique 2D and 3D map design for a twilight biome for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowing a.webp")}
-                  alt="Twilight Biome Map"
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  onError={(e) => {
-                    console.error('Failed to load map image:', e.currentTarget.src);
-                  }}
-                />
+              <div className="aspect-video relative overflow-hidden bg-muted/20">
+                {!imageErrors.has(encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.21 - Create a unique 2D and 3D map design for a twilight biome for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowing a.webp")) ? (
+                  <img 
+                    src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.21 - Create a unique 2D and 3D map design for a twilight biome for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowing a.webp")}
+                    alt="Twilight Biome Map"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    loading="lazy"
+                    onError={(e) => handleImageError(e.currentTarget.src, e)}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+                    Twilight Biome
+                  </div>
+                )}
               </div>
               <CardContent className="p-4">
                 <h3 className="font-bold text-primary">Twilight Biome</h3>
@@ -482,15 +561,20 @@ const Index = () => {
             </Card>
 
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '300ms' }}>
-              <div className="aspect-video relative overflow-hidden">
-                <img 
-                  src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.28 - Create a unique 2D and 3D map design for an underwater biome for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowin.webp")}
-                  alt="Underwater Biome Map"
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  onError={(e) => {
-                    console.error('Failed to load map image:', e.currentTarget.src);
-                  }}
-                />
+              <div className="aspect-video relative overflow-hidden bg-muted/20">
+                {!imageErrors.has(encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.28 - Create a unique 2D and 3D map design for an underwater biome for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowin.webp")) ? (
+                  <img 
+                    src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.28 - Create a unique 2D and 3D map design for an underwater biome for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowin.webp")}
+                    alt="Underwater Biome Map"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    loading="lazy"
+                    onError={(e) => handleImageError(e.currentTarget.src, e)}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+                    Underwater
+                  </div>
+                )}
               </div>
               <CardContent className="p-4">
                 <h3 className="font-bold text-primary">Underwater</h3>
@@ -509,21 +593,22 @@ const Index = () => {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 max-w-5xl mx-auto">
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group">
               <div className="aspect-[4/3] relative overflow-hidden bg-muted/20">
-                <img 
-                  src={encodeImagePath("/assets/monsters/DALL·E 2024-11-22 19.02.15 - Create a visually striking and highly original sci-fi illustration for 'Quaternion_ Defend the Dimensions.' Center the image on a colossal monster for.webp")}
-                  alt="Colossal Monster"
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  loading="lazy"
-                  onError={(e) => {
-                    console.error('Failed to load monster image:', e.currentTarget.src);
-                    // Set a placeholder or hide the image
-                    e.currentTarget.style.display = 'none';
-                  }}
-                  onLoad={(e) => {
-                    // Image loaded successfully
-                    console.log('Monster image loaded:', e.currentTarget.src);
-                  }}
-                />
+                {!imageErrors.has(encodeImagePath("/assets/monsters/DALL·E 2024-11-22 19.02.15 - Create a visually striking and highly original sci-fi illustration for 'Quaternion_ Defend the Dimensions.' Center the image on a colossal monster for.webp")) ? (
+                  <img 
+                    src={encodeImagePath("/assets/monsters/DALL·E 2024-11-22 19.02.15 - Create a visually striking and highly original sci-fi illustration for 'Quaternion_ Defend the Dimensions.' Center the image on a colossal monster for.webp")}
+                    alt="Colossal Monster"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    loading="lazy"
+                    onError={(e) => handleImageError(e.currentTarget.src, e)}
+                    onLoad={(e) => {
+                      console.log('Monster image loaded:', e.currentTarget.src);
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+                    Elemental Guardian
+                  </div>
+                )}
               </div>
               <CardContent className="p-6">
                 <h3 className="text-xl font-bold text-primary mb-2">Elemental Guardian</h3>
@@ -533,21 +618,22 @@ const Index = () => {
 
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '100ms' }}>
               <div className="aspect-[4/3] relative overflow-hidden bg-muted/20">
-                <img 
-                  src={encodeImagePath("/assets/monsters/DALL·E 2024-11-22 18.44.15 - Design an enhanced sci-fi movie poster for 'Quaternion,' focusing on the battle between a colossal monster and three futuristic starships. The monster.webp")}
-                  alt="Battle Scene Monster"
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  loading="lazy"
-                  onError={(e) => {
-                    console.error('Failed to load monster image:', e.currentTarget.src);
-                    // Set a placeholder or hide the image
-                    e.currentTarget.style.display = 'none';
-                  }}
-                  onLoad={(e) => {
-                    // Image loaded successfully
-                    console.log('Monster image loaded:', e.currentTarget.src);
-                  }}
-                />
+                {!imageErrors.has(encodeImagePath("/assets/monsters/DALL·E 2024-11-22 18.44.15 - Design an enhanced sci-fi movie poster for 'Quaternion,' focusing on the battle between a colossal monster and three futuristic starships. The monster.webp")) ? (
+                  <img 
+                    src={encodeImagePath("/assets/monsters/DALL·E 2024-11-22 18.44.15 - Design an enhanced sci-fi movie poster for 'Quaternion,' focusing on the battle between a colossal monster and three futuristic starships. The monster.webp")}
+                    alt="Battle Scene Monster"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    loading="lazy"
+                    onError={(e) => handleImageError(e.currentTarget.src, e)}
+                    onLoad={(e) => {
+                      console.log('Monster image loaded:', e.currentTarget.src);
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+                    Cosmic Battle
+                  </div>
+                )}
               </div>
               <CardContent className="p-6">
                 <h3 className="text-xl font-bold text-primary mb-2">Cosmic Battle</h3>
@@ -557,21 +643,22 @@ const Index = () => {
 
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '200ms' }}>
               <div className="aspect-[4/3] relative overflow-hidden bg-muted/20">
-                <img 
-                  src={encodeImagePath("/assets/monsters/DALL·E 2024-11-20 16.27.15 - Create an AI-generated image of a Celestial Monster character from a celestial-themed game. The monster is chaotic and otherworldly, with glowing cosm.webp")}
-                  alt="Celestial Monster"
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  loading="lazy"
-                  onError={(e) => {
-                    console.error('Failed to load monster image:', e.currentTarget.src);
-                    // Set a placeholder or hide the image
-                    e.currentTarget.style.display = 'none';
-                  }}
-                  onLoad={(e) => {
-                    // Image loaded successfully
-                    console.log('Monster image loaded:', e.currentTarget.src);
-                  }}
-                />
+                {!imageErrors.has(encodeImagePath("/assets/monsters/DALL·E 2024-11-20 16.27.15 - Create an AI-generated image of a Celestial Monster character from a celestial-themed game. The monster is chaotic and otherworldly, with glowing cosm.webp")) ? (
+                  <img 
+                    src={encodeImagePath("/assets/monsters/DALL·E 2024-11-20 16.27.15 - Create an AI-generated image of a Celestial Monster character from a celestial-themed game. The monster is chaotic and otherworldly, with glowing cosm.webp")}
+                    alt="Celestial Monster"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    loading="lazy"
+                    onError={(e) => handleImageError(e.currentTarget.src, e)}
+                    onLoad={(e) => {
+                      console.log('Monster image loaded:', e.currentTarget.src);
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+                    Celestial Chaos
+                  </div>
+                )}
               </div>
               <CardContent className="p-6">
                 <h3 className="text-xl font-bold text-primary mb-2">Celestial Chaos</h3>
@@ -691,7 +778,8 @@ const Index = () => {
                   <h3 className="text-xl sm:text-2xl font-bold mb-2">WebGL Game Demo</h3>
                   <p className="text-sm sm:text-base text-muted-foreground mb-4">Play directly in your browser - no downloads required</p>
                   <Button 
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.preventDefault();
                       try {
                         navigate('/lobby');
                       } catch (error) {
@@ -699,7 +787,8 @@ const Index = () => {
                         window.location.href = '/lobby';
                       }
                     }}
-                    className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:shadow-neon text-sm sm:text-base"
+                    className="bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:shadow-neon text-sm sm:text-base cursor-pointer touch-manipulation min-h-[44px]"
+                    aria-label="Launch Game"
                   >
                     Launch Game
                   </Button>

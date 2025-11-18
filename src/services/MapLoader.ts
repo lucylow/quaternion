@@ -5,6 +5,7 @@
 
 import mapsData from '../assets/maps/maps.json';
 import { MapConfig } from '../types/map';
+import { encodeImagePath as encodePath } from '../utils/imagePathEncoder';
 
 export class MapLoader {
   private imageCache: Map<string, HTMLImageElement> = new Map();
@@ -30,18 +31,10 @@ export class MapLoader {
 
   /**
    * Encode image path to handle special characters
+   * Uses shared utility function for consistency
    */
   private encodeImagePath(path: string): string {
-    // Handle absolute paths (starting with /)
-    if (path.startsWith('/')) {
-      const parts = path.split('/');
-      return parts.map((part, index) => {
-        if (index === 0 || !part) return part; // Keep leading slash and empty segments
-        return encodeURIComponent(part);
-      }).join('/');
-    }
-    // For relative paths, encode the entire path
-    return encodeURIComponent(path);
+    return encodePath(path);
   }
 
   /**

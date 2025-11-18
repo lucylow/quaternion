@@ -12,6 +12,7 @@ import { MultiplayerAIController } from './ai/MultiplayerAIController.js';
 import { CommandQueue } from './utils/CommandQueue.js';
 import { ReplayRecorder } from './utils/ReplayRecorder.js';
 import { MatchmakingQueue } from './utils/MatchmakingQueue.js';
+import { validateSupabaseToken, verifyPlayerId } from './utils/jwtValidator.js';
 
 class MultiplayerGameServer extends EventEmitter {
   constructor(options = {}) {
@@ -271,14 +272,48 @@ class MultiplayerGameServer extends EventEmitter {
 
   authenticatePlayer(playerConnection, payload) {
     const { playerId, token } = payload;
-    // TODO: Validate token with auth service
+
+    // Validate token
+    if (!token) {
+      playerConnection.send({
+        type: 'error',
+        message: 'Authentication token required'
+      });
+      playerConnection.close(1008, 'Authentication required');
+      return;
+    }
+
+    // Verify JWT token
+    const tokenData = validateSupabaseToken(token);
+    if (!tokenData) {
+      playerConnection.send({
+        type: 'error',
+        message: 'Invalid or expired authentication token'
+      });
+      playerConnection.close(1008, 'Invalid token');
+      return;
+    }
+
+    // Verify playerId matches authenticated user
+    if (!verifyPlayerId(token, playerId)) {
+      playerConnection.send({
+        type: 'error',
+        message: 'Player ID does not match authenticated user'
+      });
+      playerConnection.close(1008, 'Player ID mismatch');
+      return;
+    }
+
+    // Authentication successful
     playerConnection.playerId = playerId;
+    playerConnection.userId = tokenData.userId;
     playerConnection.authenticated = true;
     this.players.set(playerId, playerConnection);
 
     playerConnection.send({
       type: 'authenticated',
       playerId,
+      userId: tokenData.userId,
       message: 'Successfully authenticated'
     });
   }

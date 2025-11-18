@@ -5,6 +5,7 @@
 
 import { ResourceType } from '../ResourceManager';
 import { LLMIntegration } from '@/ai/integrations/LLMIntegration';
+import { safeStringify, extractSerializableGameState } from '@/utils/safeJSON';
 
 export interface ResourceEvent {
   eventId: string;
@@ -226,7 +227,7 @@ export class ResourceEventGenerator {
       const prompt = `Generate a resource management event for sci-fi RTS game.
 
 TEMPLATE: ${template.templateName}
-CURRENT GAME STATE: ${JSON.stringify(gameState)}
+CURRENT GAME STATE: ${safeStringify(extractSerializableGameState(gameState))}
 FLAVOR THEMES: ${template.flavorThemes.join(', ')}
 
 Requirements:

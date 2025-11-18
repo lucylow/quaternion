@@ -5,6 +5,7 @@
 
 import { ResourceType, ResourceCost } from '../ResourceManager';
 import { LLMIntegration } from '@/ai/integrations/LLMIntegration';
+import { safeStringify } from '@/utils/safeJSON';
 
 export interface AllocationOption {
   optionId: string;
@@ -234,7 +235,7 @@ export class AllocationPuzzleManager {
       try {
         const prompt = `Generate a brief narrative (2 sentences max) for a resource allocation puzzle in a sci-fi RTS game.
 
-Context: ${JSON.stringify(context)}
+Context: ${safeStringify(context)}
 Puzzle Type: ${puzzleType}
 
 Make it engaging and strategic.`;

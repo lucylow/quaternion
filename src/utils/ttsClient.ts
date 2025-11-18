@@ -20,14 +20,27 @@ export async function generateAndPlayTTS({
     return cached;
   }
 
-  // request audio (binary)
-  const resp = await axios.post(
-    '/api/generate-tts',
-    { voiceId, text, ssml, format: 'ogg' },
-    {
-      responseType: 'arraybuffer'
-    }
-  );
+  // request audio (binary) - try new endpoint first, fallback to existing
+  const baseUrl = import.meta.env.VITE_API_BASE || '/api';
+  let resp;
+  try {
+    resp = await axios.post(
+      `${baseUrl}/ai/elevenlabs-proxy/generate-tts`,
+      { voiceId, text, ssml, format: 'ogg' },
+      {
+        responseType: 'arraybuffer'
+      }
+    );
+  } catch (err) {
+    // Fallback to existing TTS endpoint
+    resp = await axios.post(
+      `${baseUrl}/ai/tts`,
+      { text: ssml || text, voice: voiceId, ssml: !!ssml },
+      {
+        responseType: 'arraybuffer'
+      }
+    );
+  }
   // create blob url
   const blob = new Blob([resp.data], { type: 'audio/ogg' });
   const url = URL.createObjectURL(blob);
