@@ -1012,7 +1012,10 @@ const QuaternionGame = () => {
         node.setData('type', nodeType.resource);
         node.setData('amount', 1000);
         node.setData('axis', nodeType.axis);
-        node.setInteractive();
+        node.setInteractive({ useHandCursor: true });
+        node.on('pointerdown', () => {
+          console.log('[Scene] Resource node clicked:', nodeType.resource, 'at', node.x, node.y);
+        });
         
         // Enhanced icon with axis styling
         const icon = this.add.text(x, y, nodeType.resource.charAt(0).toUpperCase(), {
@@ -1043,7 +1046,10 @@ const QuaternionGame = () => {
       // Create enhanced player base
       playerBase = this.add.rectangle(150, 350, 80, 80, 0x00ffea, 0.9);
       playerBase.setStrokeStyle(3, 0x00ffea, 1);
-      playerBase.setInteractive();
+      playerBase.setInteractive({ useHandCursor: true });
+      playerBase.on('pointerdown', () => {
+        console.log('[Scene] Player base clicked at', playerBase.x, playerBase.y);
+      });
       playerBase.setDepth(50); // Ensure base is visible
       playerBase.setData('type', 'base');
       playerBase.setData('player', 1);
@@ -1067,6 +1073,116 @@ const QuaternionGame = () => {
 
       // Selection graphics
       selectionGraphics = this.add.graphics();
+
+      // Create player units - CRITICAL FIX: Units were never being created!
+      console.log('[Scene] Creating player units...');
+      for (let i = 0; i < 6; i++) {
+        const unitX = 200 + (i % 3) * 60;
+        const unitY = 400 + Math.floor(i / 3) * 60;
+        const unitType = i < 3 ? 'worker' : 'soldier';
+        const unitAxis = i < 3 ? 'matter' : 'energy';
+        
+        // Create unit as physics sprite
+        const unit = this.physics.add.sprite(unitX, unitY, '');
+        unit.displayWidth = 40;
+        unit.displayHeight = 40;
+        unit.setTint(0x00ffea);
+        unit.setInteractive({ useHandCursor: true }); // CRITICAL: Make units clickable!
+        unit.setData('type', unitType);
+        unit.setData('axis', unitAxis);
+        unit.setData('health', 100);
+        unit.setData('maxHealth', 100);
+        unit.setData('selected', false);
+        unit.setData('damage', unitType === 'soldier' ? 15 : 5);
+        unit.setData('state', 'idle');
+        
+        // Create unit graphics with axis-themed visuals
+        const unitGraphics = this.add.graphics();
+        const design = AXIS_DESIGNS[unitAxis];
+        const primaryColor = hexToPhaserColor(design.primary);
+        const glowColor = hexToPhaserColor(design.glow);
+        
+        unitGraphics.fillStyle(primaryColor, 0.8);
+        unitGraphics.fillCircle(unit.x, unit.y, 20);
+        unitGraphics.lineStyle(2, glowColor, 1);
+        unitGraphics.strokeCircle(unit.x, unit.y, 20);
+        
+        unit.setData('graphics', unitGraphics);
+        playerUnits.push(unit);
+        
+        // Unit click handler - CRITICAL: Add click detection!
+        unit.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+          console.log('[Scene] Unit clicked!', unitType, 'at', unit.x, unit.y);
+          
+          if (!pointer.leftButtonDown()) return; // Only left clicks
+          
+          // Deselect all other units
+          selectedUnits.forEach(u => {
+            if (u !== unit) {
+              u.setData('selected', false);
+              const g = u.getData('graphics') as Phaser.GameObjects.Graphics;
+              if (g) {
+                const uAxis = u.getData('axis') || 'matter';
+                const uDesign = AXIS_DESIGNS[uAxis];
+                const uPrimaryColor = hexToPhaserColor(uDesign.primary);
+                const uGlowColor = hexToPhaserColor(uDesign.glow);
+                g.clear();
+                g.fillStyle(uPrimaryColor, 0.8);
+                g.fillCircle(u.x, u.y, 20);
+                g.lineStyle(2, uGlowColor, 1);
+                g.strokeCircle(u.x, u.y, 20);
+              }
+            }
+          });
+          
+          // Select this unit
+          if (!unit.getData('selected')) {
+            selectedUnits.length = 0;
+            selectedUnits.push(unit);
+            unit.setData('selected', true);
+            const g = unit.getData('graphics') as Phaser.GameObjects.Graphics;
+            if (g) {
+              g.clear();
+              g.fillStyle(primaryColor, 0.8);
+              g.fillCircle(unit.x, unit.y, 20);
+              g.lineStyle(3, 0xffff00, 1); // Yellow selection ring
+              g.strokeCircle(unit.x, unit.y, 20);
+            }
+            setSelectedUnit(unitType);
+            setSelectedUnits([...selectedUnits]);
+            console.log('[Scene] Unit selected:', unitType);
+          }
+        });
+        
+        // Unit hover effects
+        unit.on('pointerover', () => {
+          const g = unit.getData('graphics') as Phaser.GameObjects.Graphics;
+          if (g && !unit.getData('selected')) {
+            g.clear();
+            g.fillStyle(primaryColor, 0.9);
+            g.fillCircle(unit.x, unit.y, 22); // Slightly larger on hover
+            g.lineStyle(2, glowColor, 1);
+            g.strokeCircle(unit.x, unit.y, 22);
+          }
+        });
+        
+        unit.on('pointerout', () => {
+          if (!unit.getData('selected')) {
+            const g = unit.getData('graphics') as Phaser.GameObjects.Graphics;
+            if (g) {
+              g.clear();
+              g.fillStyle(primaryColor, 0.8);
+              g.fillCircle(unit.x, unit.y, 20);
+              g.lineStyle(2, glowColor, 1);
+              g.strokeCircle(unit.x, unit.y, 20);
+            }
+          }
+        });
+      }
+      
+      // Update playerUnitsRef so minimap and other components can access them
+      playerUnitsRef.current = playerUnits;
+      console.log('[Scene] Created', playerUnits.length, 'player units');
 
       // Enhanced Camera controls
       cursors = this.input.keyboard?.createCursorKeys() || null;
@@ -1114,9 +1230,14 @@ const QuaternionGame = () => {
       console.log('[Scene] Input enabled:', this.input.enabled);
       console.log('[Scene] Input active:', this.input.isActive());
       
+      // Add gameobjectdown handler for unit clicks (alternative to individual unit handlers)
+      this.input.on('gameobjectdown', (pointer: Phaser.Input.Pointer, gameObject: any) => {
+        console.log('[Scene] GameObject clicked:', gameObject, 'at', pointer.x, pointer.y);
+      });
+      
       // Mouse controls with debug logging
       this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-        console.log('[Scene] Phaser pointerdown detected:', pointer.x, pointer.y, 'button:', pointer.buttons);
+        console.log('[Scene] Phaser pointerdown detected:', pointer.x, pointer.y, 'button:', pointer.buttons, 'world:', pointer.worldX, pointer.worldY);
         if (pointer.rightButtonDown()) {
           // Right click - move/attack command
           if (selectedUnits.length > 0) {
@@ -1894,6 +2015,12 @@ const QuaternionGame = () => {
         aiUnit.setData('damage', 25);
         aiUnit.setData('target', playerBase);
         aiUnit.setData('state', 'attacking');
+        
+        // Make AI units interactive for debugging/click detection
+        aiUnit.setInteractive({ useHandCursor: false });
+        aiUnit.on('pointerdown', () => {
+          console.log('[Scene] AI unit clicked at', aiUnit.x, aiUnit.y);
+        });
         
         // Move towards player base
         this.physics.moveToObject(aiUnit, playerBase, 100);
