@@ -41,6 +41,25 @@ export function assetUrl(localPath: string): string {
 
   // 3) Handle existing /assets paths - these should work as-is but ensure they're properly resolved
   if (localPath.startsWith('/assets/')) {
+    // Check if we're in Lovable preview environment (iframe)
+    if (typeof window !== 'undefined') {
+      const isLovablePreview = window.location.pathname.includes('id-preview') || 
+                               window.location.pathname.includes('/preview/') ||
+                               (window.parent !== window && (document.referrer.includes('lovable.dev') || window.location.hostname.includes('lovable.dev')));
+      
+      if (isLovablePreview) {
+        // In Lovable preview iframe, public assets are served from root of the iframe
+        // Construct full URL using current origin + encoded path
+        const origin = window.location.origin;
+        // In iframe, assets might be at root or might need base path
+        // Try root first (most common)
+        const encodedPath = encodeImagePath(localPath);
+        const fullUrl = `${origin}${encodedPath}`;
+        console.log('[assetUrl] Lovable preview detected, using:', fullUrl, 'from path:', localPath);
+        return fullUrl;
+      }
+    }
+    
     // If we have a dev prefix, use it; otherwise encode and return the path
     if (devPrefix) {
       return encodeImagePath(`${devPrefix.replace(/\/$/, '')}${localPath}`);
