@@ -5,6 +5,8 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  // Explicitly set public directory for static assets
+  publicDir: 'public',
   server: {
     host: "::",
     port: 8080,
