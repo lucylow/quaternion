@@ -50,14 +50,8 @@ export class ErrorBoundary extends Component<Props, State> {
               Something went wrong
             </h1>
             <p className="text-gray-300 mb-4">
-              The game encountered an error. This might be due to:
+              The game encountered an error. Please try reloading the page.
             </p>
-            <ul className="list-disc list-inside text-gray-400 mb-6 space-y-2">
-              <li>Circular reference in game state</li>
-              <li>Missing game assets</li>
-              <li>Browser compatibility issue</li>
-              <li>Network connection problem</li>
-            </ul>
             
             {this.state.error && (
               <details className="mb-6">
@@ -94,4 +88,3 @@ export class ErrorBoundary extends Component<Props, State> {
     return this.props.children;
   }
 }
-

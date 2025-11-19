@@ -911,7 +911,7 @@ export function CosmeticShop() {
                         <div className={cn("w-24 h-24 rounded-lg flex items-center justify-center relative flex-shrink-0", rarityConfig.color)}>
                           {item.image ? (
                             <img 
-                              src={item.image} 
+                              src={assetUrl(item.image)} 
                               alt={item.name}
                               className="w-full h-full object-cover rounded-lg"
                               onError={(e) => {
