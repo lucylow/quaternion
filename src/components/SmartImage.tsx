@@ -28,7 +28,22 @@ export default function SmartImage({
     // Resolve again in case the Lovable resolver is injected after initial load
     const resolved = assetUrl(srcLocal);
     setSrcResolved(resolved);
+    setErrored(false); // Reset error state when src changes
   }, [srcLocal]);
+  
+  // Also retry resolution after a short delay in case environment isn't ready
+  useEffect(() => {
+    if (errored) {
+      const timer = setTimeout(() => {
+        const resolved = assetUrl(srcLocal);
+        if (resolved !== srcResolved) {
+          setSrcResolved(resolved);
+          setErrored(false);
+        }
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [errored, srcLocal, srcResolved]);
 
   useEffect(() => {
     if (!preload) return;
@@ -47,6 +62,11 @@ export default function SmartImage({
 
   const fallback = placeholder || '/assets/placeholder.svg';
 
+  const handleError = () => {
+    console.warn('[SmartImage] Failed to load image:', srcLocal, 'Resolved URL:', srcResolved);
+    setErrored(true);
+  };
+
   return (
     <img
       src={errored ? assetUrl(fallback) : srcResolved}
@@ -54,7 +74,11 @@ export default function SmartImage({
       className={className}
       style={style}
       crossOrigin={crossOrigin}
-      onError={() => setErrored(true)}
+      onError={handleError}
+      onLoad={() => {
+        // Reset error state on successful load
+        if (errored) setErrored(false);
+      }}
       decoding="async"
       loading="lazy"
     />

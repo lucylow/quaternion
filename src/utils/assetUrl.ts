@@ -55,7 +55,10 @@ export function assetUrl(localPath: string): string {
         // Try root first (most common)
         const encodedPath = encodeImagePath(localPath);
         const fullUrl = `${origin}${encodedPath}`;
-        console.log('[assetUrl] Lovable preview detected, using:', fullUrl, 'from path:', localPath);
+        // Log only in development for debugging
+        if (import.meta.env?.DEV) {
+          console.log('[assetUrl] Lovable preview detected, using:', fullUrl, 'from path:', localPath);
+        }
         return fullUrl;
       }
     }
