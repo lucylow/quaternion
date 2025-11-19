@@ -30,11 +30,11 @@ export class MapLoader {
   }
 
   /**
-   * Encode image path to handle special characters
+   * Resolve image path using assetUrl() for Lovable deployment compatibility
    * Uses shared utility function for consistency
    */
-  private encodeImagePath(path: string): string {
-    return encodePath(path);
+  private resolveImagePath(path: string): string {
+    return assetUrl(path);
   }
 
   /**
@@ -45,12 +45,12 @@ export class MapLoader {
       return this.imageCache.get(imagePath)!;
     }
 
-    // Try both encoded and original paths, with and without CORS
-    const encodedPath = this.encodeImagePath(imagePath);
+    // Try resolved path (handles Lovable transformation and encoding), with and without CORS
+    const resolvedPath = this.resolveImagePath(imagePath);
     const pathsToTry = [
-      { path: encodedPath, cors: false },
+      { path: resolvedPath, cors: false },
       { path: imagePath, cors: false },
-      { path: encodedPath, cors: true },  // Try with CORS as fallback
+      { path: resolvedPath, cors: true },  // Try with CORS as fallback
       { path: imagePath, cors: true }
     ];
 

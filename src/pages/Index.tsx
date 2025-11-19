@@ -11,7 +11,7 @@ import { useNavigate } from "react-router-dom";
 import heroImage from "@/assets/quaternion-hero.webp";
 import mapImage from "@/assets/game-maps.webp";
 import { speakDialogue } from "@/audio";
-import { encodeImagePath } from "@/utils/imagePathEncoder";
+import { assetUrl } from "@/utils/assetUrl";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -301,7 +301,7 @@ const Index = () => {
             <div className="relative mt-6 rounded-lg overflow-hidden border border-primary/30 shadow-neon min-h-[200px] bg-muted/20">
               {!imageErrors.has("/assets/monsters/DALL·E 2024-11-22 18.35.00 - Design a cinematic, ultra-high-quality sci-fi movie poster for 'Quaternion.' The composition features a massive, glowing monster emanating the four po.webp") ? (
                 <img 
-                  src={encodeImagePath("/assets/monsters/DALL·E 2024-11-22 18.35.00 - Design a cinematic, ultra-high-quality sci-fi movie poster for 'Quaternion.' The composition features a massive, glowing monster emanating the four po.webp")}
+                  src={assetUrl("/assets/monsters/DALL·E 2024-11-22 18.35.00 - Design a cinematic, ultra-high-quality sci-fi movie poster for 'Quaternion.' The composition features a massive, glowing monster emanating the four po.webp")}
                   alt="Quaternion Game"
                   className="w-full h-auto object-cover"
                   loading="lazy"
@@ -371,9 +371,9 @@ const Index = () => {
           <div className="relative hidden md:block">
             <div className="relative w-80 h-80 mx-auto">
               {/* Elemental Guardian Monster Image - Behind the spinning circle */}
-              {!imageErrors.has(encodeImagePath("/assets/monsters/DALL·E 2024-11-22 18.49.09 - Create an original and highly detailed sci-fi illustration of a colossal elemental monster formed from four floating islands, each representing a dist.webp")) ? (
+              {!imageErrors.has(assetUrl("/assets/monsters/DALL·E 2024-11-22 18.49.09 - Create an original and highly detailed sci-fi illustration of a colossal elemental monster formed from four floating islands, each representing a dist.webp")) ? (
                 <img 
-                  src={encodeImagePath("/assets/monsters/DALL·E 2024-11-22 18.49.09 - Create an original and highly detailed sci-fi illustration of a colossal elemental monster formed from four floating islands, each representing a dist.webp")}
+                  src={assetUrl("/assets/monsters/DALL·E 2024-11-22 18.49.09 - Create an original and highly detailed sci-fi illustration of a colossal elemental monster formed from four floating islands, each representing a dist.webp")}
                   alt="Elemental Guardian Monster"
                   className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 object-cover rounded-full opacity-60 blur-sm z-0"
                   loading="lazy"
@@ -475,9 +475,9 @@ const Index = () => {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group">
               <div className="aspect-video relative overflow-hidden bg-muted/20">
-                {!imageErrors.has(encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.41 - Create a unique 2D and 3D map design for a volcanic terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowing.webp")) ? (
+                {!imageErrors.has(assetUrl("/assets/maps/DALL·E 2024-11-20 16.22.41 - Create a unique 2D and 3D map design for a volcanic terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowing.webp")) ? (
                   <img 
-                    src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.41 - Create a unique 2D and 3D map design for a volcanic terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowing.webp")}
+                    src={assetUrl("/assets/maps/DALL·E 2024-11-20 16.22.41 - Create a unique 2D and 3D map design for a volcanic terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowing.webp")}
                     alt="Volcanic Terrain Map"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     loading="lazy"
@@ -496,9 +496,9 @@ const Index = () => {
 
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '100ms' }}>
               <div className="aspect-video relative overflow-hidden bg-muted/20">
-                {!imageErrors.has(encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.45 - Create a unique 2D and 3D map design for a lush alien jungle for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowin.webp")) ? (
+                {!imageErrors.has(assetUrl("/assets/maps/DALL·E 2024-11-20 16.22.45 - Create a unique 2D and 3D map design for a lush alien jungle for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowin.webp")) ? (
                   <img 
-                    src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.45 - Create a unique 2D and 3D map design for a lush alien jungle for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowin.webp")}
+                    src={assetUrl("/assets/maps/DALL·E 2024-11-20 16.22.45 - Create a unique 2D and 3D map design for a lush alien jungle for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowin.webp")}
                     alt="Alien Jungle Map"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     loading="lazy"
@@ -517,9 +517,9 @@ const Index = () => {
 
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '200ms' }}>
               <div className="aspect-video relative overflow-hidden bg-muted/20">
-                {!imageErrors.has(encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.38 - Create a unique 2D and 3D map design for an icy wasteland for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature slippery .webp")) ? (
+                {!imageErrors.has(assetUrl("/assets/maps/DALL·E 2024-11-20 16.22.38 - Create a unique 2D and 3D map design for an icy wasteland for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature slippery .webp")) ? (
                   <img 
-                    src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.38 - Create a unique 2D and 3D map design for an icy wasteland for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature slippery .webp")}
+                    src={assetUrl("/assets/maps/DALL·E 2024-11-20 16.22.38 - Create a unique 2D and 3D map design for an icy wasteland for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature slippery .webp")}
                     alt="Icy Wasteland Map"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     loading="lazy"
@@ -538,9 +538,9 @@ const Index = () => {
 
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '300ms' }}>
               <div className="aspect-video relative overflow-hidden bg-muted/20">
-                {!imageErrors.has(encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.35 - Create a unique 2D and 3D map design for a desert terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature shifting .webp")) ? (
+                {!imageErrors.has(assetUrl("/assets/maps/DALL·E 2024-11-20 16.22.35 - Create a unique 2D and 3D map design for a desert terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature shifting .webp")) ? (
                   <img 
-                    src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.35 - Create a unique 2D and 3D map design for a desert terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature shifting .webp")}
+                    src={assetUrl("/assets/maps/DALL·E 2024-11-20 16.22.35 - Create a unique 2D and 3D map design for a desert terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature shifting .webp")}
                     alt="Desert Terrain Map"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     loading="lazy"
@@ -559,9 +559,9 @@ const Index = () => {
 
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group">
               <div className="aspect-video relative overflow-hidden bg-muted/20">
-                {!imageErrors.has(encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.32 - Create a unique 2D and 3D map design for a mountainous terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature laye.webp")) ? (
+                {!imageErrors.has(assetUrl("/assets/maps/DALL·E 2024-11-20 16.22.32 - Create a unique 2D and 3D map design for a mountainous terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature laye.webp")) ? (
                   <img 
-                    src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.32 - Create a unique 2D and 3D map design for a mountainous terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature laye.webp")}
+                    src={assetUrl("/assets/maps/DALL·E 2024-11-20 16.22.32 - Create a unique 2D and 3D map design for a mountainous terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature laye.webp")}
                     alt="Mountainous Terrain Map"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     loading="lazy"
@@ -580,9 +580,9 @@ const Index = () => {
 
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '100ms' }}>
               <div className="aspect-video relative overflow-hidden bg-muted/20">
-                {!imageErrors.has(encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.24 - Create a unique 2D and 3D map design for an urban battlefield for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature dense.webp")) ? (
+                {!imageErrors.has(assetUrl("/assets/maps/DALL·E 2024-11-20 16.22.24 - Create a unique 2D and 3D map design for an urban battlefield for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature dense.webp")) ? (
                   <img 
-                    src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.24 - Create a unique 2D and 3D map design for an urban battlefield for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature dense.webp")}
+                    src={assetUrl("/assets/maps/DALL·E 2024-11-20 16.22.24 - Create a unique 2D and 3D map design for an urban battlefield for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature dense.webp")}
                     alt="Urban Battlefield Map"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     loading="lazy"
@@ -601,9 +601,9 @@ const Index = () => {
 
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '200ms' }}>
               <div className="aspect-video relative overflow-hidden bg-muted/20">
-                {!imageErrors.has(encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.21 - Create a unique 2D and 3D map design for a twilight biome for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowing a.webp")) ? (
+                {!imageErrors.has(assetUrl("/assets/maps/DALL·E 2024-11-20 16.22.21 - Create a unique 2D and 3D map design for a twilight biome for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowing a.webp")) ? (
                   <img 
-                    src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.21 - Create a unique 2D and 3D map design for a twilight biome for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowing a.webp")}
+                    src={assetUrl("/assets/maps/DALL·E 2024-11-20 16.22.21 - Create a unique 2D and 3D map design for a twilight biome for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowing a.webp")}
                     alt="Twilight Biome Map"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     loading="lazy"
@@ -622,9 +622,9 @@ const Index = () => {
 
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '300ms' }}>
               <div className="aspect-video relative overflow-hidden bg-muted/20">
-                {!imageErrors.has(encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.28 - Create a unique 2D and 3D map design for an underwater biome for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowin.webp")) ? (
+                {!imageErrors.has(assetUrl("/assets/maps/DALL·E 2024-11-20 16.22.28 - Create a unique 2D and 3D map design for an underwater biome for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowin.webp")) ? (
                   <img 
-                    src={encodeImagePath("/assets/maps/DALL·E 2024-11-20 16.22.28 - Create a unique 2D and 3D map design for an underwater biome for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowin.webp")}
+                    src={assetUrl("/assets/maps/DALL·E 2024-11-20 16.22.28 - Create a unique 2D and 3D map design for an underwater biome for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowin.webp")}
                     alt="Underwater Biome Map"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     loading="lazy"
@@ -653,9 +653,9 @@ const Index = () => {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 max-w-5xl mx-auto">
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group">
               <div className="aspect-[4/3] relative overflow-hidden bg-muted/20">
-                {!imageErrors.has(encodeImagePath("/assets/monsters/DALL·E 2024-11-22 19.02.15 - Create a visually striking and highly original sci-fi illustration for 'Quaternion_ Defend the Dimensions.' Center the image on a colossal monster for.webp")) ? (
+                {!imageErrors.has(assetUrl("/assets/monsters/DALL·E 2024-11-22 19.02.15 - Create a visually striking and highly original sci-fi illustration for 'Quaternion_ Defend the Dimensions.' Center the image on a colossal monster for.webp")) ? (
                   <img 
-                    src={encodeImagePath("/assets/monsters/DALL·E 2024-11-22 19.02.15 - Create a visually striking and highly original sci-fi illustration for 'Quaternion_ Defend the Dimensions.' Center the image on a colossal monster for.webp")}
+                    src={assetUrl("/assets/monsters/DALL·E 2024-11-22 19.02.15 - Create a visually striking and highly original sci-fi illustration for 'Quaternion_ Defend the Dimensions.' Center the image on a colossal monster for.webp")}
                     alt="Colossal Monster"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     loading="lazy"
@@ -678,9 +678,9 @@ const Index = () => {
 
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '100ms' }}>
               <div className="aspect-[4/3] relative overflow-hidden bg-muted/20">
-                {!imageErrors.has(encodeImagePath("/assets/monsters/DALL·E 2024-11-22 18.44.15 - Design an enhanced sci-fi movie poster for 'Quaternion,' focusing on the battle between a colossal monster and three futuristic starships. The monster.webp")) ? (
+                {!imageErrors.has(assetUrl("/assets/monsters/DALL·E 2024-11-22 18.44.15 - Design an enhanced sci-fi movie poster for 'Quaternion,' focusing on the battle between a colossal monster and three futuristic starships. The monster.webp")) ? (
                   <img 
-                    src={encodeImagePath("/assets/monsters/DALL·E 2024-11-22 18.44.15 - Design an enhanced sci-fi movie poster for 'Quaternion,' focusing on the battle between a colossal monster and three futuristic starships. The monster.webp")}
+                    src={assetUrl("/assets/monsters/DALL·E 2024-11-22 18.44.15 - Design an enhanced sci-fi movie poster for 'Quaternion,' focusing on the battle between a colossal monster and three futuristic starships. The monster.webp")}
                     alt="Battle Scene Monster"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     loading="lazy"
@@ -703,9 +703,9 @@ const Index = () => {
 
             <Card className="animate-on-scroll opacity-0 translate-y-5 transition-all duration-700 bg-card/70 border-primary/30 hover:border-primary hover:shadow-neon hover:-translate-y-2 overflow-hidden group" style={{ transitionDelay: '200ms' }}>
               <div className="aspect-[4/3] relative overflow-hidden bg-muted/20">
-                {!imageErrors.has(encodeImagePath("/assets/monsters/DALL·E 2024-11-20 16.27.15 - Create an AI-generated image of a Celestial Monster character from a celestial-themed game. The monster is chaotic and otherworldly, with glowing cosm.webp")) ? (
+                {!imageErrors.has(assetUrl("/assets/monsters/DALL·E 2024-11-20 16.27.15 - Create an AI-generated image of a Celestial Monster character from a celestial-themed game. The monster is chaotic and otherworldly, with glowing cosm.webp")) ? (
                   <img 
-                    src={encodeImagePath("/assets/monsters/DALL·E 2024-11-20 16.27.15 - Create an AI-generated image of a Celestial Monster character from a celestial-themed game. The monster is chaotic and otherworldly, with glowing cosm.webp")}
+                    src={assetUrl("/assets/monsters/DALL·E 2024-11-20 16.27.15 - Create an AI-generated image of a Celestial Monster character from a celestial-themed game. The monster is chaotic and otherworldly, with glowing cosm.webp")}
                     alt="Celestial Monster"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     loading="lazy"

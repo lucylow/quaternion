@@ -8,7 +8,7 @@ import { MapConfig } from '@/types/map';
 import { mapLoader } from '@/services/MapLoader';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { encodeImagePath } from '@/utils/imagePathEncoder';
+import { assetUrl } from '@/utils/assetUrl';
 
 interface MapSelectorProps {
   onMapSelect: (mapConfig: MapConfig) => void;
@@ -29,14 +29,14 @@ export const MapSelector: React.FC<MapSelectorProps> = ({
     // Preload preview images with retry logic
     availableMaps.forEach(map => {
       const loadImageWithRetry = async (path: string, retries: number = 3) => {
-        // Encode the path to handle special characters using shared utility
-        const encodedPath = encodeImagePath(path);
+        // Resolve the path using assetUrl() to handle special characters and Lovable transformation
+        const resolvedPath = assetUrl(path);
         
-        // Try both encoded and original paths, with and without CORS
+        // Try resolved path and original path, with and without CORS
         const pathsToTry = [
-          { path: encodedPath, cors: false },
+          { path: resolvedPath, cors: false },
           { path: path, cors: false },
-          { path: encodedPath, cors: true },  // Try with CORS as fallback
+          { path: resolvedPath, cors: true },  // Try with CORS as fallback
           { path: path, cors: true }
         ];
 

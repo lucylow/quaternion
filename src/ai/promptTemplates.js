@@ -1,3 +1,5 @@
+import { safeStringify, extractSerializableGameState } from '@/utils/safeJSON';
+
 /**
  * Build strategic decision prompt from game state
  */
@@ -163,7 +165,7 @@ Output JSON:
 COMMANDER: ${commander.name}
 PERSONALITY: ${commander.personality}
 SITUATION: ${situation}
-GAME_STATE: ${JSON.stringify(gameState || {})}
+GAME_STATE: ${safeStringify(extractSerializableGameState(gameState || {}))}
 
 OUTPUT:`
   }

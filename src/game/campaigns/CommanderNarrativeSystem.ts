@@ -5,6 +5,7 @@
 
 import { LLMIntegration } from '../../ai/integrations/LLMIntegration';
 import type { NarrativeEvent } from './CampaignSystem';
+import { safeStringify, extractSerializableGameState } from '@/utils/safeJSON';
 
 export interface CommanderTraits {
   aggressiveness: number;
@@ -270,7 +271,7 @@ Make it feel authentic to this commander's style.`;
    * Create cache key
    */
   private createCacheKey(input: CommanderNarrativeInput): string {
-    const stateStr = input.gameState ? JSON.stringify(input.gameState) : '';
+    const stateStr = input.gameState ? safeStringify(extractSerializableGameState(input.gameState)) : '';
     return `${input.commanderId}_${input.situation}_${input.seed || 0}_${stateStr}`;
   }
 

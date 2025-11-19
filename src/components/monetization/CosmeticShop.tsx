@@ -577,7 +577,7 @@ export function CosmeticShop() {
                   >
                     {cosmetic.image ? (
                       <img 
-                        src={cosmetic.image} 
+                        src={assetUrl(cosmetic.image)} 
                         alt={cosmetic.name}
                         className="w-full h-full object-cover"
                         onError={(e) => {
