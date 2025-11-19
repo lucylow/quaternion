@@ -187,11 +187,20 @@ All colors MUST be HSL.
   }
 
   /* Game container styles */
+  /* Ensure game container fills iframe */
   .game-container {
-    position: relative !important;
-    width: 100% !important;
-    height: 100% !important;
-    overflow: hidden !important;
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  /* Fix for Phaser canvas in iframe */
+  canvas {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
   }
 
   .game-container canvas,
