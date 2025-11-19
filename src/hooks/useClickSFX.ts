@@ -1,7 +1,7 @@
 // src/hooks/useClickSFX.ts
-import audioManager from '../utils/audioManager';
+import { audioManager } from '@/engine/AudioManager';
 
 export function useClickSFX(sfx: string = 'click') {
-  return () => audioManager.playSFX(sfx);
+  return () => audioManager.play(`sfx/${sfx}`, { volume: 0.9 });
 }
 

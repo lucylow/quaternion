@@ -34,20 +34,80 @@ const Index = () => {
     }
   };
 
-  const handleImageError = (src: string, e: React.SyntheticEvent<HTMLImageElement>) => {
-    console.error('Failed to load image:', src);
-    setImageErrors(prev => new Set(prev).add(src));
+  // Helper to extract original path from encoded src
+  const getOriginalPath = (encodedSrc: string): string => {
+    try {
+      // Handle relative paths (starting with /)
+      if (encodedSrc.startsWith('/')) {
+        // Try to decode each path segment
+        const decoded = encodedSrc.split('/').map(segment => {
+          try {
+            return decodeURIComponent(segment);
+          } catch {
+            return segment;
+          }
+        }).join('/');
+        // Remove base path if present (for Lovable preview)
+        if (window.location.pathname.includes('id-preview')) {
+          const basePath = window.location.pathname.split('/id-preview')[0] + '/id-preview';
+          return decoded.replace(basePath, '') || decoded;
+        }
+        return decoded;
+      }
+      
+      // Handle full URLs
+      const url = new URL(encodedSrc, window.location.origin);
+      const pathname = url.pathname;
+      // Try to decode each segment
+      const decoded = pathname.split('/').map(segment => {
+        try {
+          return decodeURIComponent(segment);
+        } catch {
+          return segment;
+        }
+      }).join('/');
+      // Remove base path if present (for Lovable preview)
+      if (window.location.pathname.includes('id-preview')) {
+        const basePath = window.location.pathname.split('/id-preview')[0] + '/id-preview';
+        return decoded.replace(basePath, '') || decoded;
+      }
+      return decoded;
+    } catch {
+      // If URL parsing fails, try to extract path from src using regex
+      const match = encodedSrc.match(/\/assets\/[^\s'"]*/);
+      if (match) {
+        try {
+          // Try to decode the matched path
+          return decodeURIComponent(match[0]);
+        } catch {
+          return match[0];
+        }
+      }
+      return encodedSrc;
+    }
+  };
+
+  const handleImageError = (pathOrSrc: string, e: React.SyntheticEvent<HTMLImageElement>) => {
+    // If pathOrSrc looks like an encoded URL, try to extract original path
+    const originalPath = pathOrSrc.startsWith('http') || pathOrSrc.includes('%') 
+      ? getOriginalPath(pathOrSrc)
+      : pathOrSrc;
+    
+    console.error('Failed to load image:', originalPath, 'Encoded src:', e.currentTarget.src);
+    // Store the original path in error set (this is the key we check against)
+    setImageErrors(prev => new Set(prev).add(originalPath));
     const target = e.currentTarget;
-    // Show placeholder instead of hiding
+    // Hide the broken image
     target.style.display = 'none';
     // Create placeholder div if it doesn't exist
-    if (!target.parentElement && !target.parentElement?.querySelector('.image-placeholder')) {
+    const parent = target.parentElement;
+    if (parent && !parent.querySelector('.image-placeholder')) {
       const placeholder = document.createElement('div');
       placeholder.className = 'image-placeholder bg-muted/20 flex items-center justify-center text-muted-foreground text-sm';
       placeholder.style.width = target.style.width || '100%';
       placeholder.style.height = target.style.height || '200px';
-      placeholder.textContent = 'Image loading...';
-      target.parentElement?.appendChild(placeholder);
+      placeholder.textContent = 'Image unavailable';
+      parent.appendChild(placeholder);
     }
   };
 
@@ -239,7 +299,7 @@ const Index = () => {
               An AI-generated strategy game where every decision rotates the four dimensions of reality. Command procedurally generated armies, exploit dynamic terrain, and balance the Quaternion to achieve victory.
             </p>
             <div className="relative mt-6 rounded-lg overflow-hidden border border-primary/30 shadow-neon min-h-[200px] bg-muted/20">
-              {!imageErrors.has(encodeImagePath("/assets/monsters/DALL·E 2024-11-22 18.35.00 - Design a cinematic, ultra-high-quality sci-fi movie poster for 'Quaternion.' The composition features a massive, glowing monster emanating the four po.webp")) ? (
+              {!imageErrors.has("/assets/monsters/DALL·E 2024-11-22 18.35.00 - Design a cinematic, ultra-high-quality sci-fi movie poster for 'Quaternion.' The composition features a massive, glowing monster emanating the four po.webp") ? (
                 <img 
                   src={encodeImagePath("/assets/monsters/DALL·E 2024-11-22 18.35.00 - Design a cinematic, ultra-high-quality sci-fi movie poster for 'Quaternion.' The composition features a massive, glowing monster emanating the four po.webp")}
                   alt="Quaternion Game"

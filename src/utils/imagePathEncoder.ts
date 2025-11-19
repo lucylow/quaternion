@@ -13,7 +13,7 @@ function getAssetBasePath(): string {
   // Check if we're in Lovable preview environment
   if (typeof window !== 'undefined') {
     const pathname = window.location.pathname;
-    const pathParts = pathname.split('/');
+    const pathParts = pathname.split('/').filter(p => p);
     
     // Lovable preview URLs contain 'id-preview' in the path
     if (pathname.includes('id-preview')) {
@@ -22,24 +22,16 @@ function getAssetBasePath(): string {
       const idPreviewIndex = pathParts.findIndex(part => part === 'id-preview');
       if (idPreviewIndex !== -1) {
         // Get everything up to and including 'id-preview'
-        const basePath = pathParts.slice(0, idPreviewIndex + 1).join('/');
+        const basePath = '/' + pathParts.slice(0, idPreviewIndex + 1).join('/');
         return basePath;
       }
-      // Fallback: use the pathname without trailing slash
-      return pathname.replace(/\/[^/]*$/, '') || '';
     }
     
-    // Check if we're in Lovable production/regular mode
-    // Lovable uses paths like /project-name/...
-    // We should preserve the base path if it exists
-    const firstPathSegment = pathParts[1]; // pathParts[0] is '', pathParts[1] is first segment
-    if (firstPathSegment && firstPathSegment !== '' && !firstPathSegment.includes('.')) {
-      // Likely in a subdirectory, preserve it
-      return `/${firstPathSegment}`;
-    }
+    // For other cases, don't add base path - Vite handles public assets from root
+    // Public assets in Vite are always served from / regardless of route
   }
   
-  // Regular Vite dev/prod - use root
+  // Regular Vite dev/prod - use root (public assets are always at root)
   return '';
 }
 

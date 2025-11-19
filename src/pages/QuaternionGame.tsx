@@ -35,7 +35,6 @@ import { safeStringify, safeParse } from '@/utils/safeJSON';
 import BackgroundMusic from '@/audio/BackgroundMusic';
 import ChromaPulseSynth from '@/audio/ChromaPulseSynth';
 import MapMusicManager from '@/audio/MapMusicManager';
-import audioManager from '@/utils/audioManager';
 import { generateAndPlayTTS } from '@/utils/ttsClient';
 import { AXIS_DESIGNS, getAxisDesign, hexToPhaserColor, AI_THOUGHT_VISUALS, BIOME_THEMES } from '@/design/QuaternionDesignSystem';
 import { AIStoryGenerator, NarrativeEvent, NarrativeContext } from '@/game/narrative/AIStoryGenerator';
@@ -44,7 +43,6 @@ import { ChronicleExporter } from '@/components/narrative/ChronicleExporter';
 import { BookOpen, Handshake, Sparkles, Target } from 'lucide-react';
 import { AIOffersPanel } from '@/components/creative/AIOffersPanel';
 import { AlternativeVictoriesDisplay } from '@/components/creative/AlternativeVictoriesDisplay';
-import DebugOverlay from '@/components/DebugOverlay';
 import { loadDevSampleIfNoEntities } from '@/utils/dev_fallback_renderer';
 import { safeSetInteractive } from '@/utils/inputSafe';
 import {
@@ -58,7 +56,7 @@ import {
   DynamicTechTree
 } from '@/ai/creative';
 import { engineBridge } from '@/engine/EngineBridge';
-import { audioManager as gameAudioManager } from '@/engine/AudioManager';
+import { audioManager } from '@/engine/AudioManager';
 
 interface GameResources {
   ore: number;
@@ -310,19 +308,11 @@ const QuaternionGame = () => {
         }
       }).catch(err => console.warn('Audio init deferred:', err));
 
-      // Initialize Howler-based audio manager
-      audioManager.init();
-      audioManager.preloadSFX({
-        click: '/audio/sfx/click.ogg',
-        select: '/audio/sfx/ui_select.ogg',
-        confirm: '/audio/sfx/confirm.ogg'
-      });
-
-      // Start background music (loop) - fallback if main audio system fails
+      // Start background music (loop) - engine AudioManager handles Phaser/HTML5 fallback
       try {
-        audioManager.playBackground('/audio/music/bg_loop.ogg', { volume: 0.5 });
+        audioManager.loop('music/bg_loop', { volume: 0.5 });
       } catch (err) {
-        console.warn('[Howler Audio] Background music not available:', err);
+        console.warn('[Audio] Background music not available:', err);
       }
 
       // Store functions in variables accessible to the scene
@@ -411,21 +401,8 @@ const QuaternionGame = () => {
             // This ensures audio context is ready
             setTimeout(async () => {
               try {
-                const audioManager = getAudioManager();
-                if (!audioManager) {
-                  console.warn('[Audio] AudioManager not available');
-                  return;
-                }
-
-                const audioContext = audioManager.getAudioContext();
-                if (audioContext && audioContext.state === 'suspended') {
-                  try {
-                    await audioContext.resume();
-                  } catch (resumeError) {
-                    console.warn('[Audio] Failed to resume AudioContext:', resumeError);
-                    // Continue anyway - might work on user interaction
-                  }
-                }
+                // Audio context will be resumed automatically when Phaser sounds play
+                // Engine AudioManager handles this automatically
                 
                 // Start background music
                 try {
@@ -2809,7 +2786,7 @@ const QuaternionGame = () => {
     return () => {
       console.log('Destroying Phaser game...');
       // Cleanup audio
-      audioManager.stopBackground();
+      audioManager.stop('music/bg_loop');
       // Cleanup: stop game loop first, then cleanup game state, then Phaser
       if (gameLoopRef.current) {
         gameLoopRef.current.cleanup().then(() => {
@@ -4152,9 +4129,6 @@ const QuaternionGame = () => {
               </Button>
             </div>
           )}
-
-          {/* Debug Overlay */}
-          <DebugOverlay />
         </>
       )}
     </div>

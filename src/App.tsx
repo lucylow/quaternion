@@ -8,8 +8,6 @@ import Index from "./pages/Index";
 // Import QuaternionGame directly instead of lazy loading to fix Phaser initialization
 import QuaternionGame from "./pages/QuaternionGame";
 import { ErrorBoundary as GameErrorBoundary } from "@/components/ErrorBoundary";
-// PATCHED BY CURSOR - lovable integration
-import LovableDebug from "./components/LovableDebug";
 import {
   LazyLobby,
   LazyAbout,
@@ -138,8 +136,6 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <div className="min-h-screen w-full overflow-x-auto overflow-y-auto">
-            {/* PATCHED BY CURSOR - lovable integration */}
-            <LovableDebug />
             <Suspense fallback={<RouteLoader />}>
               <Routes>
                 <Route path="/" element={<Index />} />
