@@ -1,6 +1,8 @@
 // src/frontend/managers/AssetManager.ts
 
 import Phaser from 'phaser';
+import { encodeImagePath } from '../../utils/imagePathEncoder';
+import { fetchAsset } from '../../utils/networkUtils';
 
 interface MonsterStats {
   health: number;
@@ -82,6 +84,7 @@ export class AssetManager {
   /**
    * Wait for all assets to finish loading
    * Call this after loadAllAssets() and start the loader
+   * Returns true if all assets loaded, false if some failed (but game can continue)
    */
   async waitForAssetsToLoad(): Promise<boolean> {
     return new Promise((resolve, reject) => {
@@ -92,19 +95,46 @@ export class AssetManager {
         return;
       }
 
+      const failedAssets: string[] = [];
+      let hasCompleted = false;
+
+      // Track failed assets but continue loading
+      const errorHandler = (file: any) => {
+        const assetKey = file.key || file.src || 'unknown';
+        failedAssets.push(assetKey);
+        console.warn(`⚠️ Failed to load asset: ${assetKey} from ${file.src || 'unknown path'}`);
+        
+        // Try to use fallback/placeholder if available
+        this.handleMissingAsset(assetKey);
+      };
+
       // Set up event listeners
       this.scene.load.once('complete', () => {
-        console.log('✅ All assets loaded successfully');
-        resolve(true);
+        hasCompleted = true;
+        if (failedAssets.length > 0) {
+          console.warn(`⚠️ Loaded with ${failedAssets.length} missing assets:`, failedAssets);
+          // Game can continue with missing assets using fallbacks
+          resolve(false);
+        } else {
+          console.log('✅ All assets loaded successfully');
+          resolve(true);
+        }
       });
 
-      this.scene.load.once('filecomplete-error', (file: any) => {
-        console.error(`❌ Failed to load asset: ${file.key} from ${file.src}`);
-        // Continue loading other assets even if one fails
-      });
+      this.scene.load.on('filecomplete-error', errorHandler);
+      this.scene.load.on('loaderror', errorHandler);
 
-      this.scene.load.once('loaderror', (file: any) => {
-        console.error(`❌ Load error for: ${file.key}`);
+      // Timeout after 30 seconds to prevent hanging
+      const timeout = setTimeout(() => {
+        if (!hasCompleted) {
+          console.error(`⏱️ Asset loading timeout after 30s. Loaded ${this.scene.load.list.size} assets, ${failedAssets.length} failed`);
+          this.scene.load.removeAllListeners();
+          resolve(false); // Continue anyway with what we have
+        }
+      }, 30000);
+
+      this.scene.load.once('complete', () => {
+        clearTimeout(timeout);
       });
 
       // Start the loader if it hasn't started
@@ -115,27 +145,43 @@ export class AssetManager {
   }
 
   /**
+   * Handle missing asset by creating a fallback
+   */
+  private handleMissingAsset(assetKey: string): void {
+    try {
+      // Try to create a placeholder texture if possible
+      if (!this.scene.textures.exists(assetKey)) {
+        // Create a simple colored rectangle as placeholder
+        const graphics = this.scene.add.graphics();
+        graphics.fillStyle(0x888888, 1);
+        graphics.fillRect(0, 0, 64, 64);
+        graphics.generateTexture(assetKey, 64, 64);
+        graphics.destroy();
+        
+        console.log(`✅ Created placeholder for missing asset: ${assetKey}`);
+        
+        // Update asset metadata to mark as placeholder
+        if (this.assets.has(assetKey)) {
+          const asset = this.assets.get(assetKey)!;
+          this.assets.set(assetKey, {
+            ...asset,
+            path: asset.path + ' [PLACEHOLDER]'
+          });
+        }
+      }
+    } catch (error) {
+      console.warn(`Could not create placeholder for ${assetKey}:`, error);
+    }
+  }
+
+  /**
    * Encode URL path to handle special characters robustly
    * Handles Unicode characters, spaces, special symbols, and edge cases
+   * Also handles Lovable preview environment paths
+   * Uses shared utility for consistency across the app
    */
   private encodePath(path: string): string {
-    // If path already starts with /, keep it; otherwise ensure it does
-    const normalizedPath = path.startsWith('/') ? path : '/' + path;
-    
-    // Split path and encode each segment separately to preserve slashes
-    // This ensures proper encoding of special characters like · (middle dot), spaces, colons, etc.
-    const encoded = normalizedPath.split('/').map(segment => {
-      if (!segment) return segment; // Preserve empty segments (leading/trailing slashes)
-      
-      // Use encodeURIComponent which properly handles:
-      // - Unicode characters (like · middle dot)
-      // - Spaces (encoded as %20)
-      // - Special characters (colons, periods, apostrophes, etc.)
-      // - All non-ASCII characters
-      return encodeURIComponent(segment);
-    }).join('/');
-    
-    return encoded;
+    return encodeImagePath(path);
   }
 
   /**
@@ -253,7 +299,7 @@ export class AssetManager {
    */
   async loadMonsterStats(monsterName: string): Promise<MonsterStats> {
     try {
-      const response = await fetch(
+      const response = await fetchAsset(
         `${this.assetPaths.monsters}${monsterName}/stats.json`
       );
       if (response.ok) {
@@ -270,7 +316,7 @@ export class AssetManager {
    */
   async loadCountryMetadata(countryName: string): Promise<CountryMetadata> {
     try {
-      const response = await fetch(
+      const response = await fetchAsset(
         `${this.assetPaths.countries}${countryName}/metadata.json`
       );
       if (response.ok) {
@@ -283,7 +329,7 @@ export class AssetManager {
   }
 
   /**
-   * Get texture with caching
+   * Get texture with caching and fallback handling
    */
   getTexture(key: string): Phaser.Textures.Texture | null {
     if (this.loadedTextures.has(key)) {
@@ -291,11 +337,33 @@ export class AssetManager {
     }
 
     try {
-      const texture = this.scene.textures.get(key);
-      this.loadedTextures.set(key, texture);
-      return texture;
+      if (this.scene.textures.exists(key)) {
+        const texture = this.scene.textures.get(key);
+        this.loadedTextures.set(key, texture);
+        return texture;
+      } else {
+        // Try to create placeholder if texture doesn't exist
+        this.handleMissingAsset(key);
+        // Try again after creating placeholder
+        if (this.scene.textures.exists(key)) {
+          const texture = this.scene.textures.get(key);
+          this.loadedTextures.set(key, texture);
+          return texture;
+        }
+        console.warn(`Texture not found and could not create placeholder: ${key}`);
+        return null;
+      }
     } catch (error) {
-      console.error(`Texture not found: ${key}`);
+      console.error(`Error getting texture: ${key}`, error);
+      // Try to create placeholder as last resort
+      this.handleMissingAsset(key);
+      if (this.scene.textures.exists(key)) {
+        try {
+          return this.scene.textures.get(key);
+        } catch (e) {
+          return null;
+        }
+      }
       return null;
     }
   }

@@ -53,17 +53,21 @@ export default class BackgroundMusic {
    * Start background music
    */
   async start(): Promise<void> {
-    if (this.isPlaying) return;
+    if (this.isPlaying) {
+      return;
+    }
 
     if (!this.audioContext) {
-      console.error('BackgroundMusic: Cannot start - AudioContext not initialized. Call init() first.');
-      return;
+      const error = new Error('BackgroundMusic: Cannot start - AudioContext not initialized. Call init() first.');
+      console.error(error.message);
+      throw error;
     }
 
     // Check if audio context is in a valid state
     if (this.audioContext.state === 'closed') {
-      console.error('BackgroundMusic: Cannot start - AudioContext is closed');
-      return;
+      const error = new Error('BackgroundMusic: Cannot start - AudioContext is closed');
+      console.error(error.message);
+      throw error;
     }
 
     // Resume audio context if suspended (required for user interaction)
@@ -71,8 +75,9 @@ export default class BackgroundMusic {
       try {
         await this.audioContext.resume();
       } catch (error) {
-        console.error('BackgroundMusic: Failed to resume AudioContext', error);
-        return;
+        const err = error instanceof Error ? error : new Error('Failed to resume AudioContext');
+        console.error('BackgroundMusic: Failed to resume AudioContext', err);
+        throw err;
       }
     }
 
@@ -131,7 +136,10 @@ export default class BackgroundMusic {
       this.masterGain.connect(this.filter);
       const musicGain = this.audioManager.getMusicGainNode();
       if (!musicGain) {
-        throw new Error('Music gain node not available');
+        const error = new Error('Music gain node not available');
+        console.error('BackgroundMusic:', error.message);
+        this.stop();
+        throw error;
       }
       this.filter.connect(musicGain);
 
@@ -152,39 +160,72 @@ export default class BackgroundMusic {
    * Stop background music
    */
   stop(): void {
-    if (!this.isPlaying) return;
+    if (!this.isPlaying) {
+      return;
+    }
 
-    try {
-      // Stop oscillators safely
-      this.oscillators.forEach(osc => {
-        try {
+    // Stop oscillators safely
+    this.oscillators.forEach((osc, index) => {
+      try {
+        if (osc && typeof osc.stop === 'function') {
           osc.stop();
-        } catch (e) {
-          console.warn('BackgroundMusic: Error stopping oscillator', e);
         }
-      });
-
-      if (this.lfo) {
-        try {
-          this.lfo.stop();
-        } catch (e) {
-          console.warn('BackgroundMusic: Error stopping LFO', e);
-        }
+      } catch (e) {
+        // Oscillator may already be stopped or invalid - ignore
+        console.debug(`BackgroundMusic: Oscillator ${index} already stopped or invalid`);
       }
-    } catch (e) {
-      console.warn('BackgroundMusic: Error during stop operation', e);
+    });
+
+    if (this.lfo) {
+      try {
+        if (typeof this.lfo.stop === 'function') {
+          this.lfo.stop();
+        }
+      } catch (e) {
+        // LFO may already be stopped - ignore
+        console.debug('BackgroundMusic: LFO already stopped or invalid');
+      }
     }
 
     // Disconnect all nodes safely
     try {
-      this.oscillators.forEach(osc => osc?.disconnect());
-      this.gainNodes.forEach(gain => gain?.disconnect());
-      this.lfo?.disconnect();
-      this.lfoGain?.disconnect();
-      this.filter?.disconnect();
-      this.masterGain?.disconnect();
+      this.oscillators.forEach(osc => {
+        try {
+          osc?.disconnect();
+        } catch (e) {
+          // Already disconnected - ignore
+        }
+      });
+      this.gainNodes.forEach(gain => {
+        try {
+          gain?.disconnect();
+        } catch (e) {
+          // Already disconnected - ignore
+        }
+      });
+      try {
+        this.lfo?.disconnect();
+      } catch (e) {
+        // Already disconnected - ignore
+      }
+      try {
+        this.lfoGain?.disconnect();
+      } catch (e) {
+        // Already disconnected - ignore
+      }
+      try {
+        this.filter?.disconnect();
+      } catch (e) {
+        // Already disconnected - ignore
+      }
+      try {
+        this.masterGain?.disconnect();
+      } catch (e) {
+        // Already disconnected - ignore
+      }
     } catch (e) {
-      console.warn('BackgroundMusic: Error disconnecting nodes', e);
+      // Ignore disconnect errors - nodes may already be disconnected
+      console.debug('BackgroundMusic: Some nodes were already disconnected');
     }
 
     // Clear references

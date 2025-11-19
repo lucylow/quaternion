@@ -58,32 +58,20 @@ export async function initializeAudio() {
       // Continue without music - game will still work
     }
 
-    // Start background music (procedural - no files needed)
+    // Initialize background music (procedural - no files needed)
+    // Note: Don't start it here - it will be started on user interaction in QuaternionGame.tsx
     try {
       const backgroundMusic = BackgroundMusic.instance();
       await backgroundMusic.init();
-      // Start after a short delay to ensure audio context is ready
-      // This will be triggered by user interaction (game start)
-      setTimeout(async () => {
-        try {
-          await backgroundMusic.start();
-        } catch (err) {
-          console.warn('BackgroundMusic: Failed to start (will retry on user interaction)', err);
-        }
-      }, 100);
+      // Don't start here - wait for user interaction to avoid autoplay restrictions
     } catch (bgMusicError) {
       console.warn('BackgroundMusic initialization failed (non-critical):', bgMusicError);
+      // Continue without background music - game will still work
     }
 
-    // Start chroma pulse synth (procedural ambient)
-    // Start after a short delay to ensure audio context is ready
-    setTimeout(async () => {
-      try {
-        await chromaSynth.start();
-      } catch (err) {
-        console.warn('ChromaPulseSynth: Failed to start (will retry on user interaction)', err);
-      }
-    }, 100);
+    // Initialize chroma pulse synth (procedural ambient)
+    // Note: Don't start it here - it will be started on user interaction in QuaternionGame.tsx
+    // The synth is already initialized above, just don't start it yet
 
     console.log('Audio system initialized with SFX, adaptive effects, and background music');
   } catch (error) {

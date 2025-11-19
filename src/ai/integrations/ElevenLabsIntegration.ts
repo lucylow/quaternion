@@ -3,6 +3,8 @@
  * For dynamic voice narration and commander dialogue
  */
 
+import { fetchElevenLabs } from '@/utils/networkUtils';
+
 export interface ElevenLabsConfig {
   apiKey?: string;
   voiceId?: string;
@@ -68,7 +70,7 @@ export class ElevenLabsIntegration {
 
     const url = `https://api.elevenlabs.io/v1/text-to-speech/${voice}`;
 
-    const response = await fetch(url, {
+    const response = await fetchElevenLabs(url, {
       method: 'POST',
       headers: {
         'Accept': 'audio/mpeg',
@@ -88,7 +90,7 @@ export class ElevenLabsIntegration {
     });
 
     if (!response.ok) {
-      const error = await response.text();
+      const error = await response.text().catch(() => 'Unknown error');
       throw new Error(`ElevenLabs API error: ${response.status} - ${error}`);
     }
 
@@ -143,8 +145,8 @@ export class ElevenLabsIntegration {
     return this.generateSpeechBlob(text, profile.voiceId, {
       stability: profile.settings.stability,
       similarityBoost: profile.settings.similarityBoost,
-      style: profile.settings.style,
-      useSpeakerBoost: profile.settings.useSpeakerBoost
+      ...(profile.settings.style !== undefined && { style: profile.settings.style }),
+      ...(profile.settings.useSpeakerBoost !== undefined && { useSpeakerBoost: profile.settings.useSpeakerBoost })
     });
   }
 

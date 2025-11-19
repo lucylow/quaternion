@@ -337,7 +337,7 @@ export const WIN_CONDITIONS = [
   {
     id: 'equilibrium',
     name: 'Equilibrium Victory',
-    description: 'Maintain all four resources in harmony (±15%) for 15 seconds (Quick Match: 10s)',
+    description: 'Goal: Keep all four resources (Ore, Energy, Biomass, Data) balanced within ±15% of each other for 15 seconds (Quick Match: 10s). Balance is key to achieving harmony.',
     icon: '⚖️'
   },
   {

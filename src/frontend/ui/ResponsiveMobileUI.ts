@@ -3,6 +3,7 @@
 
 import Phaser from 'phaser';
 import { safeSetInteractive } from '../../utils/inputSafe';
+import { InteractionAudio } from '../../audio/InteractionAudio';
 
 interface TouchControl {
   bg?: Phaser.GameObjects.Arc;
@@ -225,6 +226,22 @@ export class ResponsiveMobileUI {
         });
         
         button.setFillStyle(0xff6600, 0.9);
+        
+        // Play sound effect
+        try {
+          const audio = InteractionAudio.instance();
+          if (audio && audio.isEnabled()) {
+            if (btn.name === 'attack') {
+              audio.play('attack', { volume: 0.6 });
+            } else if (btn.name === 'build') {
+              audio.play('build', { volume: 0.7 });
+            } else {
+              audio.play('click', { volume: 0.5 });
+            }
+          }
+        } catch (error) {
+          // Continue without audio
+        }
         
         // Haptic feedback
         if ('vibrate' in navigator) {

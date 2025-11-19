@@ -30,6 +30,7 @@ import { ResourceAdvisorPanel } from '@/components/game/ResourceAdvisorPanel';
 import { ResourceType } from '@/game/ResourceManager';
 import { initializeAudio } from '@/audio/audioInit';
 import { getAudioManager, updateGameAudio, playSFX, playUISound, playResourceSound, playCombatSound, playCommanderDialogue } from '@/audio/AudioSystemIntegration';
+import { InteractionAudio } from '@/audio/InteractionAudio';
 import { safeStringify, safeParse } from '@/utils/safeJSON';
 import BackgroundMusic from '@/audio/BackgroundMusic';
 import ChromaPulseSynth from '@/audio/ChromaPulseSynth';
@@ -85,12 +86,14 @@ const QuaternionGame = () => {
   const [instability, setInstability] = useState(0);
   const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
   const [selectedUnits, setSelectedUnits] = useState<Phaser.Physics.Arcade.Sprite[]>([]);
+  const selectedUnitsRef = useRef<Phaser.Physics.Arcade.Sprite[]>([]);
   const cameraRef = useRef<Phaser.Cameras.Scene2D.Camera | null>(null);
   const playerUnitsRef = useRef<Phaser.Physics.Arcade.Sprite[]>([]);
   const aiUnitsRef = useRef<Phaser.Physics.Arcade.Sprite[]>([]);
   const buildingsRef = useRef<Phaser.GameObjects.Sprite[]>([]);
   const [showTechTree, setShowTechTree] = useState(false);
   const [showBuildMenu, setShowBuildMenu] = useState(false);
+  const [interactionAudio, setInteractionAudio] = useState<InteractionAudio | null>(null);
   const [buildQueue, setBuildQueue] = useState<Array<{ id: string; building: string; progress: number; totalTime: number }>>([]);
   const [buildingPlacementMode, setBuildingPlacementMode] = useState<string | null>(null);
   const buildingPreviewRef = useRef<Phaser.GameObjects.GameObject | null>(null);
@@ -265,6 +268,15 @@ const QuaternionGame = () => {
 
       // Initialize audio system (non-blocking, will work after user interaction)
       initializeAudio().then(async () => {
+        // Initialize interaction audio
+        try {
+          const audio = InteractionAudio.instance();
+          await audio.init();
+          setInteractionAudio(audio);
+        } catch (error) {
+          console.warn('Failed to initialize interaction audio:', error);
+        }
+        
         // Set music for the selected map
         try {
           const mapMusicManager = MapMusicManager.instance();
@@ -400,28 +412,47 @@ const QuaternionGame = () => {
             setTimeout(async () => {
               try {
                 const audioManager = getAudioManager();
-                if (audioManager) {
-                  const audioContext = audioManager.getAudioContext();
-                  if (audioContext && audioContext.state === 'suspended') {
+                if (!audioManager) {
+                  console.warn('[Audio] AudioManager not available');
+                  return;
+                }
+
+                const audioContext = audioManager.getAudioContext();
+                if (audioContext && audioContext.state === 'suspended') {
+                  try {
                     await audioContext.resume();
+                  } catch (resumeError) {
+                    console.warn('[Audio] Failed to resume AudioContext:', resumeError);
+                    // Continue anyway - might work on user interaction
                   }
-                  
-                  // Start background music
+                }
+                
+                // Start background music
+                try {
                   const bgMusic = BackgroundMusic.instance();
                   if (!bgMusic.isActive()) {
                     await bgMusic.start();
+                    console.log('[Audio] Background music started');
                   }
-                  
-                  // Start chroma pulse synth
+                } catch (bgMusicError) {
+                  console.warn('[Audio] Failed to start background music (non-critical):', bgMusicError);
+                  // Continue without background music
+                }
+                
+                // Start chroma pulse synth
+                try {
                   const chromaSynth = ChromaPulseSynth.instance();
                   if (!chromaSynth.isActive()) {
                     await chromaSynth.start();
+                    console.log('[Audio] Chroma pulse synth started');
                   }
-                  
-                  console.log('[Audio] Background music and ambient sound started');
+                } catch (chromaError) {
+                  console.warn('[Audio] Failed to start chroma pulse synth (non-critical):', chromaError);
+                  // Continue without chroma synth
                 }
               } catch (audioError) {
-                console.warn('[Audio] Failed to start background music:', audioError);
+                console.warn('[Audio] Unexpected error during audio startup (non-critical):', audioError);
+                // Don't throw - audio is optional
               }
             }, 500); // Small delay to ensure game is fully initialized
           }
@@ -635,14 +666,29 @@ const QuaternionGame = () => {
         console.error(`[Preload] Failed to load: ${file.key} from ${file.src}`);
         console.error(`[Preload] Error details:`, file);
         
+        // Check if we're in Lovable preview and log base path info
+        if (typeof window !== 'undefined' && window.location.pathname.includes('id-preview')) {
+          const pathname = window.location.pathname;
+          const pathParts = pathname.split('/');
+          const idPreviewIndex = pathParts.findIndex(part => part === 'id-preview');
+          if (idPreviewIndex !== -1) {
+            const basePath = pathParts.slice(0, idPreviewIndex + 1).join('/');
+            console.warn(`[Preload] Lovable preview detected. Base path: ${basePath}`);
+            console.warn(`[Preload] File src should include base path: ${basePath}${file.src}`);
+          }
+        }
+        
         // For map assets, try to reload with better encoding
-        if (file.key.startsWith('map-')) {
-          console.log(`[Preload] Attempting to reload map asset: ${file.key}`);
+        if (file.key.startsWith('map-') || file.key.startsWith('monster-') || file.key.startsWith('country-')) {
+          console.log(`[Preload] Attempting to reload asset: ${file.key}`);
           // The path might need re-encoding - Phaser should handle this, but log for debugging
           const originalSrc = file.src;
           console.log(`[Preload] Original src: ${originalSrc}`);
           console.log(`[Preload] Encoded src would be: ${encodeURI(originalSrc)}`);
         }
+        
+        // Don't prevent game from starting - just log the error
+        // The game will use fallback graphics if images fail to load
       });
 
       this.load.on('fileprogress', (file: Phaser.Loader.File, value: number) => {
@@ -1448,7 +1494,7 @@ const QuaternionGame = () => {
           // Select this unit
           if (!unit.getData('selected')) {
             selectedUnitsRef.current.length = 0;
-            selectedUnits.push(unit);
+            selectedUnitsRef.current.push(unit);
             unit.setData('selected', true);
             const g = unit.getData('graphics') as Phaser.GameObjects.Graphics;
             if (g) {
@@ -1459,7 +1505,7 @@ const QuaternionGame = () => {
               g.strokeCircle(unit.x, unit.y, 20);
             }
             setSelectedUnit(unitType);
-            setSelectedUnits(newSelection);
+            setSelectedUnits([unit]);
             console.log('[Scene] Unit selected:', unitType);
           }
         });
@@ -1741,7 +1787,8 @@ const QuaternionGame = () => {
             }
           });
 
-          // Update React state
+          // Update ref and React state
+          selectedUnitsRef.current = newSelected;
           setSelectedUnits(newSelected);
           if (newSelected.length === 1) {
             setSelectedUnit(newSelected[0].getData('type'));
@@ -1758,7 +1805,6 @@ const QuaternionGame = () => {
       this.input.keyboard?.on('keydown', (event: KeyboardEvent) => {
         if ((event.ctrlKey || event.metaKey) && event.key >= '1' && event.key <= '9') {
           const groupNum = parseInt(event.key);
-          selectedUnitsRef.current = newSelected;
           if (selectedUnitsRef.current.length > 0) {
             controlGroups.set(groupNum, [...selectedUnitsRef.current]);
             showToast.success(`Control group ${groupNum} created with ${selectedUnitsRef.current.length} units`);
@@ -1800,7 +1846,8 @@ const QuaternionGame = () => {
               // Update group with active units only
               controlGroups.set(i, newSelected.filter(u => u.active));
 
-              // Update React state
+              // Update ref and React state
+              selectedUnitsRef.current = newSelected;
               setSelectedUnits(newSelected);
               if (newSelected.length === 1) {
                 setSelectedUnit(newSelected[0].getData('type'));
@@ -1816,7 +1863,6 @@ const QuaternionGame = () => {
         if (isSelecting) {
           selectionGraphics.clear();
           selectionGraphics.lineStyle(2, 0x00ffea, 1);
-              selectedUnitsRef.current = newSelected;
           selectionGraphics.strokeRect(
             selectionStart.x,
             selectionStart.y,
@@ -3511,7 +3557,10 @@ const QuaternionGame = () => {
               <div className="flex flex-col items-end gap-2 pointer-events-auto">
                 <div className="flex items-center gap-2">
                   <Button
-                    onClick={() => setShowBuildMenu(!showBuildMenu)}
+                    onClick={() => {
+                      interactionAudio?.play('click', { volume: 0.5 });
+                      setShowBuildMenu(!showBuildMenu);
+                    }}
                     className="bg-cyan-600/90 hover:bg-cyan-700 backdrop-blur-sm border border-cyan-400/30 hover:border-cyan-400/60 transition-all shadow-lg hover:shadow-cyan-400/50"
                     size="sm"
                   >
@@ -3519,7 +3568,10 @@ const QuaternionGame = () => {
                     Build
                   </Button>
                   <Button
-                    onClick={() => setShowTechTree(!showTechTree)}
+                    onClick={() => {
+                      interactionAudio?.play('click', { volume: 0.5 });
+                      setShowTechTree(!showTechTree);
+                    }}
                     className="bg-purple-600/90 hover:bg-purple-700 backdrop-blur-sm border border-purple-400/30 hover:border-purple-400/60 transition-all shadow-lg hover:shadow-purple-400/50"
                     size="sm"
                   >
@@ -3736,13 +3788,23 @@ const QuaternionGame = () => {
               return (
                 <div
                   key={msg.id}
-                  className="bg-gray-800/90 backdrop-blur-sm border rounded-lg p-3 animate-in slide-in-from-right shadow-lg transition-all hover:scale-[1.02]"
+                  className="bg-gray-800/90 backdrop-blur-sm border rounded-lg p-3 animate-in slide-in-from-right shadow-lg transition-all hover:scale-[1.02] relative"
                   style={{
                     borderColor: `${commanderColor}40`,
                     boxShadow: `0 4px 12px ${commanderColor}20, 0 0 8px ${commanderColor}10`
                   }}
                 >
-                  <div className="flex items-center gap-2 mb-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-2 right-2 h-6 w-6 p-0 text-gray-400 hover:text-white opacity-70 hover:opacity-100"
+                    onClick={() => {
+                      setAiMessages(prev => prev.filter(m => m.id !== msg.id));
+                    }}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                  <div className="flex items-center gap-2 mb-2 pr-6">
                     <div 
                       className="w-2 h-2 rounded-full animate-pulse"
                       style={{ backgroundColor: commanderColor }}
@@ -4016,12 +4078,22 @@ const QuaternionGame = () => {
               {dynamicTiles.map(tile => (
                 <div
                   key={tile.id}
-                  className="bg-gray-800/90 border-2 border-yellow-400 rounded-lg p-4 mb-2 animate-in zoom-in shadow-2xl"
+                  className="bg-gray-800/90 border-2 border-yellow-400 rounded-lg p-4 mb-2 animate-in zoom-in shadow-2xl relative"
                   style={{
                     boxShadow: '0 0 20px rgba(255, 255, 0, 0.5)'
                   }}
                 >
-                  <div className="flex items-center gap-2 mb-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute top-2 right-2 h-6 w-6 p-0 text-gray-400 hover:text-white opacity-70 hover:opacity-100"
+                    onClick={() => {
+                      setDynamicTiles(prev => prev.filter(t => t.id !== tile.id));
+                    }}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
+                  <div className="flex items-center gap-2 mb-2 pr-6">
                     <Sparkles className="w-5 h-5 text-yellow-400" />
                     <h3 className="text-lg font-bold text-yellow-400">{tile.name}</h3>
                   </div>

@@ -28,6 +28,264 @@ interface Cosmetic {
 type SortOption = 'price-asc' | 'price-desc' | 'rarity' | 'name';
 type ViewMode = 'grid' | 'list';
 
+// Mock game assets data
+const getMockGameAssets = (): Cosmetic[] => [
+  // Unit Skins
+  {
+    id: 'unit-skin-dragon-warrior',
+    name: 'Dragon Warrior Skin',
+    description: 'Transform your units into legendary dragon warriors with fiery effects and enhanced animations.',
+    price: 9.99,
+    category: 'unit_skin',
+    rarity: 'legendary',
+    preview: '🔥',
+    tags: ['combat', 'fire', 'legendary'],
+    stats: { attackBonus: 5, defenseBonus: 3 }
+  },
+  {
+    id: 'unit-skin-cyber-ninja',
+    name: 'Cyber Ninja Skin',
+    description: 'High-tech stealth units with neon trails and holographic effects.',
+    price: 7.99,
+    category: 'unit_skin',
+    rarity: 'epic',
+    preview: '⚡',
+    tags: ['stealth', 'tech', 'speed']
+  },
+  {
+    id: 'unit-skin-nature-guardian',
+    name: 'Nature Guardian Skin',
+    description: 'Eco-friendly units with plant-based armor and natural particle effects.',
+    price: 5.99,
+    category: 'unit_skin',
+    rarity: 'rare',
+    preview: '🌿',
+    tags: ['nature', 'defense', 'sustainable']
+  },
+  {
+    id: 'unit-skin-crystal-knight',
+    name: 'Crystal Knight Skin',
+    description: 'Shimmering crystal armor that reflects light beautifully in battle.',
+    price: 4.99,
+    category: 'unit_skin',
+    rarity: 'uncommon',
+    preview: '💎',
+    tags: ['armor', 'defense', 'shiny']
+  },
+  
+  // Building Skins
+  {
+    id: 'building-skin-futuristic-base',
+    name: 'Futuristic Base',
+    description: 'Sleek sci-fi architecture with holographic displays and energy shields.',
+    price: 12.99,
+    category: 'building_skin',
+    rarity: 'legendary',
+    preview: '🏗️',
+    tags: ['tech', 'modern', 'defense']
+  },
+  {
+    id: 'building-skin-medieval-castle',
+    name: 'Medieval Castle',
+    description: 'Classic stone fortress with banners, torches, and defensive walls.',
+    price: 8.99,
+    category: 'building_skin',
+    rarity: 'epic',
+    preview: '🏰',
+    tags: ['classic', 'defense', 'historical']
+  },
+  {
+    id: 'building-skin-floating-islands',
+    name: 'Floating Islands Base',
+    description: 'Magical floating platforms connected by energy bridges.',
+    price: 6.99,
+    category: 'building_skin',
+    rarity: 'rare',
+    preview: '☁️',
+    tags: ['magic', 'unique', 'aerial']
+  },
+  {
+    id: 'building-skin-industrial-complex',
+    name: 'Industrial Complex',
+    description: 'Heavy machinery and factories with smoke effects and conveyor belts.',
+    price: 5.99,
+    category: 'building_skin',
+    rarity: 'uncommon',
+    preview: '🏭',
+    tags: ['production', 'industrial', 'efficiency']
+  },
+  
+  // Map Themes
+  {
+    id: 'map-theme-neon-city',
+    name: 'Neon City Theme',
+    description: 'Cyberpunk cityscape with neon lights, rain effects, and urban atmosphere.',
+    price: 14.99,
+    category: 'map_theme',
+    rarity: 'legendary',
+    preview: '🌃',
+    tags: ['cyberpunk', 'night', 'urban']
+  },
+  {
+    id: 'map-theme-lush-jungle',
+    name: 'Lush Jungle Theme',
+    description: 'Dense tropical jungle with dynamic weather and wildlife animations.',
+    price: 9.99,
+    category: 'map_theme',
+    rarity: 'epic',
+    preview: '🌴',
+    tags: ['nature', 'tropical', 'wildlife']
+  },
+  {
+    id: 'map-theme-arctic-tundra',
+    name: 'Arctic Tundra Theme',
+    description: 'Frozen wasteland with snow effects, aurora borealis, and ice formations.',
+    price: 7.99,
+    category: 'map_theme',
+    rarity: 'rare',
+    preview: '❄️',
+    tags: ['snow', 'cold', 'aurora']
+  },
+  {
+    id: 'map-theme-desert-oasis',
+    name: 'Desert Oasis Theme',
+    description: 'Sandy dunes with mirages, oasis effects, and heat distortion.',
+    price: 6.99,
+    category: 'map_theme',
+    rarity: 'uncommon',
+    preview: '🏜️',
+    tags: ['desert', 'heat', 'oasis']
+  },
+  
+  // UI Cosmetics
+  {
+    id: 'ui-cosmetic-golden-interface',
+    name: 'Golden Interface Pack',
+    description: 'Luxurious gold-themed UI with elegant animations and premium effects.',
+    price: 11.99,
+    category: 'ui_cosmetic',
+    rarity: 'legendary',
+    preview: '✨',
+    tags: ['premium', 'gold', 'elegant']
+  },
+  {
+    id: 'ui-cosmetic-dark-mode-pro',
+    name: 'Dark Mode Pro',
+    description: 'Professional dark theme with customizable accent colors and smooth transitions.',
+    price: 4.99,
+    category: 'ui_cosmetic',
+    rarity: 'epic',
+    preview: '🌙',
+    tags: ['dark', 'customizable', 'modern']
+  },
+  {
+    id: 'ui-cosmetic-minimalist',
+    name: 'Minimalist UI',
+    description: 'Clean, simple interface with reduced clutter and focus on gameplay.',
+    price: 3.99,
+    category: 'ui_cosmetic',
+    rarity: 'rare',
+    preview: '📐',
+    tags: ['clean', 'simple', 'focused']
+  },
+  
+  // Victory Effects
+  {
+    id: 'victory-effect-fireworks',
+    name: 'Fireworks Victory',
+    description: 'Celebrate victories with spectacular fireworks displays and confetti.',
+    price: 8.99,
+    category: 'victory_effect',
+    rarity: 'epic',
+    preview: '🎆',
+    tags: ['celebration', 'colorful', 'festive']
+  },
+  {
+    id: 'victory-effect-rainbow-burst',
+    name: 'Rainbow Burst',
+    description: 'Vibrant rainbow explosion with prismatic light effects.',
+    price: 6.99,
+    category: 'victory_effect',
+    rarity: 'rare',
+    preview: '🌈',
+    tags: ['colorful', 'bright', 'prismatic']
+  },
+  {
+    id: 'victory-effect-golden-shower',
+    name: 'Golden Shower',
+    description: 'Shower of golden particles and coins raining down on victory.',
+    price: 5.99,
+    category: 'victory_effect',
+    rarity: 'uncommon',
+    preview: '💰',
+    tags: ['gold', 'coins', 'wealth']
+  },
+  
+  // Voice Packs
+  {
+    id: 'voice-pack-robot-commander',
+    name: 'Robot Commander Voice',
+    description: 'AI-powered robotic voice with mechanical sound effects.',
+    price: 9.99,
+    category: 'voice_pack',
+    rarity: 'epic',
+    preview: '🤖',
+    tags: ['robot', 'tech', 'mechanical']
+  },
+  {
+    id: 'voice-pack-epic-narrator',
+    name: 'Epic Narrator Voice',
+    description: 'Cinematic narrator voice for dramatic gameplay moments.',
+    price: 7.99,
+    category: 'voice_pack',
+    rarity: 'rare',
+    preview: '🎬',
+    tags: ['narrative', 'cinematic', 'dramatic']
+  },
+  {
+    id: 'voice-pack-comedy-announcer',
+    name: 'Comedy Announcer',
+    description: 'Lighthearted and humorous voice pack with funny quips.',
+    price: 5.99,
+    category: 'voice_pack',
+    rarity: 'uncommon',
+    preview: '😄',
+    tags: ['funny', 'lighthearted', 'entertaining']
+  },
+  
+  // Profile Cosmetics
+  {
+    id: 'profile-cosmetic-legendary-badge',
+    name: 'Legendary Player Badge',
+    description: 'Exclusive badge that shows your elite status in the community.',
+    price: 19.99,
+    category: 'profile_cosmetic',
+    rarity: 'legendary',
+    preview: '👑',
+    tags: ['exclusive', 'status', 'premium']
+  },
+  {
+    id: 'profile-cosmetic-animated-avatar',
+    name: 'Animated Avatar Frame',
+    description: 'Dynamic avatar frame with particle effects and animations.',
+    price: 6.99,
+    category: 'profile_cosmetic',
+    rarity: 'epic',
+    preview: '🖼️',
+    tags: ['animated', 'customizable', 'dynamic']
+  },
+  {
+    id: 'profile-cosmetic-title-pack',
+    name: 'Elite Titles Pack',
+    description: 'Collection of prestigious titles to display on your profile.',
+    price: 4.99,
+    category: 'profile_cosmetic',
+    rarity: 'rare',
+    preview: '📜',
+    tags: ['titles', 'prestige', 'collection']
+  }
+];
+
 export function CosmeticShop() {
   const navigate = useNavigate();
   const [cosmetics, setCosmetics] = useState<Cosmetic[]>([]);
@@ -51,10 +309,19 @@ export function CosmeticShop() {
     try {
       const response = await fetch('/api/monetization/shop/cosmetics');
       const data = await response.json();
-      setCosmetics(data.cosmetics || []);
+      const fetchedCosmetics = data.cosmetics || [];
+      
+      // Use mock data if API returns empty or fails
+      if (fetchedCosmetics.length === 0) {
+        setCosmetics(getMockGameAssets());
+      } else {
+        setCosmetics(fetchedCosmetics);
+      }
     } catch (error) {
       console.error('Failed to fetch cosmetics:', error);
-      toast.error('Failed to load cosmetics');
+      // Use mock data as fallback
+      setCosmetics(getMockGameAssets());
+      toast.info('Using mock game assets (API unavailable)');
     } finally {
       setLoading(false);
     }
@@ -321,7 +588,7 @@ export function CosmeticShop() {
                       <>
                         <div className="absolute inset-0 bg-black/20" />
                         <div className="relative z-10 text-white text-4xl font-bold">
-                          {cosmetic.name[0]}
+                          {cosmetic.preview || cosmetic.name[0]}
                         </div>
                       </>
                     )}
@@ -454,7 +721,7 @@ export function CosmeticShop() {
                         <>
                           <div className="absolute inset-0 bg-black/20" />
                           <div className="relative z-10 text-white text-3xl font-bold">
-                            {cosmetic.name[0]}
+                            {cosmetic.preview || cosmetic.name[0]}
                           </div>
                         </>
                       )}
@@ -541,7 +808,7 @@ export function CosmeticShop() {
                   <div className={cn("aspect-video rounded-t-lg flex items-center justify-center relative overflow-hidden", rarityConfig.color)}>
                     <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
                     <div className="relative z-10 text-white text-4xl font-bold group-hover:scale-110 transition-transform">
-                      {cosmetic.name[0]}
+                      {cosmetic.preview || cosmetic.name[0]}
                     </div>
                     <Badge className={cn("absolute top-2 right-2", rarityConfig.color, "text-white border-0")}>
                       {rarityConfig.icon}
@@ -653,7 +920,7 @@ export function CosmeticShop() {
                             />
                           ) : (
                             <div className="text-white text-2xl font-bold">
-                              {item.name[0]}
+                              {item.preview || item.name[0]}
                             </div>
                           )}
                         </div>
@@ -731,7 +998,7 @@ export function CosmeticShop() {
                   <>
                     <div className="absolute inset-0 bg-black/20" />
                     <div className="relative z-10 text-white text-6xl font-bold">
-                      {selectedCosmetic.name[0]}
+                      {selectedCosmetic.preview || selectedCosmetic.name[0]}
                     </div>
                   </>
                 )}

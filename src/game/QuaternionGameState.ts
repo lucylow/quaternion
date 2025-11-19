@@ -1257,8 +1257,100 @@ export class QuaternionGameState {
 
   /**
    * Get current game state for UI
+   * Excludes managers and complex objects to prevent circular references
    */
   public getState() {
+    // Serialize players safely (exclude Sets/Maps that might have circular refs)
+    const safePlayers = Array.from(this.players.entries()).map(([id, player]) => ({
+      id: player.id,
+      name: player.name,
+      isAI: player.isAI,
+      resources: { ...player.resources },
+      population: { ...player.population },
+      researchedTechs: Array.from(player.researchedTechs || []), // Convert Set to Array
+      moralAlignment: player.moralAlignment
+    }));
+
+    // Serialize win conditions safely
+    const safeWinConditions = Array.from(this.winConditions.entries()).map(([key, condition]) => ({
+      key,
+      type: condition.type,
+      achieved: condition.achieved,
+      progress: condition.progress
+    }));
+
+    // Serialize units/buildings/resourceNodes safely (filter out any circular refs)
+    const safeUnits = (this.units || []).map(unit => {
+      if (!unit || typeof unit !== 'object') return null;
+      // Create a safe copy, excluding Phaser objects and circular refs
+      const safe: any = {};
+      for (const key in unit) {
+        if (key === 'scene' || key === 'game' || key === 'sys' || 
+            key === '_events' || key === 'context' || key === 'parent' ||
+            key === 'displayList' || key === 'updateList' || key === 'cameras') {
+          continue; // Skip Phaser-specific properties
+        }
+        const value = unit[key];
+        if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+          // Skip complex objects that might have circular refs
+          if (value.constructor && value.constructor.name && 
+              (value.constructor.name.startsWith('Phaser') || 
+               value.constructor.name === 'Scene' || 
+               value.constructor.name === 'Game')) {
+            continue;
+          }
+        }
+        safe[key] = value;
+      }
+      return safe;
+    }).filter(unit => unit !== null);
+
+    const safeBuildings = (this.buildings || []).map(building => {
+      if (!building || typeof building !== 'object') return null;
+      const safe: any = {};
+      for (const key in building) {
+        if (key === 'scene' || key === 'game' || key === 'sys' || 
+            key === '_events' || key === 'context' || key === 'parent' ||
+            key === 'displayList' || key === 'updateList' || key === 'cameras') {
+          continue;
+        }
+        const value = building[key];
+        if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+          if (value.constructor && value.constructor.name && 
+              (value.constructor.name.startsWith('Phaser') || 
+               value.constructor.name === 'Scene' || 
+               value.constructor.name === 'Game')) {
+            continue;
+          }
+        }
+        safe[key] = value;
+      }
+      return safe;
+    }).filter(building => building !== null);
+
+    const safeResourceNodes = (this.resourceNodes || []).map(node => {
+      if (!node || typeof node !== 'object') return null;
+      const safe: any = {};
+      for (const key in node) {
+        if (key === 'scene' || key === 'game' || key === 'sys' || 
+            key === '_events' || key === 'context' || key === 'parent' ||
+            key === 'displayList' || key === 'updateList' || key === 'cameras') {
+          continue;
+        }
+        const value = node[key];
+        if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+          if (value.constructor && value.constructor.name && 
+              (value.constructor.name.startsWith('Phaser') || 
+               value.constructor.name === 'Scene' || 
+               value.constructor.name === 'Game')) {
+            continue;
+          }
+        }
+        safe[key] = value;
+      }
+      return safe;
+    }).filter(node => node !== null);
+
     return {
       id: this.id,
       tick: this.tick,
@@ -1267,12 +1359,14 @@ export class QuaternionGameState {
       gameOver: this.gameOver,
       winner: this.winner,
       endgameScenario: this.endgameScenario,
-      players: Array.from(this.players.values()),
+      players: safePlayers,
       instability: this.instability,
-      winConditions: Array.from(this.winConditions.values()),
-      units: this.units,
-      buildings: this.buildings,
-      resourceNodes: this.resourceNodes
+      winConditions: safeWinConditions,
+      units: safeUnits,
+      buildings: safeBuildings,
+      resourceNodes: safeResourceNodes,
+      // Include resource amounts from ResourceManager (safe primitive values)
+      resources: this.resourceManager ? this.resourceManager.getAllResources() : null
     };
   }
   

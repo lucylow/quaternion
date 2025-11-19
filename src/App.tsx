@@ -137,7 +137,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <div className="min-h-screen w-full overflow-x-hidden">
+          <div className="min-h-screen w-full overflow-x-auto overflow-y-auto">
             {/* PATCHED BY CURSOR - lovable integration */}
             <LovableDebug />
             <Suspense fallback={<RouteLoader />}>

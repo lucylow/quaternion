@@ -1,6 +1,8 @@
 import { Button } from '@/components/ui/button';
 import { TECH_TREE, TechNode } from '@/data/quaternionData';
 import { Box, Zap, Leaf, Brain, Lock, CheckCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { InteractionAudio } from '@/audio/InteractionAudio';
 
 interface TechTreeModalProps {
   researchedTechs: Set<string>;
@@ -10,6 +12,20 @@ interface TechTreeModalProps {
 }
 
 export const TechTreeModal = ({ researchedTechs, resources, onResearch, onClose }: TechTreeModalProps) => {
+  const [interactionAudio, setInteractionAudio] = useState<InteractionAudio | null>(null);
+
+  useEffect(() => {
+    const initAudio = async () => {
+      try {
+        const audio = InteractionAudio.instance();
+        await audio.init();
+        setInteractionAudio(audio);
+      } catch (error) {
+        console.warn('Failed to initialize interaction audio:', error);
+      }
+    };
+    initAudio();
+  }, []);
   const canResearch = (tech: TechNode) => {
     if (researchedTechs.has(tech.id)) return false;
     
@@ -93,9 +109,16 @@ export const TechTreeModal = ({ researchedTechs, resources, onResearch, onClose 
                         className={`bg-gray-700 rounded p-3 border ${
                           researched ? 'border-green-500 bg-green-500/10' :
                           available ? `border-${color} hover:bg-${color}/10 cursor-pointer` :
-                          'border-gray-600 opacity-50'
+                          'border-gray-600 opacity-50 cursor-not-allowed'
                         } transition-all`}
-                        onClick={() => available && onResearch(tech.id)}
+                        onClick={() => {
+                          if (available) {
+                            interactionAudio?.play('research', { volume: 0.7 });
+                            onResearch(tech.id);
+                          } else if (!researched) {
+                            interactionAudio?.play('error', { volume: 0.3 });
+                          }
+                        }}
                       >
                         <div className="flex items-start justify-between mb-1">
                           <h4 className="font-bold text-sm text-white">{tech.name}</h4>
@@ -138,7 +161,15 @@ export const TechTreeModal = ({ researchedTechs, resources, onResearch, onClose 
           })}
         </div>
 
-        <Button onClick={onClose} className="w-full">Close</Button>
+        <Button 
+          onClick={() => {
+            interactionAudio?.play('click', { volume: 0.4 });
+            onClose();
+          }} 
+          className="w-full"
+        >
+          Close
+        </Button>
       </div>
     </div>
   );

@@ -1,329 +1,137 @@
-// src/components/monetization/CheckoutPage.tsx
-import { useState, useEffect } from 'react';
-import { loadStripe } from '@stripe/stripe-js';
-import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  Loader2, 
-  CheckCircle2, 
-  XCircle, 
-  ArrowLeft, 
-  Shield, 
-  Lock, 
-  CreditCard,
-  ShoppingBag,
-  Sparkles,
-  Package,
-  Gift,
-  Trophy,
-  GraduationCap,
-  Users
-} from 'lucide-react';
-import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, ShoppingBag, CheckCircle2, CreditCard, Loader2, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || '');
-
-interface ProductInfo {
-  name: string;
-  description: string;
-  type: string;
-  price: number;
-}
-
-function getProductIcon(type: string) {
-  switch (type) {
-    case 'cosmetic':
-      return <Sparkles className="w-5 h-5" />;
-    case 'battle_pass':
-    case 'seasonal_pass':
-      return <Trophy className="w-5 h-5" />;
-    case 'coaching':
-      return <GraduationCap className="w-5 h-5" />;
-    case 'tournament':
-      return <Users className="w-5 h-5" />;
-    default:
-      return <Package className="w-5 h-5" />;
+// Mock product data based on URL params or defaults
+const getMockProduct = (type: string | null, id: string | null, name: string | null, price: string | null) => {
+  // If we have URL params, use them
+  if (name && price) {
+    return {
+      name: decodeURIComponent(name),
+      description: 'Premium game asset for your collection',
+      price: parseFloat(price),
+      type: type || 'cosmetic',
+      id: id || 'unknown',
+      icon: '✨',
+    };
   }
-}
 
-function getProductTypeLabel(type: string): string {
-  switch (type) {
-    case 'cosmetic':
-      return 'Cosmetic Item';
-    case 'battle_pass':
-      return 'Battle Pass';
-    case 'seasonal_pass':
-      return 'Seasonal Pass';
-    case 'coaching':
-      return 'Coaching Session';
-    case 'tournament':
-      return 'Tournament Entry';
-    default:
-      return 'Product';
-  }
-}
+  // Default mock product
+  return {
+    name: 'Dragon Warrior Skin',
+    description: 'Transform your units into legendary dragon warriors with fiery effects and enhanced animations.',
+    price: 9.99,
+    type: 'cosmetic',
+    id: 'unit-skin-dragon-warrior',
+    icon: '🔥',
+  };
+};
 
-async function fetchProductInfo(type: string, id: string): Promise<ProductInfo | null> {
-  try {
-    const playerId = localStorage.getItem('playerId') || 'demo_player';
-    let endpoint = '';
-    
-    switch (type) {
-      case 'cosmetic': {
-        endpoint = `/api/monetization/shop/cosmetics`;
-        const cosmeticsResponse = await fetch(endpoint);
-        const cosmeticsData = await cosmeticsResponse.json();
-        const cosmetic = cosmeticsData.cosmetics?.find((c: any) => c.id === id);
-        return cosmetic ? {
-          name: cosmetic.name,
-          description: cosmetic.description,
-          type: 'cosmetic',
-          price: cosmetic.price
-        } : null;
-      }
-      
-      case 'battle_pass': {
-        endpoint = `/api/monetization/battle-pass/passes`;
-        const bpResponse = await fetch(endpoint);
-        const bpData = await bpResponse.json();
-        const pass = bpData.passes?.find((p: any) => p.id === id);
-        return pass ? {
-          name: pass.name,
-          description: pass.description || 'Battle Pass',
-          type: 'battle_pass',
-          price: pass.price
-        } : null;
-      }
-      
-      default:
-        return null;
-    }
-  } catch (error) {
-    console.error('Failed to fetch product info:', error);
-    return null;
-  }
-}
-
-function CheckoutForm() {
+export function CheckoutPage() {
   const navigate = useNavigate();
-  const stripe = useStripe();
-  const elements = useElements();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [succeeded, setSucceeded] = useState(false);
-  const [productInfo, setProductInfo] = useState<ProductInfo | null>(null);
-  const [loadingProduct, setLoadingProduct] = useState(true);
+  const [success, setSuccess] = useState(false);
+  const [formData, setFormData] = useState({
+    cardNumber: '',
+    expiryDate: '',
+    cvv: '',
+    name: '',
+  });
 
   const urlParams = new URLSearchParams(window.location.search);
-  const clientSecret = urlParams.get('clientSecret');
-  const amount = urlParams.get('amount');
   const type = urlParams.get('type');
   const id = urlParams.get('id');
-  const productName = urlParams.get('name');
+  const name = urlParams.get('name');
+  const price = urlParams.get('price') || urlParams.get('amount');
 
-  useEffect(() => {
-    const loadProductInfo = async () => {
-      if (type && id) {
-        setLoadingProduct(true);
-        const info = await fetchProductInfo(type, id);
-        setProductInfo(info);
-        setLoadingProduct(false);
-      } else {
-        setLoadingProduct(false);
-      }
-    };
-    loadProductInfo();
-  }, [type, id]);
+  const product = getMockProduct(type, id, name, price);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!stripe || !elements || !clientSecret) return;
-
     setLoading(true);
-    setError(null);
 
-    try {
-      // Use confirmPayment with PaymentElement (more modern approach)
-      const { error: stripeError, paymentIntent } = await stripe.confirmPayment({
-        elements,
-        clientSecret,
-        confirmParams: {
-          return_url: `${window.location.origin}/checkout?success=true&payment_intent=${paymentIntent?.id || ''}`,
-          payment_method_data: {
-            billing_details: {
-              name: localStorage.getItem('username') || 'Player',
-              email: localStorage.getItem('email') || undefined
-            }
-          }
-        },
-        redirect: 'if_required'
-      });
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
-      if (stripeError) {
-        setError(stripeError.message || 'Payment failed');
-        setLoading(false);
-        return;
+    setLoading(false);
+    setSuccess(true);
+    toast.success('Purchase completed successfully!');
+
+    // Redirect after 2 seconds
+    setTimeout(() => {
+      if (type === 'cosmetic' || product.type === 'cosmetic') {
+        navigate('/shop');
+      } else if (type === 'battle_pass' || product.type === 'battle_pass') {
+        navigate('/battle-pass');
+      } else {
+        navigate('/');
       }
+    }, 2000);
+  };
 
-      if (paymentIntent?.status === 'succeeded') {
-        // Confirm purchase with backend
-        const playerId = localStorage.getItem('playerId') || 'demo_player';
-        
-        let confirmEndpoint = '';
-        if (type === 'cosmetic') {
-          confirmEndpoint = '/api/monetization/shop/confirm-cosmetic-purchase';
-        } else if (type === 'battle_pass') {
-          confirmEndpoint = '/api/monetization/battle-pass/activate';
-        } else if (type === 'seasonal_pass') {
-          confirmEndpoint = '/api/monetization/seasonal-pass/activate';
-        } else if (type === 'coaching') {
-          confirmEndpoint = '/api/monetization/coaching/confirm-booking';
-        } else if (type === 'tournament') {
-          confirmEndpoint = '/api/monetization/tournaments/confirm-entry';
-        }
-
-        if (confirmEndpoint) {
-          const response = await fetch(confirmEndpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              playerId,
-              paymentIntentId: paymentIntent.id,
-              ...(type === 'battle_pass' && { passType: id }),
-              ...(type === 'seasonal_pass' && { season: id }),
-              ...(type === 'coaching' && { coachingPackage: id }),
-              ...(type === 'tournament' && { tournamentId: id }),
-              ...(type === 'cosmetic' && { cosmeticId: id })
-            })
-          });
-
-          if (response.ok) {
-            setSucceeded(true);
-            toast.success('Purchase successful!');
-            setTimeout(() => {
-              if (type === 'cosmetic') {
-                navigate('/shop');
-              } else if (type === 'battle_pass' || type === 'seasonal_pass') {
-                navigate('/battle-pass');
-              } else {
-                navigate('/');
-              }
-            }, 3000);
-          } else {
-            const data = await response.json();
-            throw new Error(data.error || 'Failed to confirm purchase');
-          }
-        } else {
-          setSucceeded(true);
-          toast.success('Payment successful!');
-        }
-
-        setLoading(false);
-      }
-    } catch (err: any) {
-      setError(err.message || 'An error occurred');
-      setLoading(false);
+  const formatCardNumber = (value: string) => {
+    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    const matches = v.match(/\d{4,16}/g);
+    const match = (matches && matches[0]) || '';
+    const parts = [];
+    for (let i = 0, len = match.length; i < len; i += 4) {
+      parts.push(match.substring(i, i + 4));
+    }
+    if (parts.length) {
+      return parts.join(' ');
+    } else {
+      return v;
     }
   };
 
-  if (succeeded) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-        {/* Header */}
-        <header className="fixed top-0 w-full z-50 bg-background/90 backdrop-blur-md border-b border-primary/30">
-          <nav className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <Button
-                variant="ghost"
-                onClick={() => navigate('/')}
-                className="text-primary hover:text-secondary"
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Home
-              </Button>
-              <a href="/" className="flex items-center gap-2 text-2xl font-bold text-primary">
-                <ShoppingBag className="w-8 h-8" />
-                <span>QUATERNION<span className="text-secondary">:</span>NF</span>
-              </a>
-              <div className="w-24" />
-            </div>
-          </nav>
-        </header>
+  const formatExpiryDate = (value: string) => {
+    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    if (v.length >= 2) {
+      return v.substring(0, 2) + '/' + v.substring(2, 4);
+    }
+    return v;
+  };
 
-        <div className="pt-32 pb-20">
-          <div className="container mx-auto px-4 max-w-2xl">
-            <Card className="bg-card/70 border-primary/30">
-              <CardContent className="pt-12 pb-12">
-                <div className="flex flex-col items-center justify-center text-center space-y-6">
-                  <div className="relative">
-                    <div className="absolute inset-0 bg-green-500/20 rounded-full blur-2xl animate-pulse" />
-                    <CheckCircle2 className="relative h-20 w-20 text-green-500 mb-4" />
-                  </div>
-                  <div>
-                    <h2 className="text-3xl font-bold text-primary mb-2">Payment Successful!</h2>
-                    <p className="text-muted-foreground text-lg">
-                      Your purchase has been confirmed and is now available.
-                    </p>
-                  </div>
-                  {productInfo && (
-                    <div className="mt-6 p-4 bg-primary/10 rounded-lg border border-primary/20 max-w-md">
-                      <div className="flex items-center gap-3 mb-2">
-                        {getProductIcon(productInfo.type)}
-                        <span className="font-semibold text-primary">{productInfo.name}</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground">{productInfo.description}</p>
-                    </div>
-                  )}
-                  <div className="flex gap-4 mt-8">
-                    <Button
-                      onClick={() => navigate('/')}
-                      variant="outline"
-                    >
-                      Go to Home
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        if (type === 'cosmetic') {
-                          navigate('/shop');
-                        } else if (type === 'battle_pass') {
-                          navigate('/battle-pass');
-                        } else {
-                          navigate('/');
-                        }
-                      }}
-                      className="bg-gradient-to-r from-primary to-secondary"
-                    >
-                      View Purchase
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-4">
-                    Redirecting automatically in a few seconds...
-                  </p>
+  if (success) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-background to-muted/20 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full border-primary/30">
+          <CardContent className="pt-12 pb-12">
+            <div className="flex flex-col items-center justify-center text-center space-y-4">
+              <div className="relative">
+                <CheckCircle2 className="h-20 w-20 text-green-500" />
+                <div className="absolute inset-0 animate-ping">
+                  <CheckCircle2 className="h-20 w-20 text-green-500 opacity-20" />
                 </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+              </div>
+              <h2 className="text-3xl font-bold text-primary">Purchase Complete!</h2>
+              <p className="text-muted-foreground">
+                Thank you for your purchase. {product.name} has been added to your account.
+              </p>
+              <div className="pt-4">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground mt-2">Redirecting...</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  const displayName = productInfo?.name || productName || 'Item';
-  const displayDescription = productInfo?.description || 'Your purchase';
-  const displayPrice = productInfo?.price || parseFloat(amount || '0');
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-      {/* Header */}
       <header className="fixed top-0 w-full z-50 bg-background/90 backdrop-blur-md border-b border-primary/30">
         <nav className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Button
               variant="ghost"
-              onClick={() => window.history.back()}
+              onClick={() => navigate(-1)}
               className="text-primary hover:text-secondary"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
@@ -338,353 +146,145 @@ function CheckoutForm() {
         </nav>
       </header>
 
-      <div className="pt-24 pb-20">
-        <div className="container mx-auto px-4 max-w-5xl">
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Order Summary */}
-            <div className="lg:col-span-1">
-              <Card className="bg-card/70 border-primary/30 sticky top-24">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Package className="w-5 h-5" />
-                    Order Summary
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {loadingProduct ? (
-                    <div className="flex items-center justify-center py-8">
-                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      <div className="pt-32 pb-20">
+        <div className="container mx-auto px-4 max-w-4xl">
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Product Summary */}
+            <Card className="border-primary/30">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <span className="text-3xl">{product.icon}</span>
+                  Order Summary
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-start justify-between p-4 bg-muted/50 rounded-lg">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-lg">{product.name}</h3>
+                    <p className="text-sm text-muted-foreground mt-1">{product.description}</p>
+                    <div className="mt-2 flex items-center gap-2">
+                      <Badge variant="secondary" className="text-xs">
+                        {product.type === 'cosmetic' ? 'Cosmetic' : product.type === 'battle_pass' ? 'Battle Pass' : 'Asset'}
+                      </Badge>
                     </div>
-                  ) : (
-                    <>
-                      <div className="flex items-start gap-4 p-4 bg-primary/5 rounded-lg border border-primary/10">
-                        <div className="p-2 bg-primary/10 rounded-lg">
-                          {type ? getProductIcon(type) : <Package className="w-5 h-5" />}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between gap-2 mb-1">
-                            <div className="flex-1">
-                              <h3 className="font-semibold text-primary">{displayName}</h3>
-                              {type && (
-                                <p className="text-xs text-muted-foreground mt-0.5">
-                                  {getProductTypeLabel(type)}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                          <p className="text-sm text-muted-foreground line-clamp-2">
-                            {displayDescription}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2 pt-4 border-t border-primary/10">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Subtotal</span>
-                          <span className="font-medium">${displayPrice.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Processing Fee</span>
-                          <span className="font-medium">$0.00</span>
-                        </div>
-                        <div className="pt-2 border-t border-primary/10">
-                          <div className="flex justify-between">
-                            <span className="font-semibold text-lg">Total</span>
-                            <span className="font-bold text-lg text-primary">
-                              ${displayPrice.toFixed(2)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </CardContent>
-                <CardFooter className="flex flex-col gap-2 pt-4 border-t border-primary/10">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Lock className="w-4 h-4" />
-                    <span>Secure checkout powered by Stripe</span>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Shield className="w-4 h-4" />
-                    <span>Your payment information is encrypted</span>
+                </div>
+
+                <div className="space-y-2 pt-4 border-t">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span>${product.price.toFixed(2)}</span>
                   </div>
-                </CardFooter>
-              </Card>
-            </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Tax</span>
+                    <span>$0.00</span>
+                  </div>
+                  <div className="flex justify-between text-lg font-bold pt-2 border-t">
+                    <span>Total</span>
+                    <span className="text-primary">${product.price.toFixed(2)}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-            {/* Payment Form */}
-            <div className="lg:col-span-2">
-              <Card className="bg-card/70 border-primary/30">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CreditCard className="w-5 h-5" />
-                    Payment Details
-                  </CardTitle>
-                  <CardDescription>
-                    Complete your purchase securely with your payment method
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-sm font-medium mb-2 block">
-                          Payment Information
-                        </label>
-                        <div className="p-4 border border-primary/20 rounded-lg bg-background/50 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-                          <PaymentElement
-                            options={{
-                              layout: 'tabs',
-                              paymentMethodOrder: ['card', 'link'],
-                              fields: {
-                                billingDetails: {
-                                  name: 'auto',
-                                  email: 'auto',
-                                  phone: 'auto',
-                                  address: {
-                                    country: 'auto',
-                                    line1: 'auto',
-                                    city: 'auto',
-                                    postalCode: 'auto',
-                                    state: 'auto'
-                                  }
-                                }
-                              },
-                              appearance: {
-                                theme: 'stripe',
-                                variables: {
-                                  colorPrimary: 'hsl(var(--primary))',
-                                  colorBackground: 'hsl(var(--background))',
-                                  colorText: 'hsl(var(--foreground))',
-                                  colorDanger: 'hsl(var(--destructive))',
-                                  fontFamily: 'system-ui, sans-serif',
-                                  spacingUnit: '4px',
-                                  borderRadius: '8px',
-                                },
-                                rules: {
-                                  '.Input': {
-                                    borderColor: 'hsl(var(--border))',
-                                    backgroundColor: 'hsl(var(--background))',
-                                  },
-                                  '.Input:focus': {
-                                    borderColor: 'hsl(var(--primary))',
-                                  },
-                                  '.Label': {
-                                    color: 'hsl(var(--foreground))',
-                                  }
-                                }
-                              }
-                            }}
-                          />
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          We accept Visa, Mastercard, American Express, Discover, and other payment methods
-                        </p>
-                      </div>
+            {/* Checkout Form */}
+            <Card className="border-primary/30">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5" />
+                  Payment Information
+                </CardTitle>
+                <CardDescription>Enter your payment details to complete the purchase</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <label htmlFor="name" className="text-sm font-medium">
+                      Cardholder Name
+                    </label>
+                    <Input
+                      id="name"
+                      placeholder="John Doe"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      required
+                    />
+                  </div>
 
-                      {error && (
-                        <Alert variant="destructive">
-                          <XCircle className="h-4 w-4" />
-                          <AlertDescription>{error}</AlertDescription>
-                        </Alert>
-                      )}
+                  <div className="space-y-2">
+                    <label htmlFor="cardNumber" className="text-sm font-medium">
+                      Card Number
+                    </label>
+                    <Input
+                      id="cardNumber"
+                      placeholder="1234 5678 9012 3456"
+                      value={formData.cardNumber}
+                      onChange={(e) => setFormData({ ...formData, cardNumber: formatCardNumber(e.target.value) })}
+                      maxLength={19}
+                      required
+                    />
+                  </div>
 
-                      <div className="bg-primary/5 p-4 rounded-lg border border-primary/10">
-                        <div className="flex items-start gap-3">
-                          <Lock className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                          <div className="flex-1">
-                            <h4 className="text-sm font-semibold mb-1">Secure Payment</h4>
-                            <p className="text-xs text-muted-foreground">
-                              Your payment is processed securely by Stripe. We never store your full card details on our servers.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label htmlFor="expiryDate" className="text-sm font-medium">
+                        Expiry Date
+                      </label>
+                      <Input
+                        id="expiryDate"
+                        placeholder="MM/YY"
+                        value={formData.expiryDate}
+                        onChange={(e) => setFormData({ ...formData, expiryDate: formatExpiryDate(e.target.value) })}
+                        maxLength={5}
+                        required
+                      />
                     </div>
 
+                    <div className="space-y-2">
+                      <label htmlFor="cvv" className="text-sm font-medium">
+                        CVV
+                      </label>
+                      <Input
+                        id="cvv"
+                        placeholder="123"
+                        type="password"
+                        value={formData.cvv}
+                        onChange={(e) => setFormData({ ...formData, cvv: e.target.value.replace(/\D/g, '').slice(0, 3) })}
+                        maxLength={3}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <CardFooter className="px-0 pt-4">
                     <Button
                       type="submit"
-                      disabled={!stripe || loading || loadingProduct}
-                      className="w-full bg-gradient-to-r from-primary to-secondary text-primary-foreground hover:opacity-90 transition-opacity h-12 text-lg font-semibold"
-                      size="lg"
+                      className="w-full"
+                      disabled={loading}
                     >
                       {loading ? (
                         <>
-                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                          Processing Payment...
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Processing...
                         </>
                       ) : (
                         <>
-                          <Lock className="mr-2 h-5 w-5" />
-                          Pay ${displayPrice.toFixed(2)}
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          Complete Purchase
                         </>
                       )}
                     </Button>
+                  </CardFooter>
+                </form>
 
-                    <div className="flex items-center justify-center gap-6 pt-4 border-t border-primary/10">
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Shield className="w-4 h-4" />
-                        <span>PCI Compliant</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Lock className="w-4 h-4" />
-                        <span>256-bit SSL</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <CreditCard className="w-4 h-4" />
-                        <span>Secured by Stripe</span>
-                      </div>
-                    </div>
-                  </form>
-                </CardContent>
-              </Card>
-
-              {/* Additional Information */}
-              <Card className="bg-card/70 border-primary/30 mt-6">
-                <CardContent className="pt-6">
-                  <div className="space-y-4 text-sm text-muted-foreground">
-                    <div>
-                      <h4 className="font-semibold text-foreground mb-1">Refund Policy</h4>
-                      <p>
-                        Digital items are non-refundable unless otherwise stated. If you experience any issues, 
-                        please contact our support team.
-                      </p>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-foreground mb-1">Need Help?</h4>
-                      <p>
-                        If you have any questions about your purchase, please visit our support center or contact us directly.
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export function CheckoutPage() {
-  const navigate = useNavigate();
-  const urlParams = new URLSearchParams(window.location.search);
-  const clientSecret = urlParams.get('clientSecret');
-  const success = urlParams.get('success');
-  const paymentIntentId = urlParams.get('payment_intent');
-
-  // Handle successful payment redirect
-  useEffect(() => {
-    if (success === 'true' && paymentIntentId) {
-      // Payment was successful via redirect
-      const type = urlParams.get('type');
-      const id = urlParams.get('id');
-      
-      if (type && id) {
-        // Confirm purchase with backend
-        const playerId = localStorage.getItem('playerId') || 'demo_player';
-        let confirmEndpoint = '';
-        
-        if (type === 'cosmetic') {
-          confirmEndpoint = '/api/monetization/shop/confirm-cosmetic-purchase';
-        } else if (type === 'battle_pass') {
-          confirmEndpoint = '/api/monetization/battle-pass/activate';
-        }
-        
-        if (confirmEndpoint) {
-          fetch(confirmEndpoint, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              playerId,
-              paymentIntentId
-            })
-          }).then(() => {
-            toast.success('Purchase confirmed!');
-            setTimeout(() => {
-              if (type === 'cosmetic') {
-                navigate('/shop');
-              } else if (type === 'battle_pass') {
-                navigate('/battle-pass');
-              } else {
-                navigate('/');
-              }
-            }, 2000);
-          }).catch(err => {
-            console.error('Failed to confirm purchase:', err);
-            toast.error('Failed to confirm purchase');
-          });
-        }
-      }
-    }
-  }, [success, paymentIntentId, navigate]);
-
-  if (!clientSecret && !success) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-background to-muted/20">
-        <header className="fixed top-0 w-full z-50 bg-background/90 backdrop-blur-md border-b border-primary/30">
-          <nav className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <Button
-                variant="ghost"
-                onClick={() => navigate('/')}
-                className="text-primary hover:text-secondary"
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Home
-              </Button>
-              <a href="/" className="flex items-center gap-2 text-2xl font-bold text-primary">
-                <ShoppingBag className="w-8 h-8" />
-                <span>QUATERNION<span className="text-secondary">:</span>NF</span>
-              </a>
-              <div className="w-24" />
-            </div>
-          </nav>
-        </header>
-
-        <div className="pt-32 pb-20">
-          <div className="container mx-auto px-4 max-w-2xl">
-            <Card className="bg-card/70 border-primary/30">
-              <CardContent className="pt-12 pb-12">
-                <div className="flex flex-col items-center justify-center text-center space-y-4">
-                  <XCircle className="h-16 w-16 text-destructive" />
-                  <h2 className="text-2xl font-bold text-primary">Invalid Checkout Session</h2>
-                  <p className="text-muted-foreground">
-                    The checkout session is invalid or has expired. Please start a new purchase.
-                  </p>
-                  <Button onClick={() => navigate('/shop')} className="mt-4">
-                    Go to Shop
-                  </Button>
+                <div className="mt-4 text-center text-xs text-muted-foreground">
+                  <p>🔒 This is a mock checkout page. No real payment will be processed.</p>
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
       </div>
-    );
-  }
-
-  return (
-    <Elements 
-      stripe={stripePromise}
-      options={{
-        clientSecret: clientSecret || undefined,
-        appearance: {
-          theme: 'stripe',
-          variables: {
-            colorPrimary: 'hsl(var(--primary))',
-            colorBackground: 'hsl(var(--background))',
-            colorText: 'hsl(var(--foreground))',
-            colorDanger: 'hsl(var(--destructive))',
-            fontFamily: 'system-ui, sans-serif',
-            spacingUnit: '4px',
-            borderRadius: '8px',
-          }
-        }
-      }}
-    >
-      <CheckoutForm />
-    </Elements>
+    </div>
   );
 }

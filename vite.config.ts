@@ -64,8 +64,8 @@ export default defineConfig(({ mode }) => ({
     },
     // Enable compression reporting
     reportCompressedSize: true,
-    // Target modern browsers for smaller bundle size
-    target: 'esnext',
+    // Target ES2020 for better browser compatibility (supports Chrome 80+, Firefox 78+, Safari 14+, Edge 80+)
+    target: 'es2020',
   },
   // Optimize dependencies
   optimizeDeps: {
