@@ -299,22 +299,7 @@ const Index = () => {
               An AI-generated strategy game where every decision rotates the four dimensions of reality. Command procedurally generated armies, exploit dynamic terrain, and balance the Quaternion to achieve victory.
             </p>
             <div className="relative mt-6 rounded-lg overflow-hidden border border-primary/30 shadow-neon min-h-[200px] bg-muted/20">
-              {!imageErrors.has("/assets/monsters/DALL·E 2024-11-22 18.35.00 - Design a cinematic, ultra-high-quality sci-fi movie poster for 'Quaternion.' The composition features a massive, glowing monster emanating the four po.webp") ? (
-                <img 
-                  src={assetUrl("/assets/monsters/DALL·E 2024-11-22 18.35.00 - Design a cinematic, ultra-high-quality sci-fi movie poster for 'Quaternion.' The composition features a massive, glowing monster emanating the four po.webp")}
-                  alt="Quaternion Game"
-                  className="w-full h-auto object-cover"
-                  loading="lazy"
-                  onError={(e) => handleImageError(e.currentTarget.src, e)}
-                  onLoad={(e) => {
-                    console.log('Hero image loaded:', e.currentTarget.src);
-                  }}
-                />
-              ) : (
-                <div className="w-full h-64 flex items-center justify-center text-muted-foreground">
-                  <p>Game Preview</p>
-                </div>
-              )}
+              {/* Image removed per user request; keeping blank panel without background image */}
             </div>
             <div className="flex flex-wrap gap-3 sm:gap-4">
               <Button 
@@ -371,15 +356,7 @@ const Index = () => {
           <div className="relative hidden md:block">
             <div className="relative w-80 h-80 mx-auto">
               {/* Elemental Guardian Monster Image - Behind the spinning circle */}
-              {!imageErrors.has("/assets/monsters/DALL·E 2024-11-22 18.49.09 - Create an original and highly detailed sci-fi illustration of a colossal elemental monster formed from four floating islands, each representing a dist.webp") ? (
-                <img 
-                  src={assetUrl("/assets/monsters/DALL·E 2024-11-22 18.49.09 - Create an original and highly detailed sci-fi illustration of a colossal elemental monster formed from four floating islands, each representing a dist.webp")}
-                  alt="Elemental Guardian Monster"
-                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 object-cover rounded-full opacity-60 blur-sm z-0"
-                  loading="lazy"
-                  onError={(e) => handleImageError(e.currentTarget.src, e)}
-                />
-              ) : null}
+              {/* Background monster image removed; keeping rotating quaternion UI only */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 border-2 border-primary rounded-full animate-quaternion-rotate z-10">
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-primary rounded-full flex items-center justify-center">
                   <Box className="w-4 h-4 text-primary-foreground" />
