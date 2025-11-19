@@ -481,7 +481,7 @@ const Index = () => {
                     alt="Volcanic Terrain Map"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     loading="lazy"
-                    onError={(e) => handleImageError(e.currentTarget.src, e)}
+                    onError={(e) => handleImageError("/assets/maps/DALL·E 2024-11-20 16.22.41 - Create a unique 2D and 3D map design for a volcanic terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowing.webp", e)}
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
@@ -502,7 +502,7 @@ const Index = () => {
                     alt="Alien Jungle Map"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     loading="lazy"
-                    onError={(e) => handleImageError(e.currentTarget.src, e)}
+                    onError={(e) => handleImageError("/assets/maps/DALL·E 2024-11-20 16.22.45 - Create a unique 2D and 3D map design for a lush alien jungle for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowin.webp", e)}
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
@@ -523,7 +523,7 @@ const Index = () => {
                     alt="Icy Wasteland Map"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     loading="lazy"
-                    onError={(e) => handleImageError(e.currentTarget.src, e)}
+                    onError={(e) => handleImageError("/assets/maps/DALL·E 2024-11-20 16.22.38 - Create a unique 2D and 3D map design for an icy wasteland for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature slippery .webp", e)}
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
@@ -544,7 +544,7 @@ const Index = () => {
                     alt="Desert Terrain Map"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     loading="lazy"
-                    onError={(e) => handleImageError(e.currentTarget.src, e)}
+                    onError={(e) => handleImageError("/assets/maps/DALL·E 2024-11-20 16.22.35 - Create a unique 2D and 3D map design for a desert terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature shifting .webp", e)}
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
@@ -565,7 +565,7 @@ const Index = () => {
                     alt="Mountainous Terrain Map"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     loading="lazy"
-                    onError={(e) => handleImageError(e.currentTarget.src, e)}
+                    onError={(e) => handleImageError("/assets/maps/DALL·E 2024-11-20 16.22.32 - Create a unique 2D and 3D map design for a mountainous terrain for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature laye.webp", e)}
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
@@ -586,7 +586,7 @@ const Index = () => {
                     alt="Urban Battlefield Map"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     loading="lazy"
-                    onError={(e) => handleImageError(e.currentTarget.src, e)}
+                    onError={(e) => handleImageError("/assets/maps/DALL·E 2024-11-20 16.22.24 - Create a unique 2D and 3D map design for an urban battlefield for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature dense.webp", e)}
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
@@ -607,7 +607,7 @@ const Index = () => {
                     alt="Twilight Biome Map"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     loading="lazy"
-                    onError={(e) => handleImageError(e.currentTarget.src, e)}
+                    onError={(e) => handleImageError("/assets/maps/DALL·E 2024-11-20 16.22.21 - Create a unique 2D and 3D map design for a twilight biome for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowing a.webp", e)}
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
@@ -628,7 +628,7 @@ const Index = () => {
                     alt="Underwater Biome Map"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     loading="lazy"
-                    onError={(e) => handleImageError(e.currentTarget.src, e)}
+                    onError={(e) => handleImageError("/assets/maps/DALL·E 2024-11-20 16.22.28 - Create a unique 2D and 3D map design for an underwater biome for a StarCraft-inspired mobile game titled 'Eclipse Down.' The map should feature glowin.webp", e)}
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
@@ -684,7 +684,7 @@ const Index = () => {
                     alt="Battle Scene Monster"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     loading="lazy"
-                    onError={(e) => handleImageError(e.currentTarget.src, e)}
+                    onError={(e) => handleImageError("/assets/monsters/DALL·E 2024-11-22 18.44.15 - Design an enhanced sci-fi movie poster for 'Quaternion,' focusing on the battle between a colossal monster and three futuristic starships. The monster.webp", e)}
                     onLoad={(e) => {
                       console.log('Monster image loaded:', e.currentTarget.src);
                     }}
@@ -709,7 +709,7 @@ const Index = () => {
                     alt="Celestial Monster"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                     loading="lazy"
-                    onError={(e) => handleImageError(e.currentTarget.src, e)}
+                    onError={(e) => handleImageError("/assets/monsters/DALL·E 2024-11-20 16.27.15 - Create an AI-generated image of a Celestial Monster character from a celestial-themed game. The monster is chaotic and otherworldly, with glowing cosm.webp", e)}
                     onLoad={(e) => {
                       console.log('Monster image loaded:', e.currentTarget.src);
                     }}
