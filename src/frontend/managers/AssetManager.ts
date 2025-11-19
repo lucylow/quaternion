@@ -238,26 +238,26 @@ export class AssetManager {
 
     for (const [country, fileName] of Object.entries(countryFileMap)) {
       const basePath = `${this.assetPaths.countries}${fileName}`;
-      const encodedPath = this.encodePath(basePath);
+      const resolvedPath = this.resolvePath(basePath);
 
-      // Load country image (use encoded path to handle special characters)
-      this.scene.load.image(`country_${country}`, encodedPath);
+      // Load country image (use resolved path to handle special characters and Lovable transformation)
+      this.scene.load.image(`country_${country}`, resolvedPath);
 
       // Load as tileset alternative
-      this.scene.load.image(`tileset_${country}`, encodedPath);
+      this.scene.load.image(`tileset_${country}`, resolvedPath);
 
       // Load as terrain texture
-      this.scene.load.image(`terrain_${country}`, encodedPath);
+      this.scene.load.image(`terrain_${country}`, resolvedPath);
 
       // For parallax, we'll use the same image with different scroll factors
       for (let i = 1; i <= 3; i++) {
-        this.scene.load.image(`parallax_${country}_${i}`, encodedPath);
+        this.scene.load.image(`parallax_${country}_${i}`, resolvedPath);
       }
 
       this.assets.set(`country_${country}`, {
         type: 'country',
         name: country,
-        path: encodedPath, // Store encoded path for consistency
+        path: resolvedPath, // Store resolved path for consistency
         metadata: this.getDefaultCountryMetadata(), // Use default metadata for now
       });
     }
