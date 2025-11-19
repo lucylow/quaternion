@@ -3,7 +3,7 @@
  * Manages loading and organizing game images (maps, monsters, countries, etc.)
  */
 
-import { encodeImagePath } from '../utils/imagePathEncoder';
+import { assetUrl } from '../utils/assetUrl';
 
 export interface ImageAsset {
   key: string;
@@ -65,18 +65,18 @@ export class ImageAssetLoader {
   }
 
   /**
-   * Encode URL path to handle special characters robustly
+   * Resolve asset path using assetUrl() for Lovable deployment compatibility
    * Uses shared utility function for consistency across the app
    */
-  private static encodePath(path: string): string {
-    return encodeImagePath(path);
+  private static resolvePath(path: string): string {
+    return assetUrl(path);
   }
   
   /**
-   * Get the encoded path for an asset (useful for debugging)
+   * Get the resolved path for an asset (useful for debugging)
    */
-  static getEncodedPath(assetPath: string): string {
-    return this.encodePath(assetPath);
+  static getResolvedPath(assetPath: string): string {
+    return this.resolvePath(assetPath);
   }
 
   /**
@@ -84,8 +84,8 @@ export class ImageAssetLoader {
    */
   static loadAssets(scene: Phaser.Scene): void {
     this.allAssets.forEach(asset => {
-      const encodedPath = this.encodePath(asset.path);
-      scene.load.image(asset.key, encodedPath);
+      const resolvedPath = this.resolvePath(asset.path);
+      scene.load.image(asset.key, resolvedPath);
     });
   }
 
@@ -94,8 +94,8 @@ export class ImageAssetLoader {
    */
   static loadMaps(scene: Phaser.Scene): void {
     this.mapAssets.forEach(asset => {
-      const encodedPath = this.encodePath(asset.path);
-      scene.load.image(asset.key, encodedPath);
+      const resolvedPath = this.resolvePath(asset.path);
+      scene.load.image(asset.key, resolvedPath);
     });
   }
 
@@ -104,8 +104,8 @@ export class ImageAssetLoader {
    */
   static loadMonsters(scene: Phaser.Scene): void {
     this.monsterAssets.forEach(asset => {
-      const encodedPath = this.encodePath(asset.path);
-      scene.load.image(asset.key, encodedPath);
+      const resolvedPath = this.resolvePath(asset.path);
+      scene.load.image(asset.key, resolvedPath);
     });
   }
 
@@ -114,8 +114,8 @@ export class ImageAssetLoader {
    */
   static loadCountries(scene: Phaser.Scene): void {
     this.countryAssets.forEach(asset => {
-      const encodedPath = this.encodePath(asset.path);
-      scene.load.image(asset.key, encodedPath);
+      const resolvedPath = this.resolvePath(asset.path);
+      scene.load.image(asset.key, resolvedPath);
     });
   }
 

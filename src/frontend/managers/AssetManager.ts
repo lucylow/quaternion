@@ -1,7 +1,7 @@
 // src/frontend/managers/AssetManager.ts
 
 import Phaser from 'phaser';
-import { encodeImagePath } from '../../utils/imagePathEncoder';
+import { assetUrl } from '../../utils/assetUrl';
 import { fetchAsset } from '../../utils/networkUtils';
 
 interface MonsterStats {
@@ -175,13 +175,13 @@ export class AssetManager {
   }
 
   /**
-   * Encode URL path to handle special characters robustly
+   * Resolve asset path using assetUrl() for Lovable deployment compatibility
    * Handles Unicode characters, spaces, special symbols, and edge cases
-   * Also handles Lovable preview environment paths
+   * Also handles Lovable preview environment paths and asset transformation
    * Uses shared utility for consistency across the app
    */
-  private encodePath(path: string): string {
-    return encodeImagePath(path);
+  private resolvePath(path: string): string {
+    return assetUrl(path);
   }
 
   /**
@@ -206,18 +206,18 @@ export class AssetManager {
 
     for (const [key, fileName] of Object.entries(monsterFileMap)) {
       const basePath = `${this.assetPaths.monsters}${fileName}`;
-      const encodedPath = this.encodePath(basePath);
+      const resolvedPath = this.resolvePath(basePath);
       const assetKey = `monster_${key}`;
 
       // Load image (since we have webp files, not spritesheets)
-      // Use encoded path to handle special characters in filenames
-      this.scene.load.image(assetKey, encodedPath);
+      // Use resolved path to handle special characters in filenames and Lovable transformation
+      this.scene.load.image(assetKey, resolvedPath);
 
       // Cache metadata (stats will be loaded asynchronously if needed)
       this.assets.set(assetKey, {
         type: 'monster',
         name: key,
-        path: encodedPath, // Store encoded path for consistency
+        path: resolvedPath, // Store resolved path for consistency
         stats: this.getDefaultMonsterStats(), // Use default stats for now
       });
     }

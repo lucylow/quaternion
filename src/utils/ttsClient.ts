@@ -1,6 +1,6 @@
 // src/utils/ttsClient.ts
 import axios from 'axios';
-import audioManager from './audioManager';
+import { audioManager } from '@/engine/AudioManager';
 
 const CACHE_PREFIX = 'ql-tts-';
 
@@ -16,7 +16,9 @@ export async function generateAndPlayTTS({
   const key = `${CACHE_PREFIX}${voiceId}|${(ssml ?? text)?.slice(0, 200)}`;
   const cached = localStorage.getItem(key);
   if (cached) {
-    await audioManager.queueVoice(cached);
+    // Play TTS audio directly using HTML5 Audio (for blob URLs)
+    const audio = new Audio(cached);
+    await audio.play();
     return cached;
   }
 
@@ -46,7 +48,9 @@ export async function generateAndPlayTTS({
   const url = URL.createObjectURL(blob);
   // cache: store blob URL string in localStorage (short-lived). For long-term, upload to server blob storage.
   localStorage.setItem(key, url);
-  await audioManager.queueVoice(url);
+  // Play TTS audio directly using HTML5 Audio (for blob URLs)
+  const audio = new Audio(url);
+  await audio.play();
   return url;
 }
 

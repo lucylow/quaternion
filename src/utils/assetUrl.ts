@@ -3,13 +3,20 @@
 // Universal runtime resolver for assets that works with Lovable transformation and local dev.
 // The Lovable pipeline/tool should replace /mnt/data/... paths with a public URL. If not, we fall back to VITE_ASSET_PREFIX.
 
+import { encodeImagePath } from './imagePathEncoder';
+
 export function assetUrl(localPath: string): string {
+  if (!localPath) return localPath;
+
   // 1) If a Lovable runtime resolver exists (injected in the host), use it.
   const win = typeof window !== 'undefined' ? (window as any) : undefined;
   if (win && typeof win.__LOVABLE_ASSET_RESOLVER === 'function') {
     try {
       const resolved = win.__LOVABLE_ASSET_RESOLVER(localPath);
-      if (typeof resolved === 'string' && resolved.length) return resolved;
+      if (typeof resolved === 'string' && resolved.length) {
+        // Still encode the resolved path to handle special characters
+        return encodeImagePath(resolved);
+      }
     } catch (err) {
       // fall through to other strategies
       // console.warn('Lovable resolver failed', err);
@@ -28,24 +35,31 @@ export function assetUrl(localPath: string): string {
 
   if (localPath.startsWith('/mnt/data/') && devPrefix) {
     // devPrefix is expected to be e.g. "https://neural-frontier-hq.lovable.app/assets"
-    return `${devPrefix.replace(/\/$/, '')}/${basename}`;
+    const resolved = `${devPrefix.replace(/\/$/, '')}/${basename}`;
+    return encodeImagePath(resolved);
   }
 
   // 3) Handle existing /assets paths - these should work as-is but ensure they're properly resolved
   if (localPath.startsWith('/assets/')) {
-    // If we have a dev prefix, use it; otherwise return as-is (browser will resolve relative to origin)
+    // If we have a dev prefix, use it; otherwise encode and return the path
     if (devPrefix) {
-      return `${devPrefix.replace(/\/$/, '')}${localPath}`;
+      return encodeImagePath(`${devPrefix.replace(/\/$/, '')}${localPath}`);
     }
-    return localPath;
+    // Use encodeImagePath to handle special characters and Lovable preview paths
+    return encodeImagePath(localPath);
   }
 
-  // 4) If the path already looks like a URL, return it.
-  if (/^https?:\/\//.test(localPath) || localPath.startsWith('/')) {
-    return localPath;
+  // 4) If the path already looks like a URL, return it encoded.
+  if (/^https?:\/\//.test(localPath)) {
+    return localPath; // URLs don't need encoding
   }
 
-  // 5) Last resort: return localPath (browser might not be able to fetch it without transformation).
-  return localPath;
+  // 5) For other absolute paths, encode them
+  if (localPath.startsWith('/')) {
+    return encodeImagePath(localPath);
+  }
+
+  // 6) Last resort: encode and return localPath (browser might not be able to fetch it without transformation).
+  return encodeImagePath(localPath);
 }
 

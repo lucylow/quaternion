@@ -836,11 +836,11 @@ const QuaternionGame = () => {
       const { width, height } = this.cameras.main;
 
       // Register AudioManager with Phaser sound system
-      gameAudioManager.registerPhaser(this.sound);
+      audioManager.registerPhaser(this.sound);
       
       // Start background music loop
       try {
-        gameAudioManager.loop('bg_loop', { volume: 0.45 });
+        audioManager.loop('bg_loop', { volume: 0.45 });
       } catch (err) {
         console.warn('[AudioManager] Background music not available:', err);
       }
@@ -864,7 +864,7 @@ const QuaternionGame = () => {
             }
             
             // Play click sound
-            gameAudioManager.play('ui_click', { volume: 0.8 }).catch(() => {
+            audioManager.play('ui_click', { volume: 0.8 }).catch(() => {
               console.debug('[AudioManager] Click sound not available');
             });
           } else if (cmd.type === 'move') {
@@ -1290,7 +1290,7 @@ const QuaternionGame = () => {
         node.on('pointerdown', () => {
           console.log('[Scene] Resource node clicked:', nodeType.resource, 'at', node.x, node.y);
           // Play click sound
-          gameAudioManager.play('ui_click', { volume: 0.8 }).catch(() => {
+          audioManager.play('ui_click', { volume: 0.8 }).catch(() => {
             console.debug('[AudioManager] Click sound not available');
           });
           // Send command to engine bridge
@@ -1338,7 +1338,7 @@ const QuaternionGame = () => {
       playerBase.on('pointerdown', () => {
         console.log('[Scene] Player base clicked at', playerBase.x, playerBase.y);
         // Play click sound
-        gameAudioManager.play('ui_click', { volume: 0.8 }).catch(() => {
+        audioManager.play('ui_click', { volume: 0.8 }).catch(() => {
           console.debug('[AudioManager] Click sound not available');
         });
         // Send command to engine bridge
@@ -1433,7 +1433,7 @@ const QuaternionGame = () => {
           if (!pointer.leftButtonDown()) return; // Only left clicks
           
           // Play click sound
-          gameAudioManager.play('ui_click', { volume: 0.8 }).catch(() => {
+          audioManager.play('ui_click', { volume: 0.8 }).catch(() => {
             console.debug('[AudioManager] Click sound not available');
           });
           
