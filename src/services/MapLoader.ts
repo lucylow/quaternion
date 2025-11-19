@@ -5,7 +5,7 @@
 
 import mapsData from '../assets/maps/maps.json';
 import { MapConfig } from '../types/map';
-import { encodeImagePath as encodePath } from '../utils/imagePathEncoder';
+import { assetUrl } from '../utils/assetUrl';
 
 export class MapLoader {
   private imageCache: Map<string, HTMLImageElement> = new Map();
