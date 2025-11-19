@@ -238,9 +238,9 @@ export class AIIntegrationManager {
     try {
       const text = await this.llm.generateBattleIntro(mapTheme, commander1, commander2);
       
-      let audioUrl: string | undefined;
+      let audioUrl: string | null | undefined;
       if (this.elevenLabs) {
-        audioUrl = await this.generateBattleNarration(text, 'narrator');
+        audioUrl = await this.generateBattleNarration(text, 'narrator') || undefined;
       }
 
       const latency = Date.now() - startTime;

@@ -56,6 +56,8 @@ import {
   AdaptiveLearningAI,
   DynamicTechTree
 } from '@/ai/creative';
+import { engineBridge } from '@/engine/EngineBridge';
+import { audioManager as gameAudioManager } from '@/engine/AudioManager';
 
 interface GameResources {
   ore: number;
@@ -579,6 +581,14 @@ const QuaternionGame = () => {
         setLoadingProgress(value * 100);
       });
 
+      // Preload audio files for AudioManager
+      try {
+        this.load.audio('bg_loop', '/audio/bg_loop.ogg');
+        this.load.audio('ui_click', '/audio/ui_click.ogg');
+      } catch (err) {
+        console.warn('[Preload] Audio files not available, will use fallback:', err);
+      }
+
       // Initialize asset lists first
       ImageAssetLoader.initializeAssets();
 
@@ -801,6 +811,51 @@ const QuaternionGame = () => {
 
     function create(this: Phaser.Scene) {
       const { width, height } = this.cameras.main;
+
+      // Register AudioManager with Phaser sound system
+      gameAudioManager.registerPhaser(this.sound);
+      
+      // Start background music loop
+      try {
+        gameAudioManager.loop('bg_loop', { volume: 0.45 });
+      } catch (err) {
+        console.warn('[AudioManager] Background music not available:', err);
+      }
+
+      // Set up EngineBridge command listener for React -> Engine communication
+      const unsubscribe = engineBridge.onCommand((cmd) => {
+        try {
+          if (cmd.type === 'click-tile') {
+            const { tileId, tileName, x, y } = cmd.payload || {};
+            console.log('[EngineBridge] Received click-tile command:', { tileId, tileName, x, y });
+            
+            // Visual feedback: find and highlight tile sprite if it exists
+            const tileSprite = this.children.getByName(tileId);
+            if (tileSprite && 'setTint' in tileSprite) {
+              (tileSprite as any).setTint(0x66ff66);
+              this.time.delayedCall(300, () => {
+                if (tileSprite && 'clearTint' in tileSprite) {
+                  (tileSprite as any).clearTint();
+                }
+              });
+            }
+            
+            // Play click sound
+            gameAudioManager.play('ui_click', { volume: 0.8 }).catch(() => {
+              console.debug('[AudioManager] Click sound not available');
+            });
+          } else if (cmd.type === 'move') {
+            const { unitIds, x, y } = cmd.payload || {};
+            console.log('[EngineBridge] Received move command:', { unitIds, x, y });
+            // Handle movement command (implement based on your game logic)
+          }
+        } catch (err) {
+          console.error('[EngineBridge] Error handling command:', err);
+        }
+      });
+
+      // Store unsubscribe function for cleanup
+      (this as any).__engineBridgeUnsubscribe = unsubscribe;
 
       // Create particle texture if it doesn't exist (for particle effects)
       if (!this.textures.exists('particle')) {
@@ -1211,6 +1266,20 @@ const QuaternionGame = () => {
         safeSetInteractive(node, { useHandCursor: true });
         node.on('pointerdown', () => {
           console.log('[Scene] Resource node clicked:', nodeType.resource, 'at', node.x, node.y);
+          // Play click sound
+          gameAudioManager.play('ui_click', { volume: 0.8 }).catch(() => {
+            console.debug('[AudioManager] Click sound not available');
+          });
+          // Send command to engine bridge
+          engineBridge.sendCommand({ 
+            type: 'click-resource-node', 
+            payload: { 
+              resource: nodeType.resource,
+              axis: nodeType.axis,
+              x: node.x,
+              y: node.y
+            } 
+          });
         });
         
         // Enhanced icon with axis styling
@@ -1245,6 +1314,18 @@ const QuaternionGame = () => {
       safeSetInteractive(playerBase, { useHandCursor: true });
       playerBase.on('pointerdown', () => {
         console.log('[Scene] Player base clicked at', playerBase.x, playerBase.y);
+        // Play click sound
+        gameAudioManager.play('ui_click', { volume: 0.8 }).catch(() => {
+          console.debug('[AudioManager] Click sound not available');
+        });
+        // Send command to engine bridge
+        engineBridge.sendCommand({ 
+          type: 'click-base', 
+          payload: { 
+            x: playerBase.x,
+            y: playerBase.y
+          } 
+        });
       });
       playerBase.setDepth(50); // Ensure base is visible
       playerBase.setData('type', 'base');
@@ -1327,6 +1408,23 @@ const QuaternionGame = () => {
           console.log('[Scene] Unit clicked!', unitType, 'at', unit.x, unit.y);
           
           if (!pointer.leftButtonDown()) return; // Only left clicks
+          
+          // Play click sound
+          gameAudioManager.play('ui_click', { volume: 0.8 }).catch(() => {
+            console.debug('[AudioManager] Click sound not available');
+          });
+          
+          // Send command to engine bridge
+          engineBridge.sendCommand({ 
+            type: 'click-unit', 
+            payload: { 
+              unitId: unit.getData('id') || `unit_${i}`,
+              unitType: unitType,
+              axis: unitAxis,
+              x: unit.x,
+              y: unit.y
+            } 
+          });
           
           // Deselect all other units
           selectedUnitsRef.current.forEach(u => {
@@ -3631,13 +3729,13 @@ const QuaternionGame = () => {
 
           {/* Enhanced AI Messages with Minimalistic Design */}
           <div className="absolute top-20 right-4 z-20 space-y-2 max-w-sm">
-            {aiMessages.map((msg, idx) => {
+            {aiMessages.map((msg) => {
               const commander = COMMANDERS[msg.commander];
               const commanderColor = commander.color || '#00ffea';
               
               return (
                 <div
-                  key={getMessageKey(msg, idx)}
+                  key={msg.id}
                   className="bg-gray-800/90 backdrop-blur-sm border rounded-lg p-3 animate-in slide-in-from-right shadow-lg transition-all hover:scale-[1.02]"
                   style={{
                     borderColor: `${commanderColor}40`,
