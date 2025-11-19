@@ -11,6 +11,7 @@ import { Loader2, Search, Sparkles, Star, Zap, Crown, Gem, Filter, Grid3x3, List
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
+import { assetUrl } from '@/utils/assetUrl';
 
 interface Cosmetic {
   id: string;
@@ -987,7 +988,7 @@ export function CosmeticShop() {
               <div className={cn("aspect-video rounded-lg flex items-center justify-center relative overflow-hidden", getRarityConfig(selectedCosmetic.rarity).color)}>
                 {selectedCosmetic.image ? (
                   <img 
-                    src={selectedCosmetic.image} 
+                    src={assetUrl(selectedCosmetic.image)} 
                     alt={selectedCosmetic.name}
                     className="w-full h-full object-cover"
                     onError={(e) => {
